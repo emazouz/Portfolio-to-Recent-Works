@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "BlogLike" ALTER COLUMN "userId" SET DATA TYPE TEXT;

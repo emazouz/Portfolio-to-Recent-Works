@@ -1,0 +1,440 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// User Management Models
+// ================================
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String?
+  role      Role      @default(USER)
+  avatar    String?
+  gender    Gender?
+  birthDate DateTime?
+
+  // Security & Authentication
+  refreshToken           String?   @unique
+  resetToken             String?   @unique
+  resetTokenExpiresAt    DateTime?
+  emailVerificationToken String?   @unique
+
+  // Account Status
+  subscribeNewsletter      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  termsAgreed   Boolean   @default(false)
+  lastLoginAt   DateTime?
+  // rememberToken String?
+
+  rememberToken          Boolean?            @default(false)
+  rememberTokenExpiresAt DateTime? 
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  orders  Order[]
+  blogs   Blog[]
+  reviews Review[]
+  emailVerifications     EmailVerification?
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+
+
+
+enum EmailVerificationType {
+  CHANGE_EMAIL
+  EMAIL_VERIFICATION
+}
+
+// --- Email Verification Model ---
+model EmailVerification {
+  id        String   @id @default(uuid()) // المعرف الفريد للملف الشخصي
+  email  String   @unique // البريد الإلكتروني الجديد (فريد)
+  code      String   @unique // رمز التحقق
+  expiresAt DateTime // تاريخ انتهاء صلاحية رمز التحقق
+  type      EmailVerificationType
+  user      User     @relation(fields: [userId], references: [id]) // علاقة مع المستخدم
+  userId    String   @unique // مفتاح خارجي لربط الملف الشخصي بالمستخدم
+
+  createdAt DateTime @default(now()) // تاريخ إنشاء الملف الشخصي
+  updatedAt DateTime @updatedAt 
+}
+
+
+
+
+// ================================
+// Portfolio & Projects Models
+// ================================
+
+model Project {
+  id             Int              @id @default(autoincrement())
+  title_en       String
+  title_ar       String
+  description_en String           @db.Text
+  description_ar String           @db.Text
+  imageUrl       String
+  category       ProjectCategory?
+  status         ProjectStatus    @default(IN_PROGRESS)
+  liveUrl        String?
+  githubUrl      String?
+  technologies   String[]
+  featured       Boolean          @default(false)
+  sortOrder      Int?
+
+  // SEO
+  slug_en      String  @unique
+  slug_ar      String  @unique
+  metaTitle_en String?
+  metaTitle_ar String?
+  metaDesc_en  String?
+  metaDesc_ar  String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  COMPLETED
+  IN_PROGRESS
+  PLANNING
+  ON_HOLD
+}
+
+enum ProjectCategory {
+  WEB_DEVELOPMENT
+  MOBILE_APP
+  DESKTOP_APP
+  UI_UX_DESIGN
+  API_DEVELOPMENT
+  OTHER
+}
+
+// ================================
+// Templates & E-commerce Models
+// ================================
+
+model Template {
+  id             Int              @id @default(autoincrement())
+  title_en       String
+  title_ar       String
+  description_en String           @db.Text
+  description_ar String           @db.Text
+  price          Decimal          @db.Decimal(10, 2)
+  originalPrice  Decimal?         @db.Decimal(10, 2)
+  rating         Float?           @default(0) @db.Real
+  ratingsCount   Int              @default(0)
+  downloads      Int              @default(0)
+  views          Int              @default(0)
+  tags           String[]
+  category       TemplateCategory
+  imageUrl       String
+  previewImages  String[]
+  previewUrl     String?
+  downloadUrl    String?
+  fileSize       String?
+  difficulty     Difficulty       @default(BEGINNER)
+  featured       Boolean          @default(false)
+  isActive       Boolean          @default(true)
+
+  // Versions
+  version   String  @default("1.0.0")
+  changelog String? @db.Text
+
+  // SEO
+  slug_en      String  @unique
+  slug_ar      String  @unique
+  metaTitle_en String?
+  metaTitle_ar String?
+  metaDesc_en  String?
+  metaDesc_ar  String?
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastUpdated DateTime?
+
+  // Relations
+  orders  Order[]
+  reviews Review[]
+
+  @@map("templates")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  templateId Int
+  userId     String
+  rating     Int // 1-5 stars
+  comment    String?  @db.Text
+  verified   Boolean  @default(false) // مراجعة موثقة من مشتري فعلي
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, userId]) // مراجعة واحدة لكل مستخدم لكل قالب
+  @@map("reviews")
+}
+
+enum TemplateCategory {
+  WEBSITE_TEMPLATES
+  ADMIN_DASHBOARDS
+  LANDING_PAGES
+  E_COMMERCE
+  PORTFOLIO
+  BLOG_THEMES
+  MOBILE_TEMPLATES
+  COMPONENTS
+  OTHER
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model Order {
+  id            String         @id @default(cuid())
+  userId        String
+  templateId    Int
+  price         Decimal        @db.Decimal(10, 2)
+  discount      Decimal?       @db.Decimal(10, 2) // قيمة التخفيض
+  finalPrice    Decimal        @db.Decimal(10, 2) // السعر النهائي بعد التخفيض
+  status        OrderStatus    @default(PENDING)
+  paymentMethod PaymentMethod?
+  transactionId String?        @unique
+
+  // Payment Details
+  paymentData   Json? // بيانات الدفع الإضافية
+  failureReason String? // سبب فشل الدفعة
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  paidAt    DateTime?
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template Template @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  BANK_TRANSFER
+  OTHER
+}
+
+// ================================
+// Blog & Content Models
+// ================================
+
+model Blog {
+  id         Int           @id @default(autoincrement())
+  title_en   String
+  title_ar   String
+  content_en String        @db.Text
+  content_ar String        @db.Text
+  slug       String        @unique
+  excerpt_en String?       @db.VarChar(500)
+  excerpt_ar String?       @db.VarChar(500)
+  authorId   String?
+  published  Boolean       @default(false)
+  featured   Boolean       @default(false)
+  category   BlogCategory?
+  tags       String[]
+  imageUrl   String?
+  readTime   Int? // وقت القراءة بالدقائق
+  views      Int           @default(0)
+  likes      Int           @default(0)
+  blogLikes BlogLike[]
+
+  // SEO
+  metaTitle_en String?
+  metaTitle_ar String?
+  metaDesc_en  String?  @db.VarChar(160)
+  metaDesc_ar  String?  @db.VarChar(160)
+  keywords     String[]
+
+  // Scheduling
+  publishDate DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  comments Comment[]
+
+  @@map("blogs")
+}
+
+
+
+model BlogLike {
+  id        Int      @id @default(autoincrement())
+  blogId    Int
+  userId    String
+  isLiked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  blog Blog @relation(fields: [blogId], references: [id])
+
+  @@unique([blogId, userId]) 
+}
+
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  blogId    Int
+  userId    String? // null إذا كان تعليق من زائر غير مسجل
+  name      String // اسم المعلق
+  email     String // بريد المعلق
+  content   String   @db.Text
+  approved  Boolean  @default(false)
+  parentId  Int? // للردود على التعليقات
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blog    Blog      @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+enum BlogCategory {
+  WEB_DEVELOPMENT
+  MOBILE_DEVELOPMENT
+  UI_UX_DESIGN
+  PROGRAMMING_TIPS
+  TUTORIALS
+  NEWS
+  PERSONAL
+  TECHNOLOGY
+  OTHER
+}
+
+// ================================
+// Communication Models
+// ================================
+
+model ContactMessage {
+  id          Int           @id @default(autoincrement())
+  name        String
+  email       String
+  phone       String?
+  subject     String?
+  message     String        @db.Text
+  type        MessageType   @default(GENERAL)
+  priority    Priority      @default(NORMAL)
+  status      MessageStatus @default(UNREAD)
+  assignedTo  String? // معرف الإداري المعين للرسالة
+  response    String?       @db.Text
+  respondedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("contact_messages")
+}
+
+enum MessageType {
+  GENERAL
+  SUPPORT
+  BUSINESS
+  COMPLAINT
+  SUGGESTION
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum MessageStatus {
+  UNREAD
+  READ
+  IN_PROGRESS
+  RESPONDED
+  CLOSED
+}
+
+// ================================
+// Configuration Models
+// ================================
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String @db.Text
+  type  String @default("string") // string, number, boolean, json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ================================
+// Analytics Models
+// ================================
+
+model Analytics {
+  id        Int      @id @default(autoincrement())
+  event     String // نوع الحدث: page_view, download, purchase, etc.
+  entity    String? // المعرف للكيان المرتبط بالحدث
+  userId    String? // معرف المستخدم (إذا كان مسجلاً)
+  data      Json? // بيانات إضافية
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+  @@map("analytics")
+}

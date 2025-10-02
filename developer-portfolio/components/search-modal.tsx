@@ -1,0 +1,217 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Search, X, FileText, Package, User, MessageSquare } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import Link from "next/link"
+
+interface SearchResult {
+  id: string
+  title: string
+  description: string
+  type: "template" | "project" | "blog" | "page"
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+const mockSearchResults: SearchResult[] = [
+  {
+    id: "1",
+    title: "Modern E-commerce Dashboard",
+    description: "Complete dashboard template with analytics and inventory management",
+    type: "template",
+    href: "/templates/ecommerce-dashboard",
+    icon: Package,
+  },
+  {
+    id: "2",
+    title: "SaaS Landing Page",
+    description: "Conversion-optimized landing page for SaaS products",
+    type: "template",
+    href: "/templates/saas-landing",
+    icon: Package,
+  },
+  {
+    id: "3",
+    title: "Task Management App",
+    description: "Full-stack project management application",
+    type: "project",
+    href: "/portfolio/task-management",
+    icon: User,
+  },
+  {
+    id: "4",
+    title: "Building Modern Dashboards with Next.js",
+    description: "Complete guide to creating responsive dashboards",
+    type: "blog",
+    href: "/blog/modern-dashboards-nextjs",
+    icon: FileText,
+  },
+  {
+    id: "5",
+    title: "About Me",
+    description: "Learn more about my background and expertise",
+    type: "page",
+    href: "/about",
+    icon: User,
+  },
+  {
+    id: "6",
+    title: "Contact",
+    description: "Get in touch for your next project",
+    type: "page",
+    href: "/contact",
+    icon: MessageSquare,
+  },
+]
+
+interface SearchModalProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export function SearchModal({ isOpen, onClose }: SearchModalProps) {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  useEffect(() => {
+    if (query.trim()) {
+      const filtered = mockSearchResults.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query.toLowerCase()) ||
+          item.description.toLowerCase().includes(query.toLowerCase()),
+      )
+      setResults(filtered)
+      setSelectedIndex(0)
+    } else {
+      setResults(mockSearchResults.slice(0, 6)) // Show popular results
+    }
+  }, [query])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery("")
+      setSelectedIndex(0)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return
+
+      if (e.key === "Escape") {
+        onClose()
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev + 1) % results.length)
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault()
+        setSelectedIndex((prev) => (prev - 1 + results.length) % results.length)
+      } else if (e.key === "Enter" && results[selectedIndex]) {
+        window.location.href = results[selectedIndex].href
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, results, selectedIndex, onClose])
+
+  if (!isOpen) return null
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "template":
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+      case "project":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+      case "blog":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+      case "page":
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 search-overlay animate-slide-down">
+      <div className="flex min-h-full items-start justify-center p-4 pt-16">
+        <div className="w-full max-w-2xl bg-background border rounded-lg shadow-2xl animate-scale-in">
+          {/* Search Header */}
+          <div className="flex items-center gap-3 p-4 border-b">
+            <Search className="h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search templates, projects, articles..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="border-0 focus-visible:ring-0 text-lg"
+              autoFocus
+            />
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Search Results */}
+          <div className="max-h-96 overflow-y-auto">
+            {results.length > 0 ? (
+              <div className="p-2">
+                {!query && (
+                  <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Popular
+                  </div>
+                )}
+                {results.map((result, index) => {
+                  const Icon = result.icon
+                  return (
+                    <Link
+                      key={result.id}
+                      href={result.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                        index === selectedIndex ? "bg-purple-50 dark:bg-purple-900/20" : "hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex-shrink-0">
+                        <Icon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-sm truncate">{result.title}</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(result.type)}`}>
+                            {result.type}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{result.description}</p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No results found for "{query}"</p>
+                <p className="text-sm mt-1">Try searching for templates, projects, or articles</p>
+              </div>
+            )}
+          </div>
+
+          {/* Search Footer */}
+          <div className="flex items-center justify-between p-3 border-t text-xs text-muted-foreground bg-muted/30">
+            <div className="flex items-center gap-4">
+              <span>↑↓ Navigate</span>
+              <span>↵ Select</span>
+              <span>ESC Close</span>
+            </div>
+            <span>{results.length} results</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
