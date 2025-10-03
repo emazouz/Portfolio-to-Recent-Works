@@ -1,5 +1,5 @@
 // templateController.ts
-
+import { supabaseAdmin } from "../config/supabaseAdmin";
 import { asyncHandler } from "../middleware/asyncHandler";
 import {
   AuthenticatedRequest,
@@ -12,16 +12,9 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "../utils/prisma";
 import { z, ZodError } from "zod";
 import { Prisma, TemplateCategory, Difficulty } from "@prisma/client";
-
-// ============ TYPES ============
-
-type PaginationResult = {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-};
+import { FileRequest } from "../types/FileRequest";
+import { getFiles } from "../middleware/upload";
+import { uploadToCloudinary } from "../utils/cloudinary";
 
 // ============ HELPER FUNCTIONS ============
 
@@ -38,32 +31,115 @@ function parseIntParam(param: string | undefined): number | null {
 
 // ============ VALIDATION SCHEMAS ============
 
-const createTemplateSchema = z.object({
-  title_en: z.string().min(1, "English title is required").max(200).trim(),
-  title_ar: z.string().min(1, "Arabic title is required").max(200).trim(),
-  description_en: z.string().min(10, "English description must be at least 10 characters").trim(),
-  description_ar: z.string().min(10, "Arabic description must be at least 10 characters").trim(),
-  price: z.number().min(0, "Price must be non-negative"),
-  originalPrice: z.number().min(0).optional(),
-  tags: z.array(z.string().min(1).max(50)).min(1, "At least one tag is required").max(20),
-  category: z.nativeEnum(TemplateCategory),
-  imageUrl: z.string().url("Invalid image URL"),
-  previewImages: z.array(z.string().url()).default([]),
-  previewUrl: z.string().url().optional(),
-  downloadUrl: z.string().url().optional(),
-  fileSize: z.string().max(50).optional(),
-  difficulty: z.nativeEnum(Difficulty).default("BEGINNER"),
-  featured: z.boolean().default(false),
-  slug_en: z.string().min(3, "English slug must be at least 3 characters").max(200)
-    .regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-  slug_ar: z.string().min(3, "Arabic slug must be at least 3 characters").max(200),
-  metaTitle_en: z.string().max(60).optional(),
-  metaTitle_ar: z.string().max(60).optional(),
-  metaDesc_en: z.string().max(160).optional(),
-  metaDesc_ar: z.string().max(160).optional(),
-  version: z.string().default("1.0.0"),
-  changelog: z.string().optional(),
-});
+const createTemplateSchema = z
+  .object({
+    title_en: z.string().min(1, "English title is required").max(200).trim(),
+    title_ar: z.string().min(1, "Arabic title is required").max(200).trim(),
+    description_en: z
+      .string()
+      .min(10, "English description must be at least 10 characters")
+      .max(2000, "English description must be less than 2000 characters")
+      .trim(),
+    description_ar: z
+      .string()
+      .min(10, "Arabic description must be at least 10 characters")
+      .max(2000, "Arabic description must be less than 2000 characters")
+      .trim(),
+    price: z.coerce
+      .number()
+      .min(0, "Price must be non-negative")
+      .max(10000, "Price must be less than 10,000"),
+    originalPrice: z.coerce
+      .number()
+      .min(0, "Original price must be non-negative")
+      .max(10000, "Original price must be less than 10,000")
+      .optional(),
+    tags: z.preprocess((val) => {
+      if (typeof val === "string") {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val
+            .split(",")
+            .map((tag: string) => tag.trim())
+            .filter(Boolean);
+        }
+      }
+      return val;
+    }, z.array(z.string().min(1, "Tag cannot be empty").max(50, "Tag must be less than 50 characters")).min(1, "At least one tag is required").max(20, "Maximum 20 tags allowed")),
+    category: z.nativeEnum(TemplateCategory).default("OTHER"),
+    previewUrl: z.union([
+      z.string().url("Please enter a valid URL").optional(),
+      z.literal(""),
+    ]),
+    difficulty: z.nativeEnum(Difficulty).default(Difficulty.BEGINNER),
+    featured: z
+      .union([
+        z.boolean(),
+        z.string().transform((val) => val === "true" || val === "1"),
+        z.coerce.boolean(),
+      ])
+      .default(false),
+    slug_en: z
+      .string()
+      .min(3, "English slug must be at least 3 characters")
+      .max(200, "English slug must be less than 200 characters")
+      .regex(
+        /^[a-z0-9-]+$/,
+        "English slug must contain only lowercase letters, numbers, and hyphens"
+      )
+      .transform((val) => val.toLowerCase()),
+    slug_ar: z
+      .string()
+      .min(3, "Arabic slug must be at least 3 characters")
+      .max(200, "Arabic slug must be less than 200 characters")
+      .regex(
+        /^[\p{Script=Arabic}a-zA-Z0-9-\s]+$/u,
+        "Arabic slug can only contain Arabic letters, English letters, numbers, spaces, and hyphens"
+      )
+      .trim(),
+    metaTitle_en: z
+      .string()
+      .max(60, "English meta title must be less than 60 characters")
+      .optional()
+      .or(z.literal("")),
+    metaTitle_ar: z
+      .string()
+      .max(60, "Arabic meta title must be less than 60 characters")
+      .optional()
+      .or(z.literal("")),
+    metaDesc_en: z
+      .string()
+      .max(160, "English meta description must be less than 160 characters")
+      .optional()
+      .or(z.literal("")),
+    metaDesc_ar: z
+      .string()
+      .max(160, "Arabic meta description must be less than 160 characters")
+      .optional()
+      .or(z.literal("")),
+    version: z
+      .string()
+      .regex(/^\d+\.\d+\.\d+$/, "Version must be in format: x.x.x")
+      .default("1.0.0"),
+    changelog: z
+      .string()
+      .max(1000, "Changelog must be less than 1000 characters")
+      .optional()
+      .or(z.literal("")),
+  })
+  .refine(
+    (data) => {
+      if (data.originalPrice && data.price > data.originalPrice) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Price cannot be greater than original price",
+      path: ["price"],
+    }
+  );
 
 const updateTemplateSchema = createTemplateSchema.partial();
 
@@ -76,13 +152,23 @@ const queryTemplatesSchema = z.object({
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
   search: z.string().trim().optional(),
-  sortBy: z.enum(["createdAt", "price", "rating", "downloads", "views", "updatedAt"]).default("createdAt"),
+  sortBy: z
+    .enum(["createdAt", "price", "rating", "downloads", "views", "updatedAt"])
+    .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 const bulkOperationSchema = z.object({
-  templateIds: z.array(z.number().int().positive()).min(1, "At least one template ID is required"),
-  operation: z.enum(["activate", "deactivate", "feature", "unfeature", "delete"]),
+  templateIds: z
+    .array(z.number().int().positive())
+    .min(1, "At least one template ID is required"),
+  operation: z.enum([
+    "activate",
+    "deactivate",
+    "feature",
+    "unfeature",
+    "delete",
+  ]),
 });
 
 // ============ CONTROLLERS ============
@@ -93,8 +179,10 @@ const bulkOperationSchema = z.object({
  * Auth: Required (Admin only)
  */
 export const createTemplate = asyncHandler(
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: FileRequest, res: Response) => {
     if (!requireAdmin(req, res)) return;
+
+    const files = getFiles(req.files);
 
     const validation = createTemplateSchema.safeParse(req.body);
 
@@ -124,9 +212,10 @@ export const createTemplate = asyncHandler(
     });
 
     if (existingTemplate) {
-      const duplicateSlug = existingTemplate.slug_en === validatedData.slug_en 
-        ? existingTemplate.slug_en 
-        : existingTemplate.slug_ar;
+      const duplicateSlug =
+        existingTemplate.slug_en === validatedData.slug_en
+          ? existingTemplate.slug_en
+          : existingTemplate.slug_ar;
       return sendResponse(
         res,
         StatusCodes.BAD_REQUEST,
@@ -136,12 +225,167 @@ export const createTemplate = asyncHandler(
     }
 
     // Validate price consistency
-    if (validatedData.originalPrice && validatedData.originalPrice < validatedData.price) {
+    if (
+      validatedData.originalPrice &&
+      validatedData.originalPrice < validatedData.price
+    ) {
       return sendResponse(
         res,
         StatusCodes.BAD_REQUEST,
         false,
         "Original price cannot be less than current price"
+      );
+    }
+
+    // Handle zip file upload to Supabase
+    let urlData: { publicUrl: string; filePath: string };
+
+    if (!files.zipFile || !files.zipFile[0]) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Zip file is required"
+      );
+    }
+
+    const file = files.zipFile[0];
+
+    try {
+      // Validate file size (e.g., max 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+      if (file.size > maxSize) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "File size too large. Maximum 50MB allowed."
+        );
+      }
+
+      // Validate file type
+      if (!file.mimetype || !file.mimetype.includes("zip")) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Invalid file type. Only ZIP files are allowed."
+        );
+      }
+
+      const fileExt = "zip"; // Force .zip extension for consistency
+      const firstPart = validatedData.slug_en.split("-")[1];
+      const fileName = `${firstPart}.${fileExt}`;
+      const filePath = `templates/${fileName}`;
+
+      // Ensure we have file content
+      let fileContent: Buffer;
+      if (file.buffer) {
+        fileContent = file.buffer;
+      } else {
+        throw new Error("File buffer is empty");
+      }
+
+      const { data: uploadData, error: uploadError } =
+        await supabaseAdmin.storage
+          .from("templates")
+          .upload(filePath, fileContent, {
+            contentType: "application/zip",
+            upsert: false,
+          });
+
+      if (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log("File uploaded successfully:", uploadData);
+
+      // Get public URL
+      const { data: urlResult } = supabaseAdmin.storage
+        .from("templates")
+        .getPublicUrl(filePath);
+
+      if (!urlResult?.publicUrl) {
+        throw new Error("Failed to generate public URL");
+      }
+
+      urlData = {
+        publicUrl: urlResult.publicUrl,
+        filePath: filePath,
+      };
+
+    } catch (error) {
+
+      // Provide more specific error messages
+      let errorMessage = "Failed to upload zip file. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes("bucket")) {
+          errorMessage =
+            "Storage bucket not configured. Please contact administrator.";
+        } else if (error.message.includes("size")) {
+          errorMessage = "File size too large.";
+        } else if (error.message.includes("type")) {
+          errorMessage = "Invalid file type.";
+        }
+      }
+
+      return sendResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR, // Use 500 for server errors
+        false,
+        errorMessage
+      );
+    }
+
+    // Handle image upload
+    let imageUrl: string | undefined;
+    if (files.imageUrl && files.imageUrl[0]) {
+      // Changed from files.gallery
+      try {
+        const uploadedImage = await uploadToCloudinary(
+          files.imageUrl[0],
+          "Templates/imageUrl"
+        );
+        imageUrl = uploadedImage.url;
+      } catch (uploadError) {
+        console.error("Image upload failed:", uploadError);
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Failed to upload image. Please try again."
+        );
+      }
+    }
+
+    // Handle preview images upload
+    let previewImages: string[] = [];
+    if (files.previewImages && files.previewImages.length > 0) {
+      try {
+        const uploadedPreviews = await Promise.all(
+          files.previewImages.map((file) =>
+            uploadToCloudinary(file, "Templates/previewImages")
+          )
+        );
+        previewImages = uploadedPreviews.map((img) => img.url);
+      } catch (uploadError) {
+        console.error("Preview images upload failed:", uploadError);
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Failed to upload preview images. Please try again."
+        );
+      }
+    }
+
+    if (!imageUrl) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Image URL is required"
       );
     }
 
@@ -152,6 +396,10 @@ export const createTemplate = asyncHandler(
         originalPrice: validatedData.originalPrice
           ? new Prisma.Decimal(validatedData.originalPrice)
           : null,
+        imageUrl,
+        previewImages,
+        downloadUrl: urlData.publicUrl,
+        fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
       },
       include: {
         _count: {
@@ -178,69 +426,108 @@ export const createTemplate = asyncHandler(
  * GET /api/templates
  * Auth: Not required (public endpoint)
  */
-// export const getTemplates = asyncHandler(
-//   async (req: Request, res: Response) => {
-//     const queryValidation = queryTemplatesSchema.safeParse(req.query);
+export const getTemplates = asyncHandler(
+  async (req: Request, res: Response) => {
+    const queryValidation = queryTemplatesSchema.safeParse(req.query);
 
-//     if (!queryValidation.success) {
-//       return sendResponse(
-//         res,
-//         StatusCodes.BAD_REQUEST,
-//         false,
-//         "Invalid query parameters",
-//         undefined,
-//         undefined,
-//         extractZodErrors(queryValidation.error)
-//       );
-//     }
+    if (!queryValidation.success) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Invalid query parameters",
+        undefined,
+        undefined,
+        extractZodErrors(queryValidation.error)
+      );
+    }
 
-//     const { page, limit, isActive, featured, category, sortBy, sortOrder } = queryValidation.data;
-//     const skip = (page - 1) * limit;
+    const {
+      page,
+      limit,
+      featured,
+      category,
+      difficulty,
+      minPrice,
+      maxPrice,
+      search,
+      sortBy,
+      sortOrder,
+    } = queryValidation.data;
 
-//     const where: Prisma.TemplateWhereInput = {
-//       ...(isActive !== undefined && { isActive }),
-//       ...(featured !== undefined && { featured }),
-//       ...(category && { category }),
-//     };
+    const skip = (page - 1) * limit;
 
-//     const [templates, totalCount] = await Promise.all([
-//       prisma.template.findMany({
-//         where,
-//         orderBy: { [sortBy]: sortOrder },
-//         skip,
-//         take: limit,
-//         include: {
-//           _count: {
-//             select: {
-//               orders: true,
-//               reviews: true,
-//             },
-//           },
-//         },
-//       }),
-//       prisma.template.count({ where }),
-//     ]);
+    // Build the where clause dynamically
+    const where: Prisma.TemplateWhereInput = {
+      // Filter by featured status
+      ...(featured !== undefined && { featured }),
+      
+      // Filter by category
+      ...(category && { category }),
+      
+      // Filter by difficulty
+      ...(difficulty && { difficulty }),
+      
+      // Filter by price range
+      ...(minPrice !== undefined || maxPrice !== undefined
+        ? {
+            price: {
+              ...(minPrice !== undefined && { gte: minPrice }),
+              ...(maxPrice !== undefined && { lte: maxPrice }),
+            },
+          }
+        : {}),
+      
+      // Search functionality (searches in title and description)
+      ...(search && {
+        OR: [
+          { title_en: { contains: search, mode: "insensitive" } },
+          { title_ar: { contains: search, mode: "insensitive" } },
+          { description_en: { contains: search, mode: "insensitive" } },
+          { description_ar: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+    };
 
-//     const totalPages = Math.ceil(totalCount / limit);
+    // Execute queries in parallel
+    const [templates, totalCount] = await Promise.all([
+      prisma.template.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          _count: {
+            select: {
+              orders: true,
+              reviews: true,
+            },
+          },
+        },
+      }),
+      prisma.template.count({ where }),
+    ]);
 
-//     return sendResponse(
-//       res,
-//       StatusCodes.OK,
-//       true,
-//       "Templates retrieved successfully",
-//       {
-//         templates,
-//         pagination: {
-//           currentPage: page,
-//           totalPages,
-//           totalCount,
-//           hasNextPage: page < totalPages,
-//           hasPrevPage: page > 1,
-//         },
-//       }
-//     );
-//   }
-// );
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return sendResponse(
+      res,
+      StatusCodes.OK,
+      true,
+      "Templates retrieved successfully",
+      {
+        templates,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      }
+    );
+  }
+);
 
 /**
  * Get Templates Analytics Dashboard
@@ -401,10 +688,18 @@ export const advancedSearch = asyncHandler(
             { tags: { hasSome: [query] } },
           ],
         },
-        ...(categories && categories.length > 0 ? [{ category: { in: categories } }] : []),
-        ...(difficulties && difficulties.length > 0 ? [{ difficulty: { in: difficulties } }] : []),
-        ...(minPrice !== undefined ? [{ price: { gte: new Prisma.Decimal(minPrice) } }] : []),
-        ...(maxPrice !== undefined ? [{ price: { lte: new Prisma.Decimal(maxPrice) } }] : []),
+        ...(categories && categories.length > 0
+          ? [{ category: { in: categories } }]
+          : []),
+        ...(difficulties && difficulties.length > 0
+          ? [{ difficulty: { in: difficulties } }]
+          : []),
+        ...(minPrice !== undefined
+          ? [{ price: { gte: new Prisma.Decimal(minPrice) } }]
+          : []),
+        ...(maxPrice !== undefined
+          ? [{ price: { lte: new Prisma.Decimal(maxPrice) } }]
+          : []),
         ...(minRating !== undefined ? [{ rating: { gte: minRating } }] : []),
         ...(tags && tags.length > 0 ? [{ tags: { hasEvery: tags } }] : []),
         ...(featured !== undefined ? [{ featured }] : []),
@@ -495,8 +790,16 @@ export const getSimilarTemplates = asyncHandler(
           { tags: { hasSome: template.tags } },
           {
             AND: [
-              { price: { gte: new Prisma.Decimal(template.price.toNumber() * 0.7) } },
-              { price: { lte: new Prisma.Decimal(template.price.toNumber() * 1.3) } },
+              {
+                price: {
+                  gte: new Prisma.Decimal(template.price.toNumber() * 0.7),
+                },
+              },
+              {
+                price: {
+                  lte: new Prisma.Decimal(template.price.toNumber() * 1.3),
+                },
+              },
             ],
           },
         ],
@@ -571,7 +874,9 @@ export const toggleFeatured = asyncHandler(
       res,
       StatusCodes.OK,
       true,
-      `Template "${template.title_en}" ${updatedTemplate.featured ? "featured" : "unfeatured"} successfully`,
+      `Template "${template.title_en}" ${
+        updatedTemplate.featured ? "featured" : "unfeatured"
+      } successfully`,
       updatedTemplate
     );
   }
@@ -631,7 +936,9 @@ export const updateTemplateVersion = asyncHandler(
     }
 
     const versionSchema = z.object({
-      version: z.string().regex(/^\d+\.\d+\.\d+$/, "Version must be in format X.Y.Z"),
+      version: z
+        .string()
+        .regex(/^\d+\.\d+\.\d+$/, "Version must be in format X.Y.Z"),
       changelog: z.string().optional(),
       downloadUrl: z.string().url().optional(),
     });
@@ -735,7 +1042,7 @@ export const getMyPurchasedTemplates = asyncHandler(
     );
   }
 );
-     
+
 /**
  * Get Template by ID
  * GET /api/templates/:id
@@ -790,10 +1097,12 @@ export const getTemplateById = asyncHandler(
     }
 
     // Increment views in background
-    prisma.template.update({
-      where: { id: templateId },
-      data: { views: { increment: 1 } },
-    }).catch(console.error);
+    prisma.template
+      .update({
+        where: { id: templateId },
+        data: { views: { increment: 1 } },
+      })
+      .catch(console.error);
 
     return sendResponse(
       res,
@@ -865,10 +1174,12 @@ export const getTemplateBySlug = asyncHandler(
     }
 
     // Increment views in background
-    prisma.template.update({
-      where: { id: template.id },
-      data: { views: { increment: 1 } },
-    }).catch(console.error);
+    prisma.template
+      .update({
+        where: { id: template.id },
+        data: { views: { increment: 1 } },
+      })
+      .catch(console.error);
 
     return sendResponse(
       res,
@@ -949,8 +1260,12 @@ export const updateTemplate = asyncHandler(
             { id: { not: templateId } },
             {
               OR: [
-                ...(validatedData.slug_en ? [{ slug_en: validatedData.slug_en }] : []),
-                ...(validatedData.slug_ar ? [{ slug_ar: validatedData.slug_ar }] : []),
+                ...(validatedData.slug_en
+                  ? [{ slug_en: validatedData.slug_en }]
+                  : []),
+                ...(validatedData.slug_ar
+                  ? [{ slug_ar: validatedData.slug_ar }]
+                  : []),
               ],
             },
           ],
@@ -989,7 +1304,9 @@ export const updateTemplate = asyncHandler(
       updateData.price = new Prisma.Decimal(validatedData.price);
     }
     if (validatedData.originalPrice !== undefined) {
-      updateData.originalPrice = new Prisma.Decimal(validatedData.originalPrice);
+      updateData.originalPrice = new Prisma.Decimal(
+        validatedData.originalPrice
+      );
     }
 
     const template = await prisma.template.update({
@@ -1242,14 +1559,11 @@ export const getTopRatedTemplates = asyncHandler(
     const limitNum = Math.min(parseInt(req.query.limit as string) || 6, 20);
 
     const templates = await prisma.template.findMany({
-      where: { 
+      where: {
         isActive: true,
         ratingsCount: { gt: 0 },
       },
-      orderBy: [
-        { rating: "desc" },
-        { ratingsCount: "desc" },
-      ],
+      orderBy: [{ rating: "desc" }, { ratingsCount: "desc" }],
       take: limitNum,
       include: {
         _count: {
@@ -1279,8 +1593,10 @@ export const getTopRatedTemplates = asyncHandler(
 export const getTemplatesByCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const { category } = req.params;
-    
-    if (!Object.values(TemplateCategory).includes(category as TemplateCategory)) {
+
+    if (
+      !Object.values(TemplateCategory).includes(category as TemplateCategory)
+    ) {
       return sendResponse(
         res,
         StatusCodes.BAD_REQUEST,
@@ -1289,10 +1605,12 @@ export const getTemplatesByCategory = asyncHandler(
       );
     }
 
-    const queryValidation = z.object({
-      page: z.coerce.number().int().positive().default(1),
-      limit: z.coerce.number().int().positive().max(50).default(12),
-    }).safeParse(req.query);
+    const queryValidation = z
+      .object({
+        page: z.coerce.number().int().positive().default(1),
+        limit: z.coerce.number().int().positive().max(50).default(12),
+      })
+      .safeParse(req.query);
 
     if (!queryValidation.success) {
       return sendResponse(
@@ -1414,7 +1732,13 @@ export const getTemplateStats = asyncHandler(
       );
     }
 
-    const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const ratingDistribution: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
     reviewStats.forEach((stat) => {
       ratingDistribution[stat.rating] = stat._count.rating;
     });
@@ -1427,9 +1751,10 @@ export const getTemplateStats = asyncHandler(
       revenue: orderStats._sum.finalPrice?.toString() || "0",
       totalOrders: orderStats._count,
       ratingDistribution,
-      conversionRate: template.views > 0 
-        ? ((orderStats._count / template.views) * 100).toFixed(2) + "%"
-        : "0%",
+      conversionRate:
+        template.views > 0
+          ? ((orderStats._count / template.views) * 100).toFixed(2) + "%"
+          : "0%",
     };
 
     return sendResponse(

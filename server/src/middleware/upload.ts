@@ -11,8 +11,13 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Example: only accept images
   if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else if (
+    file.mimetype === "application/zip" ||
+    file.mimetype === "application/x-zip-compressed" ||
+    file.originalname.endsWith(".zip") // fallback للتأكد من الامتداد
+  ) {
     cb(null, true);
   } else {
     cb(new Error("Only image files are allowed"));
@@ -23,7 +28,7 @@ const fileFilter = (
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB max per file
+    fileSize: 20 * 1024 * 1024, // 20 MB max per file
   },
   fileFilter,
 });
@@ -31,22 +36,19 @@ const upload = multer({
 // Export middleware to accept specific file fields
 const uploadMiddleware = upload.fields([
   { name: "gallery", maxCount: 1 },
-
-  // Dynamic variant handling - supports more variants without hardcoding
-  ...Array.from({ length: 20 }, (_, i) => ({
-    name: `variants[${i}][image]`,
-    maxCount: 1,
-  })),
+  { name: "previewImages", maxCount: 5 },
+  { name: "imageUrl", maxCount: 1 },
+  { name: "zipFile", maxCount: 1 },
 ]);
-
-
 
 export const getFiles = (files: any): MulterFiles => {
   if (!files) return {};
   return {
     gallery: files.gallery || [],
+    previewImages: files.previewImages || [],
+    imageUrl: files.imageUrl || [],
+    zipFile: files.zipFile || [],
   };
-}
-
+};
 
 export default uploadMiddleware;

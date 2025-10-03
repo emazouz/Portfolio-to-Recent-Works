@@ -24,26 +24,37 @@ interface TemplateDetailsProps {
   templateId: string;
 }
 
-// Mock data - replace with actual data fetching
 const mockTemplate = {
-  id: "1",
-  imageUrl: "/placeholder.svg?height=300&width=400",
+  id: 1,
   title_en: "Modern Dashboard Template",
   title_ar: "قالب لوحة تحكم حديثة",
   description_en:
     "A comprehensive dashboard template with modern design and advanced features. Perfect for admin panels, analytics dashboards, and business applications.",
   description_ar:
     "قالب لوحة تحكم شامل بتصميم حديث وميزات متقدمة. مثالي للوحات الإدارة ولوحات التحليلات وتطبيقات الأعمال.",
-  price: 49,
-  originalPrice: 79,
-  rating: 4.8,
-  ratingsCount: 124,
-  downloads: 1250,
-  views: 5420,
-  category: "Dashboard",
-  difficulty: "Intermediate",
+  price: "49",
+  originalPrice: "79",
+  rating: 0,
+  ratingsCount: 0,
+  downloads: 0,
+  views: 1,
   tags: ["React", "TypeScript", "Tailwind CSS", "Dashboard", "Admin"],
-  version: "2.1.0",
+  category: "ADMIN_DASHBOARDS",
+  imageUrl:
+    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500579/ecommerce/Templates/imageUrl/goxca2tyb0qfcqsjzb3p.jpg",
+  previewImages: [
+    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500581/ecommerce/Templates/previewImages/zsiybuco6v6l5ygktuln.png",
+    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500582/ecommerce/Templates/previewImages/wyuh2xz5nyqmvi4n23bl.jpg",
+    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500582/ecommerce/Templates/previewImages/dkou5gxiyn167q2as02l.png",
+  ],
+  previewUrl: "https://preview.example.com/dashboard",
+  downloadUrl:
+    "https://cdruyxotyhgrkdvjskpo.supabase.co/storage/v1/object/public/templates/templates/1759500568535-ip6kq6x2zmm.zip",
+  fileSize: "10.01 MB",
+  difficulty: "ADVANCED",
+  featured: true,
+  isActive: true,
+  version: "1.0.0",
   changelog:
     "Added dark mode support, improved mobile responsiveness, new chart components",
   slug_en: "modern-dashboard-template",
@@ -54,14 +65,13 @@ const mockTemplate = {
     "Professional dashboard template with modern design, built with React and TypeScript. Perfect for admin panels and business applications.",
   metaDesc_ar:
     "قالب لوحة تحكم احترافي بتصميم حديث، مبني بـ React و TypeScript. مثالي للوحات الإدارة وتطبيقات الأعمال.",
-  previewUrl: "https://preview.example.com/dashboard",
-  downloadUrl: "https://download.example.com/template.zip",
-  fileSize: "15.2 MB",
-  featured: true,
-  isActive: true,
-  createdAt: "2024-01-10",
-  updatedAt: "2024-01-15",
-  lastUpdated: "2024-01-15",
+  createdAt: "2025-10-03T14:09:43.047Z",
+  updatedAt: "2025-10-03T14:11:47.114Z",
+  lastUpdated: null,
+  _count: {
+    orders: 0,
+    reviews: 0,
+  },
 };
 
 export function TemplateDetails({ templateId }: TemplateDetailsProps) {
@@ -472,7 +482,9 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     {t("Last Updated", "admin.templates.lastUpdated")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {mockTemplate.lastUpdated}
+                    {mockTemplate.lastUpdated
+                      ? mockTemplate.lastUpdated
+                      : t("Not Available", "admin.templates.notAvailable")}
                   </p>
                 </div>
               </div>

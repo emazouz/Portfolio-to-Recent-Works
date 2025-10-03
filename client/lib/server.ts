@@ -7,5 +7,5 @@ export const API_ROUTES = {
   PROJECT: `${API_BASE_URL}/api/projects`,
   BLOG: `${API_BASE_URL}/api/blogs`,
   COMMENT: `${API_BASE_URL}/api/comments`,
+  TEMPLATE: `${API_BASE_URL}/api/templates`,
 };
-
