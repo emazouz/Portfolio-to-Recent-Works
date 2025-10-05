@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/hooks/use-translation";
@@ -19,65 +19,44 @@ import {
   Calendar,
   Globe,
 } from "lucide-react";
+import { templateStore } from "@/store/templateStore";
+import { toast } from "@/hooks/use-toast";
+import { formatDate } from "@/utils/dateHelpers";
 
 interface TemplateDetailsProps {
-  templateId: string;
+  templateId: number;
 }
 
-const mockTemplate = {
-  id: 1,
-  title_en: "Modern Dashboard Template",
-  title_ar: "قالب لوحة تحكم حديثة",
-  description_en:
-    "A comprehensive dashboard template with modern design and advanced features. Perfect for admin panels, analytics dashboards, and business applications.",
-  description_ar:
-    "قالب لوحة تحكم شامل بتصميم حديث وميزات متقدمة. مثالي للوحات الإدارة ولوحات التحليلات وتطبيقات الأعمال.",
-  price: "49",
-  originalPrice: "79",
-  rating: 0,
-  ratingsCount: 0,
-  downloads: 0,
-  views: 1,
-  tags: ["React", "TypeScript", "Tailwind CSS", "Dashboard", "Admin"],
-  category: "ADMIN_DASHBOARDS",
-  imageUrl:
-    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500579/ecommerce/Templates/imageUrl/goxca2tyb0qfcqsjzb3p.jpg",
-  previewImages: [
-    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500581/ecommerce/Templates/previewImages/zsiybuco6v6l5ygktuln.png",
-    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500582/ecommerce/Templates/previewImages/wyuh2xz5nyqmvi4n23bl.jpg",
-    "https://res.cloudinary.com/doa8ii7kz/image/upload/v1759500582/ecommerce/Templates/previewImages/dkou5gxiyn167q2as02l.png",
-  ],
-  previewUrl: "https://preview.example.com/dashboard",
-  downloadUrl:
-    "https://cdruyxotyhgrkdvjskpo.supabase.co/storage/v1/object/public/templates/templates/1759500568535-ip6kq6x2zmm.zip",
-  fileSize: "10.01 MB",
-  difficulty: "ADVANCED",
-  featured: true,
-  isActive: true,
-  version: "1.0.0",
-  changelog:
-    "Added dark mode support, improved mobile responsiveness, new chart components",
-  slug_en: "modern-dashboard-template",
-  slug_ar: "قالب-لوحة-تحكم-حديثة",
-  metaTitle_en: "Modern Dashboard Template - Premium React Admin Panel",
-  metaTitle_ar: "قالب لوحة تحكم حديثة - لوحة إدارة React متميزة",
-  metaDesc_en:
-    "Professional dashboard template with modern design, built with React and TypeScript. Perfect for admin panels and business applications.",
-  metaDesc_ar:
-    "قالب لوحة تحكم احترافي بتصميم حديث، مبني بـ React و TypeScript. مثالي للوحات الإدارة وتطبيقات الأعمال.",
-  createdAt: "2025-10-03T14:09:43.047Z",
-  updatedAt: "2025-10-03T14:11:47.114Z",
-  lastUpdated: null,
-  _count: {
-    orders: 0,
-    reviews: 0,
-  },
-};
 
 export function TemplateDetails({ templateId }: TemplateDetailsProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { getTemplateById, deleteTemplate, isLoading, template } =
+    templateStore();
+  const fetchTemplate = useCallback(async () => {
+    try {
+      const result = await getTemplateById(templateId);
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "error",
+        });
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to fetch template:", error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch template: ${error}`,
+        variant: "error",
+      });
+    }
+  }, [getTemplateById]);
+
+  useEffect(() => {
+    fetchTemplate();
+  }, [fetchTemplate]);
 
   const handleDelete = async () => {
     if (
@@ -90,23 +69,31 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
     ) {
       return;
     }
-
-    setIsDeleting(true);
     try {
-      // Here you would call your delete API
-      console.log("Deleting template:", templateId);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      router.push("/admin/templates");
+      const result = await deleteTemplate(templateId);
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "error",
+        });
+        return;
+      }
     } catch (error) {
       console.error("Error deleting template:", error);
-    } finally {
-      setIsDeleting(false);
+      toast({
+        title: "Error",
+        description: `Failed to deleting template: ${error}`,
+        variant: "error",
+      });
     }
   };
 
+  if(!template){
+    return;
+  }
+
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -117,14 +104,14 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {mockTemplate.title_en}
+              {template.title_en}
             </h1>
-            <p className="text-muted-foreground">{mockTemplate.title_ar}</p>
+            <p className="text-muted-foreground">{template.title_ar}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
-            <Link href={mockTemplate.previewUrl} target="_blank">
+            <Link href={template.previewUrl} target="_blank">
               <Eye className="mr-2 h-4 w-4" />
               {t("Preview", "admin.templates.preview")}
             </Link>
@@ -138,10 +125,10 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={isDeleting}
+            disabled={isLoading}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            {isDeleting
+            {isLoading
               ? t("Deleting...", "admin.templates.deleting")
               : t("Delete", "admin.templates.delete")}
           </Button>
@@ -179,25 +166,25 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                       <p className="text-sm font-medium text-muted-foreground">
                         {t("Category", "admin.templates.category")}
                       </p>
-                      <Badge variant="secondary">{mockTemplate.category}</Badge>
+                      <Badge variant="secondary">{template.category}</Badge>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
                         {t("Difficulty", "admin.templates.difficulty")}
                       </p>
-                      <Badge variant="outline">{mockTemplate.difficulty}</Badge>
+                      <Badge variant="outline">{template.difficulty}</Badge>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
                         {t("Version", "admin.templates.version")}
                       </p>
-                      <p className="text-sm">{mockTemplate.version}</p>
+                      <p className="text-sm">{template.version}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
                         {t("File Size", "admin.templates.fileSize")}
                       </p>
-                      <p className="text-sm">{mockTemplate.fileSize}</p>
+                      <p className="text-sm">{template.fileSize}</p>
                     </div>
                   </div>
 
@@ -208,7 +195,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                       {t("Tags", "admin.templates.tags")}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {mockTemplate.tags.map((tag) => (
+                      {template.tags.map((tag) => (
                         <Badge key={tag} variant="secondary">
                           {tag}
                         </Badge>
@@ -222,7 +209,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     <p className="text-sm font-medium text-muted-foreground mb-2">
                       {t("Changelog", "admin.templates.changelog")}
                     </p>
-                    <p className="text-sm">{mockTemplate.changelog}</p>
+                    <p className="text-sm">{template.changelog}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -246,7 +233,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                         "admin.templates.englishDescription"
                       )}
                     </p>
-                    <p className="text-sm">{mockTemplate.description_en}</p>
+                    <p className="text-sm">{template.description_en}</p>
                   </div>
                   <Separator />
                   <div>
@@ -257,7 +244,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                       )}
                     </p>
                     <p className="text-sm" dir="rtl">
-                      {mockTemplate.description_ar}
+                      {template.description_ar}
                     </p>
                   </div>
                 </CardContent>
@@ -278,7 +265,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                         {t("English Slug", "admin.templates.englishSlug")}
                       </p>
                       <p className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                        {mockTemplate.slug_en}
+                        {template.slug_en}
                       </p>
                     </div>
                     <div>
@@ -289,7 +276,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                         className="text-sm font-mono bg-muted px-2 py-1 rounded"
                         dir="rtl"
                       >
-                        {mockTemplate.slug_ar}
+                        {template.slug_ar}
                       </p>
                     </div>
                   </div>
@@ -300,14 +287,14 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     <p className="text-sm font-medium text-muted-foreground mb-1">
                       {t("Meta Title (English)", "admin.templates.metaTitleEn")}
                     </p>
-                    <p className="text-sm">{mockTemplate.metaTitle_en}</p>
+                    <p className="text-sm">{template.metaTitle_en}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">
                       {t("Meta Title (Arabic)", "admin.templates.metaTitleAr")}
                     </p>
                     <p className="text-sm" dir="rtl">
-                      {mockTemplate.metaTitle_ar}
+                      {template.metaTitle_ar}
                     </p>
                   </div>
 
@@ -320,7 +307,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                         "admin.templates.metaDescEn"
                       )}
                     </p>
-                    <p className="text-sm">{mockTemplate.metaDesc_en}</p>
+                    <p className="text-sm">{template.metaDesc_en}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">
@@ -330,7 +317,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                       )}
                     </p>
                     <p className="text-sm" dir="rtl">
-                      {mockTemplate.metaDesc_ar}
+                      {template.metaDesc_ar}
                     </p>
                   </div>
                 </CardContent>
@@ -348,7 +335,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold">
-                        {mockTemplate.views.toLocaleString()}
+                        {template.views.toLocaleString()}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {t("Views", "admin.templates.views")}
@@ -356,7 +343,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold">
-                        {mockTemplate.downloads.toLocaleString()}
+                        {template.downloads.toLocaleString()}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {t("Downloads", "admin.templates.downloads")}
@@ -365,7 +352,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     <div className="text-center">
                       <div className="text-2xl font-bold flex items-center justify-center gap-1">
                         <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        {mockTemplate.rating}
+                        {template.rating}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {t("Rating", "admin.templates.rating")}
@@ -373,7 +360,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold">
-                        {mockTemplate.ratingsCount}
+                        {template.ratingsCount}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {t("Reviews", "admin.templates.reviews")}
@@ -395,8 +382,8 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
             </CardHeader>
             <CardContent>
               <img
-                src={mockTemplate.imageUrl || "/placeholder.svg"}
-                alt={mockTemplate.title_en}
+                src={template.imageUrl || "/placeholder.svg"}
+                alt={template.title_en}
                 className="w-full rounded-lg border"
               />
             </CardContent>
@@ -409,18 +396,18 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold">
-                  ${mockTemplate.price}
+                  ${template.price}
                 </span>
-                {mockTemplate.originalPrice > mockTemplate.price && (
+                {template.originalPrice > template.price && (
                   <span className="text-lg text-muted-foreground line-through">
-                    ${mockTemplate.originalPrice}
+                    ${template.originalPrice}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Download className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {mockTemplate.downloads}{" "}
+                  {template.downloads}{" "}
                   {t("downloads", "admin.templates.downloads")}
                 </span>
               </div>
@@ -437,9 +424,9 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                   {t("Featured", "admin.templates.featured")}
                 </span>
                 <Badge
-                  variant={mockTemplate.featured ? "default" : "secondary"}
+                  variant={template.featured ? "default" : "secondary"}
                 >
-                  {mockTemplate.featured
+                  {template.featured
                     ? t("Yes", "admin.templates.yes")
                     : t("No", "admin.templates.no")}
                 </Badge>
@@ -449,9 +436,9 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                   {t("Active", "admin.templates.active")}
                 </span>
                 <Badge
-                  variant={mockTemplate.isActive ? "default" : "secondary"}
+                  variant={template.isActive ? "default" : "secondary"}
                 >
-                  {mockTemplate.isActive
+                  {template.isActive
                     ? t("Active", "admin.templates.active")
                     : t("Inactive", "admin.templates.inactive")}
                 </Badge>
@@ -471,7 +458,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     {t("Created", "admin.templates.created")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {mockTemplate.createdAt}
+                    {formatDate(template.createdAt)}
                   </p>
                 </div>
               </div>
@@ -482,8 +469,8 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                     {t("Last Updated", "admin.templates.lastUpdated")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {mockTemplate.lastUpdated
-                      ? mockTemplate.lastUpdated
+                    {template.updatedAt
+                      ? formatDate(template.updatedAt)
                       : t("Not Available", "admin.templates.notAvailable")}
                   </p>
                 </div>
@@ -501,7 +488,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                 className="w-full bg-transparent"
                 asChild
               >
-                <Link href={mockTemplate.previewUrl} target="_blank">
+                <Link href={template.previewUrl} target="_blank">
                   <Globe className="mr-2 h-4 w-4" />
                   {t("Live Preview", "admin.templates.livePreview")}
                 </Link>
@@ -511,7 +498,7 @@ export function TemplateDetails({ templateId }: TemplateDetailsProps) {
                 className="w-full bg-transparent"
                 asChild
               >
-                <Link href={mockTemplate.downloadUrl} target="_blank">
+                <Link href={template.downloadUrl} target="_blank">
                   <Download className="mr-2 h-4 w-4" />
                   {t("Download File", "admin.templates.downloadFile")}
                 </Link>

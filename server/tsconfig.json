@@ -10,6 +10,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*", "prisma/**/*", "cmts/notificationMiddleware.ts"],
+  "include": ["src/**/*", "prisma/**/*", "cmts/notificationMiddleware.ts", "../client/types/ResponseType.ts"],
   "exclude": ["node_modules"]
 }

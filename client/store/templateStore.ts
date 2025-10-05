@@ -5,7 +5,7 @@ import { API_ROUTES } from "@/lib/server";
 import axios, { AxiosError } from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
+import { ResponseType } from "@/types/ResponseType";
 // ============ TYPES ============
 
 const TemplateCategory = [
@@ -32,8 +32,8 @@ export interface Template {
   description_en: string;
   description_ar: string;
   price: number;
-  originalPrice?: number;
-  rating?: number;
+  originalPrice: number;
+  rating: number;
   ratingsCount: number;
   downloads: number;
   views: number;
@@ -41,20 +41,20 @@ export interface Template {
   category: TemplateCategory;
   imageUrl: string;
   previewImages: string[];
-  previewUrl?: string;
-  downloadUrl?: string;
+  previewUrl: string;
+  downloadUrl: string;
   fileSize?: string;
   difficulty: Difficulty;
   featured: boolean;
   isActive: boolean;
   version: string;
-  changelog?: string;
+  changelog: string;
   slug_en: string;
   slug_ar: string;
-  metaTitle_en?: string;
-  metaTitle_ar?: string;
-  metaDesc_en?: string;
-  metaDesc_ar?: string;
+  metaTitle_en: string;
+  metaTitle_ar: string;
+  metaDesc_en: string;
+  metaDesc_ar: string;
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -112,13 +112,6 @@ export interface PaginationType {
   hasPrevPage: boolean;
 }
 
-interface TemplateResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-  errors?: string[];
-}
-
 // ============ STORE TYPE ============
 
 type TemplateStoreType = {
@@ -130,46 +123,44 @@ type TemplateStoreType = {
   error: string | null;
 
   // Actions - Public
-  getTemplates: (filters?: TemplateFilters) => Promise<TemplateResponse>;
-  getTemplateById: (id: number) => Promise<TemplateResponse>;
+  getTemplates: (filters?: TemplateFilters) => Promise<ResponseType>;
+  getTemplateById: (id: number) => Promise<ResponseType>;
   getTemplateBySlug: (
     slug: string,
     lang?: "en" | "ar"
-  ) => Promise<TemplateResponse>;
-  getFeaturedTemplates: (limit?: number) => Promise<TemplateResponse>;
-  getPopularTemplates: (limit?: number) => Promise<TemplateResponse>;
-  getNewTemplates: (limit?: number) => Promise<TemplateResponse>;
-  getTopRatedTemplates: (limit?: number) => Promise<TemplateResponse>;
+  ) => Promise<ResponseType>;
+  getFeaturedTemplates: (limit?: number) => Promise<ResponseType>;
+  getPopularTemplates: (limit?: number) => Promise<ResponseType>;
+  getNewTemplates: (limit?: number) => Promise<ResponseType>;
+  getTopRatedTemplates: (limit?: number) => Promise<ResponseType>;
   getTemplatesByCategory: (
     category: TemplateCategory,
     page?: number,
     limit?: number
-  ) => Promise<TemplateResponse>;
-  getSimilarTemplates: (
-    id: number,
-    limit?: number
-  ) => Promise<TemplateResponse>;
-  getCategoryStats: () => Promise<TemplateResponse>;
+  ) => Promise<ResponseType>;
+  getSimilarTemplates: (id: number, limit?: number) => Promise<ResponseType>;
+  getCategoryStats: () => Promise<ResponseType>;
 
   // Actions - User
-  downloadTemplate: (id: number) => Promise<TemplateResponse>;
-  getMyPurchases: () => Promise<TemplateResponse>;
+  downloadTemplate: (id: number) => Promise<ResponseType>;
+  getMyPurchases: () => Promise<ResponseType>;
 
   // Actions - Admin
-  createTemplate: (data: CreateTemplateInput) => Promise<TemplateResponse>;
+  createTemplate: (data: CreateTemplateInput) => Promise<ResponseType>;
   updateTemplate: (
     id: number,
     data: UpdateTemplateInput
-  ) => Promise<TemplateResponse>;
-  deleteTemplate: (id: number) => Promise<TemplateResponse>;
-  restoreTemplate: (id: number) => Promise<TemplateResponse>;
-  toggleFeatured: (id: number) => Promise<TemplateResponse>;
+  ) => Promise<ResponseType>;
+  deleteTemplate: (id: number) => Promise<ResponseType>;
+  restoreTemplate: (id: number) => Promise<ResponseType>;
+  toggleFeatured: (id: number) => Promise<ResponseType>;
   bulkOperations: (
     templateIds: number[],
     operation: string
-  ) => Promise<TemplateResponse>;
-  getTemplateStats: (id: number) => Promise<TemplateResponse>;
-  getAnalytics: () => Promise<TemplateResponse>;
+  ) => Promise<ResponseType>;
+  getTemplateStats: (id: number) => Promise<ResponseType>;
+
+  getAnalytics: () => Promise<ResponseType>;
 
   // Utility
   clearError: () => void;
@@ -186,9 +177,7 @@ const axiosInstance = axios.create({
   },
 });
 
-const createFormDataFromRequest = (
-  data: CreateTemplateInput,
-): FormData => {
+const createFormDataFromRequest = (data: CreateTemplateInput): FormData => {
   const formData = new FormData();
 
   // Basic fields
@@ -210,16 +199,14 @@ const createFormDataFromRequest = (
     }
   });
 
-    formData.append("imageUrl", data.imageUrl);
-  
+  formData.append("imageUrl", data.imageUrl);
 
-    data.previewImages.forEach((img) => {
-      formData.append("previewImages", img.file);
-    });
-  
+  data.previewImages.forEach((img) => {
+    formData.append("previewImages", img.file);
+  });
 
-    formData.append("zipFile", data.downloadUrl); 
-  
+  formData.append("zipFile", data.downloadUrl);
+
   if (data.category?.trim()) {
     formData.append("category", data.category.trim());
   }
@@ -741,13 +728,12 @@ export const templateStore = create<TemplateStoreType>()(
         // set({ isLoading: true, error: null });
 
         try {
-
           const formData = createFormDataFromRequest(data);
 
-          const response = await axiosInstance.post("/", formData,{
+          const response = await axiosInstance.post("/", formData, {
             headers: {
-                'Content-Type': 'multipart/form-data',
-            }
+              "Content-Type": "multipart/form-data",
+            },
           });
 
           if (!response.data.success) {
@@ -1019,6 +1005,56 @@ export const templateStore = create<TemplateStoreType>()(
 
           set({ error: errorMsg });
           return { success: false, message: errorMsg };
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      // reviews
+
+      addReviews: async (
+        templateId: number,
+        rating: number,
+        comment: string
+      ) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await axiosInstance.post(`/${templateId}/reviews`, {
+            rating,
+            comment: comment.trim(),
+          });
+
+          if (!response.data.success) {
+            throw new Error(response.data.message || "Failed to add review");
+          }
+
+          return {
+            success: true,
+            message: response.data.message,
+            data: response.data.data || null,
+          };
+        } catch (error: any) {
+          let errorMessage = "An unexpected error occurred";
+
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (typeof error === "string") {
+            errorMessage = error;
+          } else if (axios.isAxiosError(error)) {
+            errorMessage =
+              error.response?.data?.message ||
+              error.message ||
+              "Network error occurred";
+          }
+
+          set({ error: errorMessage });
+
+          return {
+            success: false,
+            message: errorMessage,
+            data: null,
+          };
         } finally {
           set({ isLoading: false });
         }

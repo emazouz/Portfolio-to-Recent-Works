@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -10,360 +9,193 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   ExternalLink,
   Download,
   Star,
-  Search,
-  Filter,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { TemplatePreviewModal } from "@/components/template-preview-modal";
 import { useTranslation } from "@/hooks/use-translation";
 import Link from "next/link";
+import { TemplateFilters, templateStore } from "@/store/templateStore";
+import { toast } from "@/hooks/use-toast";
+import { TemplateFiltersComponent } from "./admin/templates/TemplateFiltersComponent";
+import { difficultyLabels } from "@/constants/templateConstants";
 
-const templates = [
-  {
-    id: 1,
-    title_en: "E-commerce Dashboard",
-    title_ar: "لوحة تحكم التجارة الإلكترونية",
-    description_en:
-      "Complete admin dashboard for e-commerce platforms with analytics, inventory management, and order tracking.",
-    description_ar:
-      "لوحة تحكم كاملة لمنصات التجارة الإلكترونية مع تحليلات، إدارة المخزون وتتبع الطلبات.",
-    price: 49,
-    originalPrice: 69,
-    rating: 4.9,
-    ratingsCount: 120,
-    downloads: 1200,
-    views: 0,
-    tags: ["React", "Next.js", "Tailwind", "TypeScript"],
-    category: "ADMIN_DASHBOARDS",
-    imageUrl: "/modern-ecommerce-dashboard.png",
-    previewImages: ["/preview1.png", "/preview2.png"],
-    previewUrl: "https://ecommerce-dashboard-demo.vercel.app",
-    downloadUrl: "/downloads/ecommerce-dashboard.zip",
-    fileSize: "25MB",
-    difficulty: "ADVANCED",
-    featured: true,
-    isActive: true,
-    version: "1.0.0",
-    changelog: "Initial release with full e-commerce dashboard functionality.",
-    slug_en: "e-commerce-dashboard",
-    slug_ar: "لوحة-تحكم-التجارة-الإلكترونية",
-    metaTitle_en: "E-Commerce Admin Dashboard Template",
-    metaTitle_ar: "قالب لوحة إدارة التجارة الإلكترونية",
-    metaDesc_en:
-      "Complete admin dashboard template for e-commerce platforms with analytics.",
-    metaDesc_ar:
-      "قالب لوحة إدارة كاملة لمنصات التجارة الإلكترونية مع التحليلات.",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date("2025-01-15"),
-  },
-  {
-    id: 2,
-    title_en: "SaaS Landing Page",
-    title_ar: "صفحة هبوط SaaS",
-    description_en:
-      "Modern landing page template perfect for SaaS products with pricing tables and feature sections.",
-    description_ar:
-      "قالب صفحة هبوط حديث مثالي لمنتجات SaaS مع جداول الأسعار وأقسام المميزات.",
-    price: 29,
-    originalPrice: 39,
-    rating: 4.8,
-    ratingsCount: 85,
-    downloads: 890,
-    views: 0,
-    tags: ["React", "Framer Motion", "TypeScript", "Tailwind"],
-    category: "LANDING_PAGES",
-    imageUrl: "/saas-landing-page.png",
-    previewImages: ["/saas-preview1.png", "/saas-preview2.png"],
-    previewUrl: "https://saas-landing-demo.vercel.app",
-    downloadUrl: "/downloads/saas-landing.zip",
-    fileSize: "15MB",
-    difficulty: "INTERMEDIATE",
-    featured: true,
-    isActive: true,
-    version: "1.0.0",
-    changelog:
-      "Initial SaaS landing page release with animations and pricing tables.",
-    slug_en: "saas-landing-page",
-    slug_ar: "صفحة-هبوط-saas",
-    metaTitle_en: "SaaS Landing Page Template",
-    metaTitle_ar: "قالب صفحة هبوط SaaS",
-    metaDesc_en:
-      "Responsive SaaS landing page template with feature sections and pricing.",
-    metaDesc_ar:
-      "قالب صفحة هبوط متجاوب لمنتجات SaaS مع أقسام المميزات وجداول الأسعار.",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date("2025-01-10"),
-  },
-  {
-    id: 3,
-    title_en: "Portfolio Template",
-    title_ar: "قالب معرض الأعمال",
-    description_en:
-      "Clean and minimal portfolio template for developers and designers to showcase their work.",
-    description_ar:
-      "قالب معرض أعمال نظيف وبسيط للمطورين والمصممين لعرض مشاريعهم.",
-    price: 19,
-    originalPrice: 29,
-    rating: 4.7,
-    ratingsCount: 60,
-    downloads: 650,
-    views: 0,
-    tags: ["Next.js", "Tailwind", "MDX", "TypeScript"],
-    category: "PORTFOLIO",
-    imageUrl: "/minimal-portfolio-website.png",
-    previewImages: ["/portfolio-preview1.png", "/portfolio-preview2.png"],
-    previewUrl: "https://portfolio-demo.vercel.app",
-    downloadUrl: "/downloads/portfolio-template.zip",
-    fileSize: "10MB",
-    difficulty: "BEGINNER",
-    featured: false,
-    isActive: true,
-    version: "1.0.0",
-    changelog: "Initial release of minimal portfolio template.",
-    slug_en: "portfolio-template",
-    slug_ar: "قالب-معرض-الأعمال",
-    metaTitle_en: "Minimal Portfolio Template",
-    metaTitle_ar: "قالب معرض أعمال بسيط",
-    metaDesc_en:
-      "Minimal and clean portfolio template for developers and designers.",
-    metaDesc_ar: "قالب معرض أعمال بسيط ونظيف للمطورين والمصممين.",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date("2025-01-05"),
-  },
-  {
-    id: 4,
-    title_en: "Blog Platform",
-    title_ar: "منصة المدونات",
-    description_en:
-      "Full-featured blog platform with CMS integration, SEO optimization, and comment system.",
-    description_ar:
-      "منصة مدونات متكاملة مع دعم CMS، تحسين SEO ونظام التعليقات.",
-    price: 39,
-    originalPrice: 49,
-    rating: 4.6,
-    ratingsCount: 45,
-    downloads: 420,
-    views: 0,
-    tags: ["Next.js", "Sanity", "TypeScript", "Tailwind"],
-    category: "BLOG_THEMES",
-    imageUrl: "/modern-blog-platform.png",
-    previewImages: ["/blog-preview1.png", "/blog-preview2.png"],
-    previewUrl: "https://blog-platform-demo.vercel.app",
-    downloadUrl: "/downloads/blog-platform.zip",
-    fileSize: "18MB",
-    difficulty: "INTERMEDIATE",
-    featured: false,
-    isActive: true,
-    version: "1.0.0",
-    changelog: "Initial release with full CMS and SEO support.",
-    slug_en: "blog-platform",
-    slug_ar: "منصة-المدونات",
-    metaTitle_en: "Modern Blog Platform Template",
-    metaTitle_ar: "قالب منصة مدونات حديثة",
-    metaDesc_en: "Full-featured blog template with SEO and CMS integration.",
-    metaDesc_ar: "قالب مدونات متكامل مع تحسين SEO ودعم CMS.",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date("2024-12-28"),
-  },
-  {
-    id: 5,
-    title_en: "Restaurant Website",
-    title_ar: "موقع مطعم",
-    description_en:
-      "Beautiful restaurant website with menu display, reservation system, and online ordering.",
-    description_ar: "موقع مطعم جميل مع عرض القائمة، نظام الحجز والطلب أونلاين.",
-    price: 35,
-    originalPrice: 45,
-    rating: 4.5,
-    ratingsCount: 38,
-    downloads: 380,
-    views: 0,
-    tags: ["React", "Next.js", "Stripe", "Tailwind"],
-    category: "WEBSITE_TEMPLATES",
-    imageUrl: "/restaurant-website-template.png",
-    previewImages: ["/restaurant-preview1.png", "/restaurant-preview2.png"],
-    previewUrl: "https://restaurant-demo.vercel.app",
-    downloadUrl: "/downloads/restaurant-template.zip",
-    fileSize: "22MB",
-    difficulty: "INTERMEDIATE",
-    featured: false,
-    isActive: true,
-    version: "1.0.0",
-    changelog: "Initial release with menu and online ordering system.",
-    slug_en: "restaurant-website",
-    slug_ar: "موقع-مطعم",
-    metaTitle_en: "Restaurant Website Template",
-    metaTitle_ar: "قالب موقع مطعم",
-    metaDesc_en:
-      "Beautiful restaurant website template with reservation and menu system.",
-    metaDesc_ar: "قالب موقع مطعم جميل مع نظام الحجز وعرض القائمة.",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date("2024-12-20"),
-  },
-  {
-    id: 6,
-    title_en: "Crypto Dashboard",
-    title_ar: "لوحة تداول العملات الرقمية",
-    description_en:
-      "Cryptocurrency trading dashboard with real-time data, charts, and portfolio tracking.",
-    description_ar:
-      "لوحة تداول العملات الرقمية مع بيانات لحظية، مخططات وتتبع المحفظة.",
-    price: 59,
-    originalPrice: 79,
-    rating: 4.8,
-    ratingsCount: 29,
-    downloads: 290,
-    views: 0,
-    tags: ["React", "Chart.js", "WebSocket", "TypeScript"],
-    category: "ADMIN_DASHBOARDS",
-    imageUrl: "/crypto-trading-dashboard.png",
-    previewImages: ["/crypto-preview1.png", "/crypto-preview2.png"],
-    previewUrl: "https://crypto-dashboard-demo.vercel.app",
-    downloadUrl: "/downloads/crypto-dashboard.zip",
-    fileSize: "28MB",
-    difficulty: "ADVANCED",
-    featured: false,
-    isActive: true,
-    version: "1.0.0",
-    changelog: "Initial release with real-time crypto tracking and charts.",
-    slug_en: "crypto-dashboard",
-    slug_ar: "لوحة-تداول-العملات-الرقمية",
-    metaTitle_en: "Crypto Trading Dashboard Template",
-    metaTitle_ar: "قالب لوحة تداول العملات الرقمية",
-    metaDesc_en:
-      "Real-time crypto dashboard template with charts and portfolio tracking.",
-    metaDesc_ar:
-      "قالب لوحة تداول العملات الرقمية لحظية مع المخططات وتتبع المحفظة.",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastUpdated: new Date("2024-12-15"),
-  },
-];
-
-const categories = [
-  { value: "All", label_en: "All", label_ar: "الكل" },
-  {
-    value: "ADMIN_DASHBOARDS",
-    label_en: "Admin Dashboards",
-    label_ar: "لوحات الإدارة",
-  },
-  {
-    value: "LANDING_PAGES",
-    label_en: "Landing Pages",
-    label_ar: "صفحات الهبوط",
-  },
-  { value: "PORTFOLIO", label_en: "Portfolio", label_ar: "معرض الأعمال" },
-  { value: "BLOG_THEMES", label_en: "Blog Themes", label_ar: "قوالب المدونات" },
-  {
-    value: "WEBSITE_TEMPLATES",
-    label_en: "Website Templates",
-    label_ar: "قوالب المواقع",
-  },
-];
-
-const sortOptions = [
-  { value: "featured", label_en: "Featured", label_ar: "المميزة" },
-  { value: "newest", label_en: "Newest", label_ar: "الأحدث" },
-  {
-    value: "price-low",
-    label_en: "Price: Low to High",
-    label_ar: "السعر: من الأقل للأعلى",
-  },
-  {
-    value: "price-high",
-    label_en: "Price: High to Low",
-    label_ar: "السعر: من الأعلى للأقل",
-  },
-  { value: "rating", label_en: "Highest Rated", label_ar: "الأعلى تقييماً" },
-  {
-    value: "downloads",
-    label_en: "Most Downloaded",
-    label_ar: "الأكثر تحميلاً",
-  },
-];
-
-const difficultyLabels = {
-  BEGINNER: { en: "Beginner", ar: "مبتدئ" },
-  INTERMEDIATE: { en: "Intermediate", ar: "متوسط" },
-  ADVANCED: { en: "Advanced", ar: "متقدم" },
-  EXPERT: { en: "Expert", ar: "خبير" },
-};
 
 export function TemplateStore() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("featured");
-  const [previewTemplate, setPreviewTemplate] = useState<
-    (typeof templates)[0] | null
-  >(null);
   const { currentLanguage } = useTranslation();
+  const { getTemplates, templates } = templateStore();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
+  const [featuredFilter, setFeaturedFilter] = useState<boolean | undefined>(
+    undefined
+  );
+  const [minPrice, setMinPrice] = useState<string>("");
+  const [maxPrice, setMaxPrice] = useState<string>("");
+  const [sortBy, setSortBy] = useState<TemplateFilters["sortBy"]>("createdAt");
+  const [sortOrder, setSortOrder] =
+    useState<TemplateFilters["sortOrder"]>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const buildFilters = useCallback((): TemplateFilters => {
+    const filters: TemplateFilters = {
+      page: currentPage,
+      limit: itemsPerPage,
+      sortBy,
+      sortOrder,
+    };
+
+    if (searchTerm) filters.search = searchTerm;
+    if (categoryFilter !== "all") filters.category = categoryFilter as any;
+    if (difficultyFilter !== "all")
+      filters.difficulty = difficultyFilter as any;
+    if (featuredFilter !== undefined) filters.featured = featuredFilter;
+    if (minPrice) filters.minPrice = Number.parseFloat(minPrice);
+    if (maxPrice) filters.maxPrice = Number.parseFloat(maxPrice);
+
+    return filters;
+  }, [
+    searchTerm,
+    categoryFilter,
+    difficultyFilter,
+    featuredFilter,
+    minPrice,
+    maxPrice,
+    sortBy,
+    sortOrder,
+    currentPage,
+    itemsPerPage,
+  ]);
+
+  const filter = buildFilters();
+
+  const fetchAllTemplates = useCallback(async () => {
+    try {
+      const result = await getTemplates(filter);
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "error",
+        });
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch templates: ${error}`,
+        variant: "error",
+      });
+    }
+  }, [getTemplates]);
+
+  useEffect(() => {
+    fetchAllTemplates();
+  }, [fetchAllTemplates]);
+
+  const filteredTemplates = templates.filter((template) => {
+    const matchesSearch =
+      template.title_en.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      template.title_ar.includes(searchTerm);
+    const matchesCategory =
+      categoryFilter === "all" || template.category === categoryFilter;
+    const matchesDifficulty =
+      difficultyFilter === "all" || template.difficulty === difficultyFilter;
+    const matchesFeatured =
+      featuredFilter === undefined || template.featured === featuredFilter;
+
+    const templatePrice = template.price;
+    const matchesMinPrice =
+      !minPrice || templatePrice >= Number.parseFloat(minPrice);
+    const matchesMaxPrice =
+      !maxPrice || templatePrice <= Number.parseFloat(maxPrice);
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesDifficulty &&
+      matchesFeatured &&
+      matchesMinPrice &&
+      matchesMaxPrice
+    );
+  });
+
+  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
+    let comparison = 0;
+
+    switch (sortBy) {
+      case "price":
+        comparison = a.price - b.price;
+        break;
+      case "rating":
+        comparison = a.rating - b.rating;
+        break;
+      case "downloads":
+        comparison = a.downloads - b.downloads;
+        break;
+      case "views":
+        comparison = a.views - b.views;
+        break;
+      case "createdAt":
+      default:
+        comparison =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
+
+  const totalPages = Math.ceil(sortedTemplates.length / itemsPerPage);
+  const paginatedTemplates = sortedTemplates.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchTerm,
+    categoryFilter,
+    difficultyFilter,
+    featuredFilter,
+    minPrice,
+    maxPrice,
+    sortBy,
+    sortOrder,
+  ]);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter("all");
+    setDifficultyFilter("all");
+    setFeaturedFilter(undefined);
+    setMinPrice("");
+    setMaxPrice("");
+    setSortBy("createdAt");
+    setSortOrder("desc");
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    searchTerm ||
+    categoryFilter !== "all" ||
+    difficultyFilter !== "all" ||
+    featuredFilter !== undefined ||
+    minPrice ||
+    maxPrice;
 
   const getLocalizedContent = (item: any, field: string) => {
     const langSuffix = currentLanguage === "ar" ? "_ar" : "_en";
     return item[`${field}${langSuffix}`] || item[`${field}_en`] || item[field];
   };
-
-  const filteredAndSortedTemplates = useMemo(() => {
-    const filtered = templates.filter((template) => {
-      const title = getLocalizedContent(template, "title");
-      const description = getLocalizedContent(template, "description");
-
-      const matchesSearch =
-        title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        template.tags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-      const matchesCategory =
-        selectedCategory === "All" || template.category === selectedCategory;
-
-      return matchesSearch && matchesCategory && template.isActive;
-    });
-
-    // Sort templates
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "featured":
-          return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-        case "newest":
-          return (
-            new Date(b.lastUpdated).getTime() -
-            new Date(a.lastUpdated).getTime()
-          );
-        case "price-low":
-          return a.price - b.price;
-        case "price-high":
-          return b.price - a.price;
-        case "rating":
-          return b.rating - a.rating;
-        case "downloads":
-          return b.downloads - a.downloads;
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [searchQuery, selectedCategory, sortBy, currentLanguage]);
-
   return (
     <div className="py-20">
       <div className="container mx-auto px-4">
@@ -380,79 +212,33 @@ export function TemplateStore() {
         </div>
 
         {/* Filters */}
-        <div className="mb-12 space-y-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder={
-                  currentLanguage === "ar"
-                    ? "البحث في القوالب..."
-                    : "Search templates..."
-                }
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue
-                    placeholder={
-                      currentLanguage === "ar"
-                        ? "اختر الفئة"
-                        : "Select category"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {getLocalizedContent(category, "label")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sort */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue
-                  placeholder={
-                    currentLanguage === "ar" ? "ترتيب حسب" : "Sort by"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {getLocalizedContent(option, "label")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Results count */}
-          <div className="text-sm text-muted-foreground">
-            {currentLanguage === "ar"
-              ? `عرض ${filteredAndSortedTemplates.length} من ${templates.length} قالب`
-              : `Showing ${filteredAndSortedTemplates.length} of ${templates.length} templates`}
-          </div>
-        </div>
+        <TemplateFiltersComponent
+          searchTerm={searchTerm}
+          categoryFilter={categoryFilter}
+          difficultyFilter={difficultyFilter}
+          featuredFilter={featuredFilter}
+          minPrice={minPrice}
+          maxPrice={maxPrice}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          itemsPerPage={itemsPerPage}
+          showFilters={showFilters}
+          hasActiveFilters={hasActiveFilters as boolean}
+          onSearchChange={setSearchTerm}
+          onCategoryChange={setCategoryFilter}
+          onDifficultyChange={setDifficultyFilter}
+          onFeaturedChange={setFeaturedFilter}
+          onMinPriceChange={setMinPrice}
+          onMaxPriceChange={setMaxPrice}
+          onSortByChange={setSortBy}
+          onSortOrderChange={setSortOrder}
+          onItemsPerPageChange={setItemsPerPage}
+          onClearFilters={clearFilters}
+        />
 
         {/* Templates Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredAndSortedTemplates.map((template) => (
+          {paginatedTemplates.map((template) => (
             <Card
               key={template.id}
               className="group overflow-hidden hover:shadow-xl transition-all duration-300"
@@ -466,15 +252,16 @@ export function TemplateStore() {
 
                 {/* Overlay with preview button */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPreviewTemplate(template)}
-                    className="bg-white/90 text-black hover:bg-white"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    {currentLanguage === "ar" ? "معاينة" : "Preview"}
-                  </Button>
+                  <Link href={`/templates/view/${template.id}`}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="bg-white/90 text-black hover:bg-white"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      {currentLanguage === "ar" ? "معاينة" : "Preview"}
+                    </Button>
+                  </Link>
                 </div>
 
                 {/* Badges */}
@@ -556,17 +343,67 @@ export function TemplateStore() {
 
                 <div className="text-xs text-muted-foreground mt-2">
                   {currentLanguage === "ar" ? "آخر تحديث: " : "Updated: "}
-                  {new Date(template.lastUpdated).toLocaleDateString(
+                  {new Date(template.updatedAt).toLocaleDateString(
                     currentLanguage === "ar" ? "ar-SA" : "en-US"
                   )}
                 </div>
               </CardContent>
             </Card>
           ))}
+
+          {/* Pagination - Responsive */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="w-full sm:w-auto"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                <span className="hidden xs:inline">Previous</span>
+                <span className="xs:hidden">Prev</span>
+              </Button>
+
+              <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-2 sm:pb-0">
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  if (totalPages <= 7) return i + 1;
+                  if (i < 2) return i + 1;
+                  if (i >= totalPages - 2) return totalPages - (6 - i);
+                  return currentPage + (i - 3);
+                }).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className="w-8 h-8 sm:w-10 sm:h-9 p-0 text-xs sm:text-sm flex-shrink-0"
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="w-full sm:w-auto"
+              >
+                <span className="hidden xs:inline">Next</span>
+                <span className="xs:hidden">Next</span>
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* No results */}
-        {filteredAndSortedTemplates.length === 0 && (
+        {paginatedTemplates.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-2xl font-semibold mb-2">
@@ -581,9 +418,9 @@ export function TemplateStore() {
             </p>
             <Button
               onClick={() => {
-                setSearchQuery("");
-                setSelectedCategory("All");
-                setSortBy("featured");
+                setSearchTerm("");
+                setCategoryFilter("All");
+                setSortBy("createdAt");
               }}
             >
               {currentLanguage === "ar" ? "مسح المرشحات" : "Clear Filters"}
@@ -591,15 +428,6 @@ export function TemplateStore() {
           </div>
         )}
       </div>
-
-      {/* Preview Modal */}
-      {previewTemplate && (
-        <TemplatePreviewModal
-          template={previewTemplate}
-          isOpen={!!previewTemplate}
-          onClose={() => setPreviewTemplate(null)}
-        />
-      )}
     </div>
   );
 }

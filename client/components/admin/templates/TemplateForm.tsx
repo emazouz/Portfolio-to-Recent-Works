@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/hooks/use-translation";
 import { useImageUpload } from "@/hooks/useImageUpload";
@@ -43,20 +43,23 @@ import {
   templateStore,
 } from "@/store/templateStore";
 import { toast } from "@/hooks/use-toast";
+import NotFound from "@/components/ui/NotFound";
 
 interface TemplateFormProps {
-  templateId?: string;
+  templateId?: number;
 }
 
 export function TemplateForm({ templateId }: TemplateFormProps) {
   const { t } = useTranslation();
-  const { createTemplate, isLoading } = templateStore();
+  const { createTemplate, updateTemplate, isLoading, getTemplateById } =
+    templateStore();
   const router = useRouter();
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [existingZipUrl, setExistingZipUrl] = useState<string>("");
   const [zipDragActive, setZipDragActive] = useState(false);
+  const [sizeInMB, setSizeInMB] = useState<string>("");
 
   const {
     imageFile,
@@ -90,7 +93,6 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
     category: "" as TemplateCategory | "",
     difficulty: "" as Difficulty | "",
     previewUrl: "",
-    fileSize: "",
     slug_en: "",
     slug_ar: "",
     metaTitle_en: "",
@@ -102,6 +104,61 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
     featured: false,
     isActive: true,
   });
+
+  useEffect(() => {
+    const fetchTemplate = async (id: number) => {
+      try {
+        const result = await getTemplateById(id);
+
+        if (!result.success) {
+          toast({
+            title: "Error",
+            description: result.message as string,
+            variant: "error",
+          });
+          return;
+        }
+
+        const template = result.data;
+        if (!template) {
+          return;
+        }
+
+        setFormData({
+          title_en: template.title_en,
+          title_ar: template.title_ar,
+          description_en: template.description_en,
+          description_ar: template.description_ar,
+          price: template.price,
+          originalPrice: template.originalPrice,
+          category: template.category as TemplateCategory,
+          difficulty: template.difficulty as Difficulty,
+          previewUrl: template.previewUrl,
+          slug_en: template.slug_en,
+          slug_ar: template.slug_ar,
+          metaTitle_en: template.metaTitle_en,
+          metaTitle_ar: template.metaTitle_ar,
+          metaDesc_en: template.metaDesc_en,
+          metaDesc_ar: template.metaDesc_ar,
+          version: template.version,
+          changelog: template.changelog,
+          featured: template.featured,
+          isActive: template.isActive,
+        });
+        setTags(template.tags);
+      } catch (error) {
+        console.error("Error fetching template:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch template",
+          variant: "error",
+        });
+      }
+    };
+
+    if (!templateId) return;
+    fetchTemplate(templateId);
+  }, [templateId]);
 
   const handleInputChange = (
     field: string,
@@ -125,7 +182,6 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
       }));
     }
   };
-
   const handleZipFile = (file: File) => {
     if (
       file.type === "application/zip" ||
@@ -134,8 +190,8 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
     ) {
       setZipFile(file);
       // Auto-calculate file size
-      const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-      handleInputChange("fileSize", sizeInMB);
+      const szInMB = (file.size / (1024 * 1024)).toFixed(2);
+      setSizeInMB(szInMB);
     } else {
       alert(t("Please upload a ZIP file", "admin.form.zipOnly"));
     }
@@ -171,15 +227,6 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
     e.preventDefault();
 
     try {
-      if (!imageFile && !images.length && !zipFile) {
-        toast({
-          title: t("Error", "common.error"),
-          description: t("Please select a Media", "admin.form.media"),
-          variant: "error",
-        });
-        return;
-      }
-
       if (!formData.category) {
         toast({
           title: t("Error", "common.error"),
@@ -203,16 +250,34 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
         return;
       }
 
-      const result = await createTemplate({
-        ...formData,
-        category: formData.category as TemplateCategory,
-        difficulty: formData.difficulty as Difficulty,
-        tags,
-        imageUrl: imageFile!,
-        previewImages: images,
-        downloadUrl: zipFile!,
-      });
+      let result;
+      if (templateId) {
+        result = await updateTemplate(templateId, {
+          ...formData,
+          category: formData.category as TemplateCategory,
+          difficulty: formData.difficulty as Difficulty,
+          tags,
+        });
+      } else {
+        if (!imageFile && !images.length && !zipFile) {
+          toast({
+            title: t("Error", "common.error"),
+            description: t("Please select a Media", "admin.form.media"),
+            variant: "error",
+          });
+          return;
+        }
 
+        result = await createTemplate({
+          ...formData,
+          category: formData.category as TemplateCategory,
+          difficulty: formData.difficulty as Difficulty,
+          tags,
+          imageUrl: imageFile!,
+          previewImages: images,
+          downloadUrl: zipFile!,
+        });
+      }
       if (!result.success) {
         toast({
           title: t("Error", "common.error"),
@@ -269,9 +334,11 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
           <TabsTrigger value="content">
             {t("Content", "admin.form.content")}
           </TabsTrigger>
-          <TabsTrigger value="media">
-            {t("Media", "admin.form.media")}
-          </TabsTrigger>
+          {!templateId && (
+            <TabsTrigger value="media">
+              {t("Media", "admin.form.media")}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="seo">{t("SEO", "admin.form.seo")}</TabsTrigger>
           <TabsTrigger value="settings">
             {t("Settings", "admin.form.settings")}
@@ -358,19 +425,6 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
                       handleInputChange("originalPrice", Number(e.target.value))
                     }
                     placeholder="79"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fileSize">
-                    {t("File Size (MB)", "admin.form.fileSize")}
-                  </Label>
-                  <Input
-                    id="fileSize"
-                    value={formData.fileSize}
-                    onChange={(e) =>
-                      handleInputChange("fileSize", e.target.value)
-                    }
-                    placeholder="15.2"
                   />
                 </div>
               </div>
@@ -551,337 +605,347 @@ export function TemplateForm({ templateId }: TemplateFormProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="media" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("Media & Files", "admin.form.media")}</CardTitle>
-              <CardDescription>
-                {t(
-                  "Upload images and set file URLs",
-                  "admin.form.mediaDescription"
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="imageUrl">
-                  {t("Main Image", "admin.form.imageUrl")}
-                </Label>
-                <div
-                  className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
-                    dragActive
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/25"
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={(e) => {
-                    handleDrop(e);
-                    const files = Array.from(e.dataTransfer.files);
-                    if (
-                      files.length > 0 &&
-                      files[0].type.startsWith("image/")
-                    ) {
-                      handleImageFile(files[0]);
-                    }
-                  }}
-                >
-                  {imagePreview || existingImageUrl ? (
-                    <div className="relative">
-                      <img
-                        src={
-                          imagePreview || existingImageUrl || "/placeholder.svg"
-                        }
-                        alt="Main template preview"
-                        className="w-full h-64 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={removeImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 text-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
-                          {t(
-                            "Drop image here or click to upload",
-                            "admin.form.dropImage"
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {t(
-                            "PNG, JPG, WebP up to 5MB",
-                            "admin.form.imageFormats"
-                          )}
-                        </p>
-                      </div>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageFile(file);
-                        }}
-                        id="main-image-upload"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          document.getElementById("main-image-upload")?.click()
-                        }
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        {t("Choose File", "admin.form.chooseFile")}
-                      </Button>
-                    </div>
+        {!templateId && (
+          <TabsContent value="media" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("Media & Files", "admin.form.media")}</CardTitle>
+                <CardDescription>
+                  {t(
+                    "Upload images and set file URLs",
+                    "admin.form.mediaDescription"
                   )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="previewImages">
-                    {t("Preview Images", "admin.form.previewImages")}
-                  </Label>
-                  <span className="text-sm text-muted-foreground">
-                    {images.length} / {maxImages}{" "}
-                    {t("images", "admin.form.images")}
-                  </span>
-                </div>
-
-                <div
-                  className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
-                    dragActive
-                      ? "border-primary bg-primary/5"
-                      : "border-muted-foreground/25"
-                  } ${
-                    !canAddMoreImages ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <div className="flex flex-col items-center justify-center gap-2 text-center">
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        {canAddMoreImages
-                          ? t(
-                              "Drop images here or click to upload",
-                              "admin.form.dropImages"
-                            )
-                          : t("Maximum images reached", "admin.form.maxImages")}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {canAddMoreImages
-                          ? t(
-                              `You can add ${remainingSlots} more image(s)`,
-                              "admin.form.remainingSlots"
-                            )
-                          : t(
-                              "Remove some images to add more",
-                              "admin.form.removeToAdd"
-                            )}
-                      </p>
-                    </div>
-                    <Input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleFileInputChange}
-                      disabled={!canAddMoreImages}
-                      id="preview-images-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!canAddMoreImages}
-                      onClick={() =>
-                        document
-                          .getElementById("preview-images-upload")
-                          ?.click()
-                      }
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      {t("Choose Files", "admin.form.chooseFiles")}
-                    </Button>
-                  </div>
-                </div>
-
-                {images.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">
-                        {t("Uploaded Images", "admin.form.uploadedImages")}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeAllImages}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        {t("Remove All", "admin.form.removeAll")}
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.map((img) => (
-                        <div key={img.id} className="relative group">
-                          <div className="relative w-full aspect-square rounded-lg overflow-hidden border">
-                            <img
-                              src={img.preview || "/placeholder.svg"}
-                              alt="Preview"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => removeMultipleImage(img.id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="previewUrl">
-                    {t("Preview URL", "admin.form.previewUrl")}
-                  </Label>
-                  <Input
-                    id="previewUrl"
-                    value={formData.previewUrl}
-                    onChange={(e) =>
-                      handleInputChange("previewUrl", e.target.value)
-                    }
-                    placeholder="https://preview.example.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="downloadUrl">
-                    {t("Template Files (ZIP)", "admin.form.downloadUrl")}
+                  <Label htmlFor="imageUrl">
+                    {t("Main Image", "admin.form.imageUrl")}
                   </Label>
                   <div
                     className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
-                      zipDragActive
+                      dragActive
                         ? "border-primary bg-primary/5"
                         : "border-muted-foreground/25"
                     }`}
-                    onDragEnter={handleZipDrag}
-                    onDragLeave={handleZipDrag}
-                    onDragOver={handleZipDrag}
-                    onDrop={handleZipDrop}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={(e) => {
+                      handleDrop(e);
+                      const files = Array.from(e.dataTransfer.files);
+                      if (
+                        files.length > 0 &&
+                        files[0].type.startsWith("image/")
+                      ) {
+                        handleImageFile(files[0]);
+                      }
+                    }}
                   >
-                    {zipFile || existingZipUrl ? (
-                      <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <FileArchive className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {zipFile?.name || "template-files.zip"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {zipFile
-                                ? `${(zipFile.size / (1024 * 1024)).toFixed(
-                                    2
-                                  )} MB`
-                                : formData.fileSize + " MB"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {existingZipUrl && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              asChild
-                            >
-                              <a href={existingZipUrl} download>
-                                <Download className="mr-2 h-4 w-4" />
-                                {t("Download", "admin.form.download")}
-                              </a>
-                            </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            onClick={removeZipFile}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+                    {imagePreview || existingImageUrl ? (
+                      <div className="relative">
+                        <img
+                          src={
+                            imagePreview ||
+                            existingImageUrl ||
+                            "/placeholder.svg"
+                          }
+                          alt="Main template preview"
+                          className="w-full h-64 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={removeImage}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-2 text-center">
-                        <FileArchive className="h-12 w-12 text-muted-foreground" />
+                        <ImageIcon className="h-12 w-12 text-muted-foreground" />
                         <div className="space-y-1">
                           <p className="text-sm font-medium">
                             {t(
-                              "Drop ZIP file here or click to upload",
-                              "admin.form.dropZip"
+                              "Drop image here or click to upload",
+                              "admin.form.dropImage"
                             )}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {t(
-                              "ZIP files only, up to 100MB",
-                              "admin.form.zipFormats"
+                              "PNG, JPG, WebP up to 5MB",
+                              "admin.form.imageFormats"
                             )}
                           </p>
                         </div>
                         <Input
                           type="file"
-                          accept=".zip,application/zip,application/x-zip-compressed"
+                          accept="image/*"
                           className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handleZipFile(file);
+                            if (file) handleImageFile(file);
                           }}
-                          id="zip-file-upload"
+                          id="main-image-upload"
                         />
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() =>
-                            document.getElementById("zip-file-upload")?.click()
+                            document
+                              .getElementById("main-image-upload")
+                              ?.click()
                           }
                         >
                           <Upload className="mr-2 h-4 w-4" />
-                          {t("Choose ZIP File", "admin.form.chooseZip")}
+                          {t("Choose File", "admin.form.chooseFile")}
                         </Button>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="previewImages">
+                      {t("Preview Images", "admin.form.previewImages")}
+                    </Label>
+                    <span className="text-sm text-muted-foreground">
+                      {images.length} / {maxImages}{" "}
+                      {t("images", "admin.form.images")}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
+                      dragActive
+                        ? "border-primary bg-primary/5"
+                        : "border-muted-foreground/25"
+                    } ${
+                      !canAddMoreImages ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2 text-center">
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">
+                          {canAddMoreImages
+                            ? t(
+                                "Drop images here or click to upload",
+                                "admin.form.dropImages"
+                              )
+                            : t(
+                                "Maximum images reached",
+                                "admin.form.maxImages"
+                              )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {canAddMoreImages
+                            ? t(
+                                `You can add ${remainingSlots} more image(s)`,
+                                "admin.form.remainingSlots"
+                              )
+                            : t(
+                                "Remove some images to add more",
+                                "admin.form.removeToAdd"
+                              )}
+                        </p>
+                      </div>
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileInputChange}
+                        disabled={!canAddMoreImages}
+                        id="preview-images-upload"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!canAddMoreImages}
+                        onClick={() =>
+                          document
+                            .getElementById("preview-images-upload")
+                            ?.click()
+                        }
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {t("Choose Files", "admin.form.chooseFiles")}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {images.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">
+                          {t("Uploaded Images", "admin.form.uploadedImages")}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeAllImages}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          {t("Remove All", "admin.form.removeAll")}
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {images.map((img) => (
+                          <div key={img.id} className="relative group">
+                            <div className="relative w-full aspect-square rounded-lg overflow-hidden border">
+                              <img
+                                src={img.preview || "/placeholder.svg"}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeMultipleImage(img.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="previewUrl">
+                      {t("Preview URL", "admin.form.previewUrl")}
+                    </Label>
+                    <Input
+                      id="previewUrl"
+                      value={formData.previewUrl}
+                      onChange={(e) =>
+                        handleInputChange("previewUrl", e.target.value)
+                      }
+                      placeholder="https://preview.example.com"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="downloadUrl">
+                      {t("Template Files (ZIP)", "admin.form.downloadUrl")}
+                    </Label>
+                    <div
+                      className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
+                        zipDragActive
+                          ? "border-primary bg-primary/5"
+                          : "border-muted-foreground/25"
+                      }`}
+                      onDragEnter={handleZipDrag}
+                      onDragLeave={handleZipDrag}
+                      onDragOver={handleZipDrag}
+                      onDrop={handleZipDrop}
+                    >
+                      {zipFile || existingZipUrl ? (
+                        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <FileArchive className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {zipFile?.name || "template-files.zip"}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {zipFile
+                                  ? `${(zipFile.size / (1024 * 1024)).toFixed(
+                                      2
+                                    )} MB`
+                                  : sizeInMB + " MB"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {existingZipUrl && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                asChild
+                              >
+                                <a href={existingZipUrl} download>
+                                  <Download className="mr-2 h-4 w-4" />
+                                  {t("Download", "admin.form.download")}
+                                </a>
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={removeZipFile}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-2 text-center">
+                          <FileArchive className="h-12 w-12 text-muted-foreground" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">
+                              {t(
+                                "Drop ZIP file here or click to upload",
+                                "admin.form.dropZip"
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t(
+                                "ZIP files only, up to 100MB",
+                                "admin.form.zipFormats"
+                              )}
+                            </p>
+                          </div>
+                          <Input
+                            type="file"
+                            accept=".zip,application/zip,application/x-zip-compressed"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleZipFile(file);
+                            }}
+                            id="zip-file-upload"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              document
+                                .getElementById("zip-file-upload")
+                                ?.click()
+                            }
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {t("Choose ZIP File", "admin.form.chooseZip")}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
         <TabsContent value="seo" className="space-y-6">
           <Card>
             <CardHeader>

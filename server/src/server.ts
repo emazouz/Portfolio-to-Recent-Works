@@ -8,7 +8,7 @@ import projectRoute from "./routes/projectRouter";
 import blogRoute from "./routes/blogRouter";
 import commentRoute from "./routes/commentRouter";
 import templatesRoute from "./routes/templatesRouter";
-
+import reviewRoute from "./routes/reviewRouter";
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
@@ -31,6 +31,7 @@ app.use("/api/projects", projectRoute);
 app.use("/api/blogs", blogRoute);
 app.use("/api/comments", commentRoute);
 app.use("/api/templates", templatesRoute);
+app.use("/api/reviews", reviewRoute);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

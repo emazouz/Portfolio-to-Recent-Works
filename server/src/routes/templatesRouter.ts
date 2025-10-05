@@ -8,7 +8,6 @@ import {
   getTemplateBySlug,
   updateTemplate,
   deleteTemplate,
-  restoreTemplate,
   getFeaturedTemplates,
   getPopularTemplates,
   getNewTemplates,
@@ -17,11 +16,8 @@ import {
   getTemplateStats,
   incrementDownloads,
   bulkOperations,
-  //   getAllTemplatesAdmin,
   getTemplateAnalytics,
-  advancedSearch,
   getSimilarTemplates,
-  toggleFeatured,
   getCategoryStats,
   updateTemplateVersion,
   getMyPurchasedTemplates,
@@ -81,14 +77,6 @@ router.get("/top-rated", getTopRatedTemplates);
 router.get("/categories/stats", getCategoryStats);
 
 /**
- * @route   POST /api/templates/search
- * @desc    Advanced search with multiple filters
- * @access  Public
- * @body    query, categories, difficulties, minPrice, maxPrice, minRating, tags, featured, page, limit
- */
-router.post("/search", advancedSearch);
-
-/**
  * @route   GET /api/templates/category/:category
  * @desc    Get templates by category
  * @access  Public
@@ -130,7 +118,7 @@ router.get("/:id/similar", getSimilarTemplates);
  * @desc    Get user's purchased templates
  * @access  Private (User)
  */
-router.get("/user/purchases", getMyPurchasedTemplates);
+router.get("/user/purchases", authenticateJwt, getMyPurchasedTemplates);
 
 /**
  * @route   POST /api/templates/:id/download
@@ -157,7 +145,7 @@ router.post("/", authenticateJwt, uploadMiddleware, createTemplate);
  * @params  id (template ID)
  * @body    Fields to update (partial template data)
  */
-router.put("/:id", updateTemplate);
+router.put("/:id", authenticateJwt, updateTemplate);
 
 /**
  * @route   DELETE /api/templates/:id
@@ -173,15 +161,6 @@ router.delete("/:id", deleteTemplate);
  * @access  Private (Admin)
  * @params  id (template ID)
  */
-router.patch("/:id/restore", restoreTemplate);
-
-/**
- * @route   PATCH /api/templates/:id/featured
- * @desc    Toggle template featured status
- * @access  Private (Admin)
- * @params  id (template ID)
- */
-router.patch("/:id/featured", toggleFeatured);
 
 /**
  * @route   PATCH /api/templates/:id/version
@@ -221,6 +200,6 @@ router.post("/bulk", bulkOperations);
  * @desc    Get comprehensive template analytics dashboard
  * @access  Private (Admin)
  */
-router.get("/admin/analytics", getTemplateAnalytics);
+router.get("/admin/analytics", authenticateJwt, getTemplateAnalytics);
 
 export default router;

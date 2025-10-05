@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Card,
   CardContent,
@@ -11,73 +10,31 @@ import { Button } from "@/components/ui/button";
 import { Star, Download } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import Link from "next/link";
-
-// Mock related templates data
-const allTemplates = [
-  {
-    id: 1,
-    title_en: "E-commerce Dashboard",
-    title_ar: "لوحة تحكم التجارة الإلكترونية",
-    description_en: "Complete admin dashboard for e-commerce platforms",
-    description_ar: "لوحة تحكم كاملة لمنصات التجارة الإلكترونية",
-    price: 49,
-    rating: 4.9,
-    downloads: 1200,
-    category: "ADMIN_DASHBOARDS",
-    imageUrl: "/modern-ecommerce-dashboard.png",
-    difficulty: "ADVANCED",
-  },
-  {
-    id: 2,
-    title_en: "SaaS Landing Page",
-    title_ar: "صفحة هبوط SaaS",
-    description_en: "Modern landing page template for SaaS products",
-    description_ar: "قالب صفحة هبوط حديث لمنتجات SaaS",
-    price: 29,
-    rating: 4.8,
-    downloads: 890,
-    category: "LANDING_PAGES",
-    imageUrl: "/saas-landing-page.png",
-    difficulty: "INTERMEDIATE",
-  },
-  {
-    id: 6,
-    title_en: "Crypto Dashboard",
-    title_ar: "لوحة تداول العملات الرقمية",
-    description_en: "Cryptocurrency trading dashboard with real-time data",
-    description_ar: "لوحة تداول العملات الرقمية مع بيانات لحظية",
-    price: 59,
-    rating: 4.8,
-    downloads: 290,
-    category: "ADMIN_DASHBOARDS",
-    imageUrl: "/crypto-trading-dashboard.png",
-    difficulty: "ADVANCED",
-  },
-];
-
+import { Template, templateStore } from "@/store/templateStore";
+import { useEffect, useState } from "react";
 interface RelatedTemplatesProps {
-  currentTemplate: {
-    id: number;
-    category: string;
-  };
+  templateId: number;
 }
 
-export function RelatedTemplates({ currentTemplate }: RelatedTemplatesProps) {
+export function RelatedTemplates({ templateId }: RelatedTemplatesProps) {
   const { currentLanguage } = useTranslation();
-
+  const { getSimilarTemplates } = templateStore();
+  const [relatedTemplates, setRelatedTemplates] = useState<Template[] | []>([]);
   const getLocalizedContent = (item: any, field: string) => {
     const langSuffix = currentLanguage === "ar" ? "_ar" : "_en";
     return item[`${field}${langSuffix}`] || item[`${field}_en`] || item[field];
   };
 
-  // Filter related templates (same category, exclude current)
-  const relatedTemplates = allTemplates
-    .filter(
-      (template) =>
-        template.category === currentTemplate.category &&
-        template.id !== currentTemplate.id
-    )
-    .slice(0, 3);
+  useEffect(() => {
+    const fetchRelatedTemplates = async (id: number) => {
+      const result = await getSimilarTemplates(id);
+      if (result.success) {
+        setRelatedTemplates(result.data);
+      }
+    };
+    if (!templateId) return;
+    fetchRelatedTemplates(templateId);
+  }, [getSimilarTemplates]);
 
   if (relatedTemplates.length === 0) {
     return null;

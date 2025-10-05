@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,84 +23,93 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { RelatedTemplates } from "@/components/template/RelatedTemplates";
 import { TemplateReviews } from "@/components/template/TemplateReviews";
 import { SocialShare } from "@/components/template/SocialShare";
-
-interface Template {
-  id: number;
-  title_en: string;
-  title_ar: string;
-  description_en: string;
-  description_ar: string;
-  price: number;
-  originalPrice: number;
-  rating: number;
-  ratingsCount: number;
-  downloads: number;
-  views: number;
-  tags: string[];
-  category: string;
-  imageUrl: string;
-  previewImages: string[];
-  previewUrl: string;
-  downloadUrl: string;
-  fileSize: string;
-  difficulty: string;
-  featured: boolean;
-  isActive: boolean;
-  version: string;
-  changelog: string;
-  slug_en: string;
-  slug_ar: string;
-  metaTitle_en: string;
-  metaTitle_ar: string;
-  metaDesc_en: string;
-  metaDesc_ar: string;
-  createdAt: Date;
-  updatedAt: Date;
-  lastUpdated: Date;
-}
+import { toast } from "@/hooks/use-toast";
+import { templateStore } from "@/store/templateStore";
+import NotFound from "./ui/NotFound";
+import Loader from "@/components/ui/Loader";
+import {
+  categoryLabels,
+  difficultyLabels,
+} from "@/constants/templateConstants";
 
 interface ViewTemplateProps {
-  template: Template;
+  templateId: number;
 }
 
-const categoryLabels = {
-  ADMIN_DASHBOARDS: { en: "Admin Dashboard", ar: "لوحة إدارة" },
-  LANDING_PAGES: { en: "Landing Page", ar: "صفحة هبوط" },
-  PORTFOLIO: { en: "Portfolio", ar: "معرض أعمال" },
-  BLOG_THEMES: { en: "Blog Theme", ar: "قالب مدونة" },
-  WEBSITE_TEMPLATES: { en: "Website Template", ar: "قالب موقع" },
-};
-
-const difficultyLabels = {
-  BEGINNER: { en: "Beginner", ar: "مبتدئ" },
-  INTERMEDIATE: { en: "Intermediate", ar: "متوسط" },
-  ADVANCED: { en: "Advanced", ar: "متقدم" },
-  EXPERT: { en: "Expert", ar: "خبير" },
-};
-
-export function ViewTemplate({ template }: ViewTemplateProps) {
+export function ViewTemplate({ templateId }: ViewTemplateProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
-  const [likes, setLikes] = useState(Math.floor(Math.random() * 100) + 50);
+  const [likes, setLikes] = useState(0);
   const { currentLanguage } = useTranslation();
+  const { getTemplateById, isLoading, template } = templateStore();
 
-  const getLocalizedContent = (field: string) => {
-    const langSuffix = currentLanguage === "ar" ? "_ar" : "_en";
-    return (
-      (template as any)[`${field}${langSuffix}`] ||
-      (template as any)[`${field}_en`] ||
-      (template as any)[field]
-    );
-  };
+  const fetchTemplate = useCallback(async () => {
+    try {
+      const result = await getTemplateById(templateId);
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch template:", error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch template: ${error}`,
+        variant: "error",
+      });
+    }
+  }, [getTemplateById, templateId]);
+
+  useEffect(() => {
+    fetchTemplate();
+  }, [fetchTemplate]);
+
+  useEffect(() => {
+    // Initialize likes when template loads
+    if (template) {
+      setLikes(Math.floor(Math.random() * 100) + 50);
+    }
+  }, [template]);
+
+  const getLocalizedContent = useCallback(
+    (field: string) => {
+      if (!template) return "";
+      const langSuffix = currentLanguage === "ar" ? "_ar" : "_en";
+      return (
+        (template as any)[`${field}${langSuffix}`] ||
+        (template as any)[`${field}_en`] ||
+        (template as any)[field] ||
+        ""
+      );
+    },
+    [template, currentLanguage]
+  );
 
   const handleLike = () => {
     setIsLiked(!isLiked);
     setLikes((prev) => (isLiked ? prev - 1 : prev + 1));
+  };
+
+  const handlePreviousImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? (template?.previewImages.length || 1) - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === (template?.previewImages.length || 1) - 1 ? 0 : prev + 1
+    );
   };
 
   const features = [
@@ -130,58 +139,78 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
     },
   ];
 
-  const discount = Math.round(
-    ((template.originalPrice - template.price) / template.originalPrice) * 100
-  );
+  // if (isLoading) {
+  //   return <Loader />;
+  // }
+
+  if (!template) {
+    return <NotFound />;
+  }
+
+  const discount =
+    template.originalPrice > template.price
+      ? Math.round(
+          ((template.originalPrice - template.price) / template.originalPrice) *
+            100
+        )
+      : 0;
+
+  const currentPreviewImage =
+    template.previewImages?.[currentImageIndex] || template.imageUrl;
 
   return (
-    <div className="py-20">
+    <div className="py-8 sm:py-12 lg:py-20">
       <div className="container mx-auto px-4">
-        {/* Header Section */}
-        <div className="mb-12">
-          <div className="flex flex-col lg:flex-row gap-8">
+        {/* Header Section - Responsive */}
+        <div className="mb-8 sm:mb-12">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* Left: Template Info */}
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4">
+              {/* Badges */}
+              <div className="flex items-center gap-2 mb-3 sm:mb-4 flex-wrap">
                 <Badge
                   variant="secondary"
-                  className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                  className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs sm:text-sm"
                 >
                   {
                     categoryLabels[
                       template.category as keyof typeof categoryLabels
-                    ][currentLanguage === "ar" ? "ar" : "en"]
+                    ]?.[currentLanguage === "ar" ? "ar" : "en"]
                   }
                 </Badge>
-                <Badge variant="outline">
+                <Badge variant="outline" className="text-xs sm:text-sm">
                   {
                     difficultyLabels[
                       template.difficulty as keyof typeof difficultyLabels
-                    ][currentLanguage === "ar" ? "ar" : "en"]
+                    ]?.[currentLanguage === "ar" ? "ar" : "en"]
                   }
                 </Badge>
                 {template.featured && (
-                  <Badge className="bg-yellow-500 text-yellow-900">
+                  <Badge className="bg-yellow-500 text-yellow-900 text-xs sm:text-sm">
                     {currentLanguage === "ar" ? "مميز" : "Featured"}
                   </Badge>
                 )}
               </div>
 
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance">
+              {/* Title */}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 text-balance">
                 {getLocalizedContent("title")}
               </h1>
 
-              <p className="text-xl text-muted-foreground mb-6 text-pretty">
+              {/* Description */}
+              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-4 sm:mb-6 text-pretty">
                 {getLocalizedContent("description")}
               </p>
 
-              <div className="flex items-center gap-6 mb-6">
-                <div className="flex items-center gap-2">
+              {/* Stats - Responsive */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+                {/* Rating */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-5 w-5 ${
+                        className={`h-4 w-4 sm:h-5 sm:w-5 ${
                           i < Math.floor(template.rating)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-gray-300"
@@ -189,39 +218,50 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
                       />
                     ))}
                   </div>
-                  <span className="font-semibold">{template.rating}</span>
-                  <span className="text-muted-foreground">
+                  <span className="font-semibold text-sm sm:text-base">
+                    {template.rating}
+                  </span>
+                  <span className="text-muted-foreground text-xs sm:text-sm">
                     ({template.ratingsCount}{" "}
                     {currentLanguage === "ar" ? "تقييم" : "reviews"})
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Download className="h-4 w-4" />
+                {/* Downloads */}
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground text-xs sm:text-sm">
+                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span>
-                    {template.downloads}{" "}
+                    {template.downloads.toLocaleString()}{" "}
                     {currentLanguage === "ar" ? "تحميل" : "downloads"}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Eye className="h-4 w-4" />
+                {/* Views */}
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground text-xs sm:text-sm">
+                  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span>
-                    {template.views || Math.floor(Math.random() * 5000) + 1000}{" "}
+                    {(
+                      template.views || Math.floor(Math.random() * 5000) + 1000
+                    ).toLocaleString()}{" "}
                     {currentLanguage === "ar" ? "مشاهدة" : "views"}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleLike}
-                  className={isLiked ? "text-red-500 border-red-500" : ""}
+                  className={`${
+                    isLiked ? "text-red-500 border-red-500" : ""
+                  } text-xs sm:text-sm`}
                 >
                   <Heart
-                    className={`h-4 w-4 mr-2 ${isLiked ? "fill-current" : ""}`}
+                    className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 ${
+                      isLiked ? "fill-current" : ""
+                    }`}
                   />
                   {likes}
                 </Button>
@@ -234,24 +274,28 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
               </div>
             </div>
 
-            {/* Right: Purchase Card */}
-            <div className="lg:w-96">
-              <Card className="sticky top-8">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-3xl font-bold">
+            {/* Right: Purchase Card - Sticky on desktop */}
+            <div className="lg:w-96 xl:w-[420px]">
+              <Card className="lg:sticky lg:top-8">
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-2xl sm:text-3xl font-bold">
                           ${template.price}
                         </span>
-                        <span className="text-lg text-muted-foreground line-through">
-                          ${template.originalPrice}
-                        </span>
-                        <Badge variant="destructive" className="text-xs">
-                          -{discount}%
-                        </Badge>
+                        {discount > 0 && (
+                          <>
+                            <span className="text-base sm:text-lg text-muted-foreground line-through">
+                              ${template.originalPrice}
+                            </span>
+                            <Badge variant="destructive" className="text-xs">
+                              -{discount}%
+                            </Badge>
+                          </>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         {currentLanguage === "ar"
                           ? "سعر لمرة واحدة"
                           : "One-time payment"}
@@ -259,17 +303,18 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
+                  {/* Action Buttons */}
+                  <div className="space-y-2 sm:space-y-3">
                     <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-sm sm:text-base"
                       size="lg"
                     >
                       {currentLanguage === "ar" ? "اشتري الآن" : "Buy Now"}
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full bg-transparent"
+                      className="w-full bg-transparent text-sm sm:text-base"
                       asChild
                     >
                       <a
@@ -277,7 +322,7 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <ExternalLink className="h-4 w-4 mr-2" />
+                        <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                         {currentLanguage === "ar"
                           ? "معاينة مباشرة"
                           : "Live Preview"}
@@ -287,9 +332,10 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
 
                   <Separator />
 
-                  <div className="space-y-3 text-sm">
+                  {/* Features List */}
+                  <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                       <span>
                         {currentLanguage === "ar"
                           ? "كود مصدري كامل"
@@ -297,7 +343,7 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                       <span>
                         {currentLanguage === "ar"
                           ? "وثائق شاملة"
@@ -305,7 +351,7 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                       <span>
                         {currentLanguage === "ar"
                           ? "تحديثات مدى الحياة"
@@ -313,7 +359,7 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
                       <span>
                         {currentLanguage === "ar"
                           ? "دعم لمدة 6 أشهر"
@@ -324,28 +370,34 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
 
                   <Separator />
 
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex justify-between">
+                  {/* Template Details */}
+                  <div className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex justify-between gap-2">
                       <span>
                         {currentLanguage === "ar" ? "حجم الملف:" : "File size:"}
                       </span>
-                      <span>{template.fileSize}</span>
+                      <span className="font-medium text-foreground">
+                        {template.fileSize || "N/A"}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span>
                         {currentLanguage === "ar" ? "الإصدار:" : "Version:"}
                       </span>
-                      <span>{template.version}</span>
+                      <span className="font-medium text-foreground">
+                        {template.version}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between gap-2">
                       <span>
                         {currentLanguage === "ar"
                           ? "آخر تحديث:"
                           : "Last updated:"}
                       </span>
-                      <span>
-                        {new Date(template.lastUpdated).toLocaleDateString(
-                          currentLanguage === "ar" ? "ar-SA" : "en-US"
+                      <span className="font-medium text-foreground">
+                        {new Date(template.updatedAt).toLocaleDateString(
+                          currentLanguage === "ar" ? "ar-SA" : "en-US",
+                          { month: "short", day: "numeric", year: "numeric" }
                         )}
                       </span>
                     </div>
@@ -356,27 +408,51 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
           </div>
         </div>
 
-        {/* Template Preview */}
-        <div className="mb-12">
-          <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 p-8">
-            <img
-              src={template.imageUrl || "/placeholder.svg"}
-              alt={getLocalizedContent("title")}
-              className="w-full max-w-4xl mx-auto rounded-lg shadow-2xl"
-            />
+        {/* Template Preview with Gallery */}
+        <div className="mb-8 sm:mb-12">
+          <div className="relative rounded-lg sm:rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 p-4 sm:p-6 lg:p-8">
+            {/* Main Image */}
+            <div className="relative group">
+              <img
+                src={currentPreviewImage || "/placeholder.svg"}
+                alt={getLocalizedContent("title")}
+                className="w-full max-w-4xl mx-auto rounded-lg shadow-2xl"
+              />
 
-            {/* Image Navigation */}
-            {template.previewImages.length > 1 && (
-              <div className="flex justify-center gap-2 mt-6">
+              {/* Navigation Arrows - Only show if multiple images */}
+              {template.previewImages && template.previewImages.length > 1 && (
+                <>
+                  <button
+                    onClick={handlePreviousImage}
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  <button
+                    onClick={handleNextImage}
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Image Indicators */}
+            {template.previewImages && template.previewImages.length > 1 && (
+              <div className="flex justify-center gap-2 mt-4 sm:mt-6">
                 {template.previewImages.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
+                    className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
                       index === currentImageIndex
-                        ? "bg-purple-600"
-                        : "bg-gray-300"
+                        ? "bg-purple-600 w-6 sm:w-8"
+                        : "bg-gray-300 hover:bg-gray-400"
                     }`}
+                    aria-label={`View image ${index + 1}`}
                   />
                 ))}
               </div>
@@ -384,20 +460,27 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
           </div>
         </div>
 
-        {/* Features */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold mb-8 text-center">
+        {/* Features Section - Responsive Grid */}
+        <div className="mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">
             {currentLanguage === "ar" ? "المميزات الرئيسية" : "Key Features"}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="text-center">
-                <CardHeader>
-                  <div className="mx-auto h-12 w-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-4">
-                    <feature.icon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <Card
+                key={index}
+                className="text-center hover:shadow-lg transition-shadow"
+              >
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-3 sm:mb-4">
+                    <feature.icon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  <CardDescription>{feature.description}</CardDescription>
+                  <CardTitle className="text-base sm:text-lg lg:text-xl">
+                    {feature.title}
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    {feature.description}
+                  </CardDescription>
                 </CardHeader>
               </Card>
             ))}
@@ -405,18 +488,18 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
         </div>
 
         {/* Technologies */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold mb-8">
+        <div className="mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 lg:mb-8">
             {currentLanguage === "ar"
               ? "التقنيات المستخدمة"
               : "Technologies Used"}
           </h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {template.tags.map((tag) => (
               <Badge
                 key={tag}
                 variant="secondary"
-                className="text-sm px-4 py-2"
+                className="text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2"
               >
                 {tag}
               </Badge>
@@ -424,42 +507,43 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
           </div>
         </div>
 
-        {/* Description & Changelog */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        {/* Description & Changelog - Responsive Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                 {currentLanguage === "ar" ? "نظرة عامة" : "Overview"}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground leading-relaxed">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
                 {getLocalizedContent("description")}
               </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                 {currentLanguage === "ar" ? "سجل التغييرات" : "Changelog"}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs flex-shrink-0">
                     v{template.version}
                   </Badge>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {template.changelog}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground break-words">
+                      {template.changelog || "Initial release"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(template.lastUpdated).toLocaleDateString(
-                        currentLanguage === "ar" ? "ar-SA" : "en-US"
+                      {new Date(template.updatedAt).toLocaleDateString(
+                        currentLanguage === "ar" ? "ar-SA" : "en-US",
+                        { month: "long", day: "numeric", year: "numeric" }
                       )}
                     </p>
                   </div>
@@ -470,10 +554,13 @@ export function ViewTemplate({ template }: ViewTemplateProps) {
         </div>
 
         {/* Reviews Section */}
-        <TemplateReviews templateId={template.id} />
+        <div className="mb-8 sm:mb-12">
+          {/* reviews */}
+          <TemplateReviews templateId={template.id} />
+        </div>
 
         {/* Related Templates */}
-        <RelatedTemplates currentTemplate={template} />
+        <RelatedTemplates templateId={template.id} />
       </div>
     </div>
   );

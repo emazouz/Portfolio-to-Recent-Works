@@ -19,6 +19,7 @@ import {
   Download,
   Star,
 } from "lucide-react";
+import TemplateAnalyticsDashboard from "./TemplateAnalytics";
 
 export function AdminDashboard() {
   const { t } = useTranslation();
@@ -211,6 +212,8 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <TemplateAnalyticsDashboard />
     </div>
   );
 }

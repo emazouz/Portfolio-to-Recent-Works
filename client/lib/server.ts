@@ -1,4 +1,3 @@
-import axios from "axios";
 
 export const API_BASE_URL = "http://localhost:3001";
 
@@ -8,4 +7,6 @@ export const API_ROUTES = {
   BLOG: `${API_BASE_URL}/api/blogs`,
   COMMENT: `${API_BASE_URL}/api/comments`,
   TEMPLATE: `${API_BASE_URL}/api/templates`,
+  REVIEWS: `${API_BASE_URL}/api/reviews`,
+  ORDER: `${API_BASE_URL}/api/orders`,
 };

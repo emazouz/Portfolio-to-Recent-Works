@@ -1,14 +1,7 @@
-
-
 import { BlogDetails } from "@/components/admin/blogs/BlogDetails";
+import { ParamsProps } from "@/types/ParamsType";
 
-interface ViewBlogPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
-export default async function ViewBlogPage({ params }: ViewBlogPageProps) {
+export default async function ViewBlogPage({ params }: ParamsProps) {
   // Await params in Next.js 15+
   const resolvedParams = await params;
   const blogId = parseInt(resolvedParams.id, 10);

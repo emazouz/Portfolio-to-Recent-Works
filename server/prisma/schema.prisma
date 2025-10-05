@@ -189,22 +189,7 @@ model Template {
   @@map("templates")
 }
 
-model Review {
-  id         Int      @id @default(autoincrement())
-  templateId Int
-  userId     String
-  rating     Int // 1-5 stars
-  comment    String?  @db.Text
-  verified   Boolean  @default(false) // مراجعة موثقة من مشتري فعلي
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
-  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([templateId, userId]) // مراجعة واحدة لكل مستخدم لكل قالب
-  @@map("reviews")
-}
 
 enum TemplateCategory {
   WEBSITE_TEMPLATES
@@ -225,6 +210,22 @@ enum Difficulty {
   EXPERT
 }
 
+model Review {
+  id         Int      @id @default(autoincrement())
+  templateId Int
+  userId     String
+  rating     Int // 1-5 stars
+  comment    String?  @db.Text
+  verified   Boolean  @default(false) // مراجعة موثقة من مشتري فعلي
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, userId]) // مراجعة واحدة لكل مستخدم لكل قالب
+  @@map("reviews")
+}
 model Order {
   id            String         @id @default(cuid())
   userId        String

@@ -10,166 +10,20 @@ import { Request, Response } from "express";
 import { sendResponse } from "../middleware/response";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../utils/prisma";
-import { z, ZodError } from "zod";
 import { Prisma, TemplateCategory, Difficulty } from "@prisma/client";
 import { FileRequest } from "../types/FileRequest";
 import { getFiles } from "../middleware/upload";
 import { uploadToCloudinary } from "../utils/cloudinary";
-
-// ============ HELPER FUNCTIONS ============
-
-function extractZodErrors(error: ZodError): string[] {
-  return error.issues.map((err) => err.message);
-}
-
-function parseIntParam(param: string | undefined): number | null {
-  if (!param) return null;
-  const parsed = parseInt(param, 10);
-  if (isNaN(parsed) || parsed <= 0) return null;
-  return parsed;
-}
-
-// ============ VALIDATION SCHEMAS ============
-
-const createTemplateSchema = z
-  .object({
-    title_en: z.string().min(1, "English title is required").max(200).trim(),
-    title_ar: z.string().min(1, "Arabic title is required").max(200).trim(),
-    description_en: z
-      .string()
-      .min(10, "English description must be at least 10 characters")
-      .max(2000, "English description must be less than 2000 characters")
-      .trim(),
-    description_ar: z
-      .string()
-      .min(10, "Arabic description must be at least 10 characters")
-      .max(2000, "Arabic description must be less than 2000 characters")
-      .trim(),
-    price: z.coerce
-      .number()
-      .min(0, "Price must be non-negative")
-      .max(10000, "Price must be less than 10,000"),
-    originalPrice: z.coerce
-      .number()
-      .min(0, "Original price must be non-negative")
-      .max(10000, "Original price must be less than 10,000")
-      .optional(),
-    tags: z.preprocess((val) => {
-      if (typeof val === "string") {
-        try {
-          return JSON.parse(val);
-        } catch {
-          return val
-            .split(",")
-            .map((tag: string) => tag.trim())
-            .filter(Boolean);
-        }
-      }
-      return val;
-    }, z.array(z.string().min(1, "Tag cannot be empty").max(50, "Tag must be less than 50 characters")).min(1, "At least one tag is required").max(20, "Maximum 20 tags allowed")),
-    category: z.nativeEnum(TemplateCategory).default("OTHER"),
-    previewUrl: z.union([
-      z.string().url("Please enter a valid URL").optional(),
-      z.literal(""),
-    ]),
-    difficulty: z.nativeEnum(Difficulty).default(Difficulty.BEGINNER),
-    featured: z
-      .union([
-        z.boolean(),
-        z.string().transform((val) => val === "true" || val === "1"),
-        z.coerce.boolean(),
-      ])
-      .default(false),
-    slug_en: z
-      .string()
-      .min(3, "English slug must be at least 3 characters")
-      .max(200, "English slug must be less than 200 characters")
-      .regex(
-        /^[a-z0-9-]+$/,
-        "English slug must contain only lowercase letters, numbers, and hyphens"
-      )
-      .transform((val) => val.toLowerCase()),
-    slug_ar: z
-      .string()
-      .min(3, "Arabic slug must be at least 3 characters")
-      .max(200, "Arabic slug must be less than 200 characters")
-      .regex(
-        /^[\p{Script=Arabic}a-zA-Z0-9-\s]+$/u,
-        "Arabic slug can only contain Arabic letters, English letters, numbers, spaces, and hyphens"
-      )
-      .trim(),
-    metaTitle_en: z
-      .string()
-      .max(60, "English meta title must be less than 60 characters")
-      .optional()
-      .or(z.literal("")),
-    metaTitle_ar: z
-      .string()
-      .max(60, "Arabic meta title must be less than 60 characters")
-      .optional()
-      .or(z.literal("")),
-    metaDesc_en: z
-      .string()
-      .max(160, "English meta description must be less than 160 characters")
-      .optional()
-      .or(z.literal("")),
-    metaDesc_ar: z
-      .string()
-      .max(160, "Arabic meta description must be less than 160 characters")
-      .optional()
-      .or(z.literal("")),
-    version: z
-      .string()
-      .regex(/^\d+\.\d+\.\d+$/, "Version must be in format: x.x.x")
-      .default("1.0.0"),
-    changelog: z
-      .string()
-      .max(1000, "Changelog must be less than 1000 characters")
-      .optional()
-      .or(z.literal("")),
-  })
-  .refine(
-    (data) => {
-      if (data.originalPrice && data.price > data.originalPrice) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Price cannot be greater than original price",
-      path: ["price"],
-    }
-  );
-
-const updateTemplateSchema = createTemplateSchema.partial();
-
-const queryTemplatesSchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(50).default(10),
-  category: z.nativeEnum(TemplateCategory).optional(),
-  difficulty: z.nativeEnum(Difficulty).optional(),
-  featured: z.coerce.boolean().optional(),
-  minPrice: z.coerce.number().min(0).optional(),
-  maxPrice: z.coerce.number().min(0).optional(),
-  search: z.string().trim().optional(),
-  sortBy: z
-    .enum(["createdAt", "price", "rating", "downloads", "views", "updatedAt"])
-    .default("createdAt"),
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
-});
-
-const bulkOperationSchema = z.object({
-  templateIds: z
-    .array(z.number().int().positive())
-    .min(1, "At least one template ID is required"),
-  operation: z.enum([
-    "activate",
-    "deactivate",
-    "feature",
-    "unfeature",
-    "delete",
-  ]),
-});
+import {
+  addReviewsSchema,
+  bulkOperationSchema,
+  createTemplateSchema,
+  queryTemplatesSchema,
+  updateTemplateSchema,
+  versionSchema,
+} from "../validators/templateValidate";
+import { extractZodErrors, parseIntParam } from "../utils/validationHelpers";
+import z from "zod";
 
 // ============ CONTROLLERS ============
 
@@ -314,9 +168,7 @@ export const createTemplate = asyncHandler(
         publicUrl: urlResult.publicUrl,
         filePath: filePath,
       };
-
     } catch (error) {
-
       // Provide more specific error messages
       let errorMessage = "Failed to upload zip file. Please try again.";
       if (error instanceof Error) {
@@ -461,13 +313,13 @@ export const getTemplates = asyncHandler(
     const where: Prisma.TemplateWhereInput = {
       // Filter by featured status
       ...(featured !== undefined && { featured }),
-      
+
       // Filter by category
       ...(category && { category }),
-      
+
       // Filter by difficulty
       ...(difficulty && { difficulty }),
-      
+
       // Filter by price range
       ...(minPrice !== undefined || maxPrice !== undefined
         ? {
@@ -477,7 +329,7 @@ export const getTemplates = asyncHandler(
             },
           }
         : {}),
-      
+
       // Search functionality (searches in title and description)
       ...(search && {
         OR: [
@@ -628,124 +480,6 @@ export const getTemplateAnalytics = asyncHandler(
 );
 
 /**
- * Search Templates (Advanced)
- * POST /api/templates/search
- * Auth: Not required (public endpoint)
- */
-export const advancedSearch = asyncHandler(
-  async (req: Request, res: Response) => {
-    const searchSchema = z.object({
-      query: z.string().min(1).trim(),
-      categories: z.array(z.nativeEnum(TemplateCategory)).optional(),
-      difficulties: z.array(z.nativeEnum(Difficulty)).optional(),
-      minPrice: z.number().min(0).optional(),
-      maxPrice: z.number().min(0).optional(),
-      minRating: z.number().min(0).max(5).optional(),
-      tags: z.array(z.string()).optional(),
-      featured: z.boolean().optional(),
-      page: z.number().int().positive().default(1),
-      limit: z.number().int().positive().max(50).default(12),
-    });
-
-    const validation = searchSchema.safeParse(req.body);
-
-    if (!validation.success) {
-      return sendResponse(
-        res,
-        StatusCodes.BAD_REQUEST,
-        false,
-        "Validation failed",
-        undefined,
-        undefined,
-        extractZodErrors(validation.error)
-      );
-    }
-
-    const {
-      query,
-      categories,
-      difficulties,
-      minPrice,
-      maxPrice,
-      minRating,
-      tags,
-      featured,
-      page,
-      limit,
-    } = validation.data;
-
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.TemplateWhereInput = {
-      isActive: true,
-      AND: [
-        {
-          OR: [
-            { title_en: { contains: query, mode: "insensitive" } },
-            { title_ar: { contains: query } },
-            { description_en: { contains: query, mode: "insensitive" } },
-            { description_ar: { contains: query } },
-            { tags: { hasSome: [query] } },
-          ],
-        },
-        ...(categories && categories.length > 0
-          ? [{ category: { in: categories } }]
-          : []),
-        ...(difficulties && difficulties.length > 0
-          ? [{ difficulty: { in: difficulties } }]
-          : []),
-        ...(minPrice !== undefined
-          ? [{ price: { gte: new Prisma.Decimal(minPrice) } }]
-          : []),
-        ...(maxPrice !== undefined
-          ? [{ price: { lte: new Prisma.Decimal(maxPrice) } }]
-          : []),
-        ...(minRating !== undefined ? [{ rating: { gte: minRating } }] : []),
-        ...(tags && tags.length > 0 ? [{ tags: { hasEvery: tags } }] : []),
-        ...(featured !== undefined ? [{ featured }] : []),
-      ],
-    };
-
-    const [templates, totalCount] = await Promise.all([
-      prisma.template.findMany({
-        where,
-        orderBy: [{ rating: "desc" }, { downloads: "desc" }],
-        skip,
-        take: limit,
-        include: {
-          _count: {
-            select: {
-              orders: true,
-              reviews: true,
-            },
-          },
-        },
-      }),
-      prisma.template.count({ where }),
-    ]);
-
-    const totalPages = Math.ceil(totalCount / limit);
-
-    return sendResponse(
-      res,
-      StatusCodes.OK,
-      true,
-      "Search results retrieved successfully",
-      {
-        templates,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalCount,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      }
-    );
-  }
-);
-
-/**
  * Get Similar Templates
  * GET /api/templates/:id/similar
  * Auth: Not required (public endpoint)
@@ -827,62 +561,6 @@ export const getSimilarTemplates = asyncHandler(
 );
 
 /**
- * Toggle Template Feature Status
- * PATCH /api/templates/:id/featured
- * Auth: Required (Admin only)
- */
-export const toggleFeatured = asyncHandler(
-  async (req: AuthenticatedRequest, res: Response) => {
-    if (!requireAdmin(req, res)) return;
-
-    const templateId = parseIntParam(req.params.id);
-
-    if (!templateId) {
-      return sendResponse(
-        res,
-        StatusCodes.BAD_REQUEST,
-        false,
-        "Invalid template ID"
-      );
-    }
-
-    const template = await prisma.template.findUnique({
-      where: { id: templateId },
-      select: { id: true, featured: true, title_en: true },
-    });
-
-    if (!template) {
-      return sendResponse(
-        res,
-        StatusCodes.NOT_FOUND,
-        false,
-        "Template not found"
-      );
-    }
-
-    const updatedTemplate = await prisma.template.update({
-      where: { id: templateId },
-      data: { featured: !template.featured },
-      select: {
-        id: true,
-        title_en: true,
-        featured: true,
-      },
-    });
-
-    return sendResponse(
-      res,
-      StatusCodes.OK,
-      true,
-      `Template "${template.title_en}" ${
-        updatedTemplate.featured ? "featured" : "unfeatured"
-      } successfully`,
-      updatedTemplate
-    );
-  }
-);
-
-/**
  * Get Template Categories with Counts
  * GET /api/templates/categories/stats
  * Auth: Not required (public endpoint)
@@ -934,14 +612,6 @@ export const updateTemplateVersion = asyncHandler(
         "Invalid template ID"
       );
     }
-
-    const versionSchema = z.object({
-      version: z
-        .string()
-        .regex(/^\d+\.\d+\.\d+$/, "Version must be in format X.Y.Z"),
-      changelog: z.string().optional(),
-      downloadUrl: z.string().url().optional(),
-    });
 
     const validation = versionSchema.safeParse(req.body);
 
@@ -1901,9 +1571,3 @@ export const bulkOperations = asyncHandler(
     );
   }
 );
-
-/**
- * Get All Templates (Admin - including inactive)
- * GET /api/admin/templates
- * Auth: Required (Admin only)
- */
