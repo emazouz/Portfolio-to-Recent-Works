@@ -23,7 +23,7 @@ const StatCard: React.FC<StatCardProps> = ({
 }) => {
   return (
     <Card
-      className="relative overflow-hidden border-l-4 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+      className="relative overflow-hidden border-l-4 transition-all duration-300 hover:shadow-lg"
       style={{ borderLeftColor: color }}
     >
       {/* Background Gradient */}
@@ -32,7 +32,7 @@ const StatCard: React.FC<StatCardProps> = ({
         style={{ backgroundColor: color }}
       />
 
-      <CardContent className="p-6 relative">
+      <CardContent className="p-4 relative">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">

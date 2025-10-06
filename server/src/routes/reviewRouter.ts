@@ -4,6 +4,7 @@ import {
   getTemplateReviews,
   updateReview,
   deleteReview,
+  getAllReviews,
 } from "../controllers/reviewController";
 import { authenticateJwt } from "../middleware/auth";
 
@@ -11,6 +12,7 @@ const router = express.Router();
 
 // Public route - get reviews for a template
 router.get("/:id", getTemplateReviews);
+router.get("/admin/all", authenticateJwt, getAllReviews);
 
 // Protected routes - require authentication
 router.post("/:id", authenticateJwt, addReview);

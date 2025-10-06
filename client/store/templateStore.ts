@@ -1010,56 +1010,6 @@ export const templateStore = create<TemplateStoreType>()(
         }
       },
 
-      // reviews
-
-      addReviews: async (
-        templateId: number,
-        rating: number,
-        comment: string
-      ) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await axiosInstance.post(`/${templateId}/reviews`, {
-            rating,
-            comment: comment.trim(),
-          });
-
-          if (!response.data.success) {
-            throw new Error(response.data.message || "Failed to add review");
-          }
-
-          return {
-            success: true,
-            message: response.data.message,
-            data: response.data.data || null,
-          };
-        } catch (error: any) {
-          let errorMessage = "An unexpected error occurred";
-
-          if (error instanceof Error) {
-            errorMessage = error.message;
-          } else if (typeof error === "string") {
-            errorMessage = error;
-          } else if (axios.isAxiosError(error)) {
-            errorMessage =
-              error.response?.data?.message ||
-              error.message ||
-              "Network error occurred";
-          }
-
-          set({ error: errorMessage });
-
-          return {
-            success: false,
-            message: errorMessage,
-            data: null,
-          };
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-
       /**
        * Get analytics dashboard (Admin only)
        */

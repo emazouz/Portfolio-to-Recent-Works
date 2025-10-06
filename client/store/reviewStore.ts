@@ -4,8 +4,18 @@ import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export type GetReviewsOptions = {
+  page?: number;
+  limit?: number;
+  minRating?: number;
+  maxRating?: number;
+  userId?: string; // Changed to string to match Prisma schema
+  templateId?: number;
+  verifiedOnly?: boolean | string;
+};
+
 export interface ReviewType {
-  id?: string;
+  id: number;
   templateId: number;
   userId: string;
   rating: number;
@@ -14,17 +24,29 @@ export interface ReviewType {
   verified: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
-  helpful?: number;
   user: {
     id: string;
     name: string;
     email: string;
     avatar: string | null;
   };
+  template: {
+    title_en: string;
+    title_ar: string;
+    price: string;
+  };
 }
 
 type ReviewStoreType = {
   reviews: ReviewType[] | [];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: false;
+    hasPrev: false;
+  } | null;
   isLoading: boolean;
   error: string | null;
 
@@ -41,6 +63,9 @@ type ReviewStoreType = {
   ) => Promise<ResponseType>;
 
   getTemplateReviews: (templateId: number) => Promise<ResponseType>;
+
+  getAllReviews: (options?: GetReviewsOptions | {}) => Promise<ResponseType>;
+  deleteReview: (reviewId: number) => Promise<ResponseType>;
 };
 
 const axiosInstance = axios.create({
@@ -55,6 +80,7 @@ export const reviewStore = create<ReviewStoreType>()(
   persist(
     (set, get) => ({
       reviews: [],
+      pagination: null,
       isLoading: false,
       error: null,
 
@@ -149,6 +175,101 @@ export const reviewStore = create<ReviewStoreType>()(
             success: false,
             message: errorMessage,
             data: null,
+          };
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      getAllReviews: async (options?: GetReviewsOptions | {}) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await axiosInstance.get("/admin/all", {
+            params: options,
+          });
+
+          if (!response.data.success) {
+            set({ error: response.data.message });
+            return {
+              success: false,
+              message: response.data.message,
+            };
+          }
+
+          set({
+            reviews: response.data.data,
+            pagination: response.data.meta?.pagination,
+          });
+          return {
+            success: true,
+            message: response.data.message,
+            data: response.data.data || [],
+          };
+        } catch (error: any) {
+          let errorMessage = "An unexpected error occurred";
+
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (typeof error === "string") {
+            errorMessage = error;
+          } else if (axios.isAxiosError(error)) {
+            errorMessage =
+              error.response?.data?.message ||
+              error.message ||
+              "Network error occurred";
+          }
+
+          set({ error: errorMessage });
+
+          return {
+            success: false,
+            message: errorMessage,
+            data: null,
+          };
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      deleteReview: async (reviewId: number) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await axiosInstance.delete(`/${reviewId}`);
+
+          if (!response.data.success) {
+            set({ error: response.data.message });
+            return {
+              success: false,
+              message: response.data.message,
+            };
+          }
+
+          set({ reviews: response.data.data.reviews });
+          return {
+            success: true,
+            message: response.data.message,
+          };
+        } catch (error: any) {
+          let errorMessage = "An unexpected error occurred";
+
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (typeof error === "string") {
+            errorMessage = error;
+          } else if (axios.isAxiosError(error)) {
+            errorMessage =
+              error.response?.data?.message ||
+              error.message ||
+              "Network error occurred";
+          }
+
+          set({ error: errorMessage });
+
+          return {
+            success: false,
+            message: errorMessage,
           };
         } finally {
           set({ isLoading: false });

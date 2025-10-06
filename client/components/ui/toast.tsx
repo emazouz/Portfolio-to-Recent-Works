@@ -65,8 +65,8 @@ const alertConfig = {
   },
   error: {
     Icon: ErrorIcon,
-    iconContainerClassName: "text-red bg-white/5",
-    barClassName: "bg-red",
+    iconContainerClassName: "text-red-[500] bg-white/5",
+    barClassName: "bg-red-[500]",
   },
 } as const;
 

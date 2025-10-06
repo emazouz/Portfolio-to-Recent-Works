@@ -102,6 +102,7 @@ export function TemplateStore() {
   }, [fetchAllTemplates]);
 
   const filteredTemplates = templates.filter((template) => {
+    if(!template) return;
     const matchesSearch =
       template.title_en.toLowerCase().includes(searchTerm.toLowerCase()) ||
       template.title_ar.includes(searchTerm);

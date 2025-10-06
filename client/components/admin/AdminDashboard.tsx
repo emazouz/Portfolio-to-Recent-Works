@@ -213,7 +213,7 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      <TemplateAnalyticsDashboard />
+      {/* <TemplateAnalyticsDashboard /> */}
     </div>
   );
 }

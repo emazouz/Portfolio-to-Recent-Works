@@ -103,6 +103,7 @@ export const authStore = create<AuthStore>()(
           const response = await axiosInstance.get("/");
 
           if (response.data.success) {
+            set({ user: response.data.data });
             return {
               success: true,
               message: response.data.message,
@@ -110,6 +111,7 @@ export const authStore = create<AuthStore>()(
             };
           }
 
+          set({ error: response.data.message });
           return { success: false, message: response.data.message, user: null };
         } catch (error) {
           set({

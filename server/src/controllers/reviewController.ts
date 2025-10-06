@@ -1,12 +1,11 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { z } from "zod";
 import { StatusCodes } from "http-status-codes";
 import { asyncHandler } from "../middleware/asyncHandler";
-import { AuthenticatedRequest } from "../middleware/auth";
+import { AuthenticatedRequest, requireAdmin } from "../middleware/auth";
 import { addReviewsSchema } from "../validators/templateValidate";
 import { sendResponse } from "../middleware/response";
 import { prisma } from "../utils/prisma";
-
 
 export const addReview = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -175,8 +174,6 @@ export const addReview = asyncHandler(
   }
 );
 
-
-
 // Get reviews for a template
 export const getTemplateReviews = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -201,6 +198,13 @@ export const getTemplateReviews = asyncHandler(
               name: true,
               email: true,
               avatar: true,
+            },
+          },
+          template: {
+            select: {
+              title_en: true,
+              title_ar: true,
+              price: true,
             },
           },
         },
@@ -327,10 +331,10 @@ export const updateReview = asyncHandler(
 // Delete review
 export const deleteReview = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
+    if (!requireAdmin(req, res)) return;
     try {
       const reviewId = parseInt(req.params.reviewId);
       const userId = req.user?.userId;
-      const isAdmin = req.user?.role === "ADMIN"; // Adjust based on your auth structure
 
       if (!reviewId || isNaN(reviewId)) {
         return sendResponse(
@@ -364,16 +368,6 @@ export const deleteReview = asyncHandler(
         );
       }
 
-      // Check permission (user owns review or is admin)
-      if (existingReview.userId !== userId && !isAdmin) {
-        return sendResponse(
-          res,
-          StatusCodes.FORBIDDEN,
-          false,
-          "You don't have permission to delete this review"
-        );
-      }
-
       // Delete review
       await prisma.review.delete({
         where: { id: reviewId },
@@ -400,15 +394,113 @@ export const deleteReview = asyncHandler(
   }
 );
 
+// Get all reviews
 
+type GetReviewsOptions = {
+  page?: number;
+  limit?: number;
+  minRating?: number;
+  maxRating?: number;
+  userId?: string; // Changed to string to match Prisma schema
+  templateId?: number;
+  verifiedOnly?: boolean | string;
+};
 
+export const getAllReviews = asyncHandler(
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        minRating,
+        maxRating,
+        userId,
+        templateId,
+        verifiedOnly,
+      } = req.query as GetReviewsOptions;
 
+      // Convert string query params to appropriate types
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+      const minRatingNum = minRating ? Number(minRating) : undefined;
+      const maxRatingNum = maxRating ? Number(maxRating) : undefined;
+      const templateIdNum = templateId ? Number(templateId) : undefined;
 
+      // Build where clause
+      const whereClause: any = {
+        ...(minRatingNum && { rating: { gte: minRatingNum } }),
+        ...(maxRatingNum && { rating: { lte: maxRatingNum } }),
+        ...(userId && { userId }),
+        ...(templateIdNum && { templateId: templateIdNum }),
+        ...(verifiedOnly !== undefined && {
+          verified: verifiedOnly === "true" || verifiedOnly === true,
+        }),
+      };
 
+      console.log("whereClause :", whereClause);
+      const reviews = await prisma.review.findMany({
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+          template: {
+            select: {
+              id: true,
+              title_en: true,
+              title_ar: true,
+              price: true,
+            },
+          },
+        },
+        orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
+      });
 
+      // Get total count for pagination info
+      const totalCount = await prisma.review.count({
+        where: whereClause,
+      });
 
+      const totalPages = Math.ceil(totalCount / limitNum);
 
-
+      return sendResponse(
+        res,
+        StatusCodes.OK,
+        true,
+        "Invalid query parameters",
+        reviews,
+        {
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: totalCount,
+            totalPages,
+            hasNext: pageNum < totalPages,
+            hasPrev: pageNum > 1,
+          },
+        },
+        undefined
+      );
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error);
+      sendResponse(
+        res,
+        StatusCodes.SERVICE_UNAVAILABLE,
+        false,
+        "Failed to fetch reviews",
+        undefined,
+        undefined
+      );
+    }
+  }
+);
 
 // Helper function to update template rating statistics
 async function updateTemplateRatingStats(templateId: number) {
