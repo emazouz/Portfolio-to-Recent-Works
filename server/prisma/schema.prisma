@@ -43,7 +43,6 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  orders  Order[]
   blogs   Blog[]
   reviews Review[]
   emailVerifications     EmailVerification?
@@ -106,7 +105,9 @@ model Project {
   technologies   String[]
   featured       Boolean          @default(false)
   sortOrder      Int?
-
+  rating         Int?
+  ratingsCount   Int?
+  
   // SEO
   slug_en      String  @unique
   slug_ar      String  @unique
@@ -115,6 +116,8 @@ model Project {
   metaDesc_en  String?
   metaDesc_ar  String?
 
+  
+  reviews Review[]
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -137,141 +140,34 @@ enum ProjectCategory {
   API_DEVELOPMENT
   OTHER
 }
+model Review {
+  id         Int      @id @default(autoincrement())
+  projectId Int
+  userId     String
+  rating     Int // 1-5 stars
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+  
+  verified   Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId]) 
+  @@map("reviews")
+}
 
 // ================================
 // Templates & E-commerce Models
 // ================================
 
-model Template {
-  id             Int              @id @default(autoincrement())
-  title_en       String
-  title_ar       String
-  description_en String           @db.Text
-  description_ar String           @db.Text
-  price          Decimal          @db.Decimal(10, 2)
-  originalPrice  Decimal?         @db.Decimal(10, 2)
-  rating         Float?           @default(0) @db.Real
-  ratingsCount   Int              @default(0)
-  downloads      Int              @default(0)
-  views          Int              @default(0)
-  tags           String[]
-  category       TemplateCategory
-  imageUrl       String
-  previewImages  String[]
-  previewUrl     String?
-  downloadUrl    String?
-  fileSize       String?
-  difficulty     Difficulty       @default(BEGINNER)
-  featured       Boolean          @default(false)
-  isActive       Boolean          @default(true)
 
-  // Versions
-  version   String  @default("1.0.0")
-  changelog String? @db.Text
-
-  // SEO
-  slug_en      String  @unique
-  slug_ar      String  @unique
-  metaTitle_en String?
-  metaTitle_ar String?
-  metaDesc_en  String?
-  metaDesc_ar  String?
-
-  // Timestamps
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  lastUpdated DateTime?
-
-  // Relations
-  orders  Order[]
-  reviews Review[]
-
-  @@map("templates")
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  IN_PROGRESS
 }
-
-
-
-enum TemplateCategory {
-  WEBSITE_TEMPLATES
-  ADMIN_DASHBOARDS
-  LANDING_PAGES
-  E_COMMERCE
-  PORTFOLIO
-  BLOG_THEMES
-  MOBILE_TEMPLATES
-  COMPONENTS
-  OTHER
-}
-
-enum Difficulty {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-  EXPERT
-}
-
-model Review {
-  id         Int      @id @default(autoincrement())
-  templateId Int
-  userId     String
-  rating     Int // 1-5 stars
-  comment    String?  @db.Text
-  verified   Boolean  @default(false) // مراجعة موثقة من مشتري فعلي
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([templateId, userId]) // مراجعة واحدة لكل مستخدم لكل قالب
-  @@map("reviews")
-}
-model Order {
-  id            String         @id @default(cuid())
-  userId        String
-  templateId    Int
-  price         Decimal        @db.Decimal(10, 2)
-  discount      Decimal?       @db.Decimal(10, 2) // قيمة التخفيض
-  finalPrice    Decimal        @db.Decimal(10, 2) // السعر النهائي بعد التخفيض
-  status        OrderStatus    @default(PENDING)
-  paymentMethod PaymentMethod?
-  transactionId String?        @unique
-
-  // Payment Details
-  paymentData   Json? // بيانات الدفع الإضافية
-  failureReason String? // سبب فشل الدفعة
-
-  // Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  paidAt    DateTime?
-
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template Template @relation(fields: [templateId], references: [id], onDelete: Restrict)
-
-  @@map("orders")
-}
-
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  REFUNDED
-  CANCELLED
-}
-
-enum PaymentMethod {
-  STRIPE
-  PAYPAL
-  BANK_TRANSFER
-  OTHER
-}
-
-// ================================
-// Blog & Content Models
-// ================================
 
 model Blog {
   id         Int           @id @default(autoincrement())
@@ -282,22 +178,24 @@ model Blog {
   slug       String        @unique
   excerpt_en String?       @db.VarChar(500)
   excerpt_ar String?       @db.VarChar(500)
+  category   BlogCategory?
   authorId   String?
   published  Boolean       @default(false)
   featured   Boolean       @default(false)
-  category   BlogCategory?
+  metaTitle_en String?
+  metaTitle_ar String?
+  metaDesc_en  String? 
+  metaDesc_ar  String? 
+  status      BlogStatus  @default(DRAFT)
   tags       String[]
   imageUrl   String?
+  previewImages String[]
   readTime   Int? // وقت القراءة بالدقائق
   views      Int           @default(0)
   likes      Int           @default(0)
   blogLikes BlogLike[]
 
   // SEO
-  metaTitle_en String?
-  metaTitle_ar String?
-  metaDesc_en  String?  @db.VarChar(160)
-  metaDesc_ar  String?  @db.VarChar(160)
   keywords     String[]
 
   // Scheduling

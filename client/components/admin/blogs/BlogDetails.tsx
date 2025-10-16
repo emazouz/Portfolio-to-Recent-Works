@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -38,7 +37,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { BlogParamsProps } from "@/types/BlogType";
-import { useBlogsData } from "@/hooks/blogs/useBlogsData";
+import { getLocalizedContent, useBlogsData } from "@/hooks/blogs/useBlogsData";
 import { toast } from "@/hooks/use-toast";
 import Loader from "@/components/ui/Loader";
 import Image from "next/image";
@@ -53,6 +52,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import NotFound from "@/components/ui/NotFound";
+import { Blog } from "@/store/blogStore";
+import { MarkdownContent } from "@/components/markdown/markdown-content";
 
 export function BlogDetails({ blogId }: { blogId: number }) {
   const { t } = useTranslation();
@@ -70,35 +71,6 @@ export function BlogDetails({ blogId }: { blogId: number }) {
     await handleDeleteBlog(Number(blogId), String(blog?.title_en));
   };
 
-  const handleCommentAction = async (
-    commentId: string,
-    action: "approve" | "reject" | "delete"
-  ) => {
-    try {
-      console.log(`${action} comment:`, commentId);
-      // Here you would call your comment management API
-      // const result = await commentAction(commentId, action);
-
-      toast({
-        title: t("Success", "common.success"),
-        description: t(
-          `Comment ${action}d successfully`,
-          `admin.blogs.comment${action}Success`
-        ),
-      });
-
-      // Refresh blog data
-      getBlog(Number(blogId));
-    } catch (error) {
-      console.error(`Error ${action}ing comment:`, error);
-      toast({
-        title: t("Error", "common.error"),
-        description: t("Failed to update comment", "admin.blogs.commentError"),
-        variant: "error",
-      });
-    }
-  };
-
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
@@ -113,6 +85,7 @@ export function BlogDetails({ blogId }: { blogId: number }) {
     }
   };
 
+
   // Loading state
   if (isLoading) {
     return <Loader />;
@@ -122,6 +95,10 @@ export function BlogDetails({ blogId }: { blogId: number }) {
   if (error || !blog) {
     return <NotFound />;
   }
+
+  const currentLanguage = "en"; // You might want to get this from context
+
+  const localizedContent = getLocalizedContent(blog, currentLanguage);
 
   return (
     <div className="space-y-6">
@@ -386,38 +363,17 @@ export function BlogDetails({ blogId }: { blogId: number }) {
                           </p>
                         </div>
                       )}
-                      <Separator />
                     </>
                   )}
 
-                  {(blog.metaDesc_en || blog.metaDesc_ar) && (
-                    <>
-                      {blog.metaDesc_en && (
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                            {t(
-                              "Meta Description (English)",
-                              "admin.blogs.metaDescEn"
-                            )}
-                          </p>
-                          <p className="text-sm">{blog.metaDesc_en}</p>
-                        </div>
-                      )}
-                      {blog.metaDesc_ar && (
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                            {t(
-                              "Meta Description (Arabic)",
-                              "admin.blogs.metaDescAr"
-                            )}
-                          </p>
-                          <p className="text-sm" dir="rtl">
-                            {blog.metaDesc_ar}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                  <Separator className="my-12" />
+                  <div className="text-lg leading-relaxed">
+                    {localizedContent.metaDesc && (
+                      <div className="prose prose-lg max-w-none py-4 md:py-6">
+                        <MarkdownContent content={localizedContent.metaDesc} />
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

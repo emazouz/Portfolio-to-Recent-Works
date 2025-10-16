@@ -21,8 +21,14 @@ export function TranslationProvider({
 }) {
   const { t, currentLanguage, isTranslating } = useTranslation();
 
-  // Apply RTL styles for Arabic
+  // Apply RTL/LTR styles based on language; restrict to en/ar only
   useEffect(() => {
+    // Set html lang attribute for accessibility and SEO
+    document.documentElement.setAttribute(
+      "lang",
+      currentLanguage === "ar" ? "ar" : "en"
+    );
+
     if (currentLanguage === "ar") {
       document.documentElement.setAttribute("dir", "rtl");
       document.documentElement.classList.add("rtl");

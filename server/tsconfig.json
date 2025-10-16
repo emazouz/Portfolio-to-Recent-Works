@@ -1,15 +1,22 @@
+// tsconfig.json
+
 {
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "../",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*", "prisma/**/*", "cmts/notificationMiddleware.ts", "../client/types/ResponseType.ts"],
+  "include": [
+    "src/**/*",
+    "prisma/**/*",
+    "cmts/notificationMiddleware.ts",
+    "../client/types/ResponseType.ts"
+  ],
   "exclude": ["node_modules"]
 }

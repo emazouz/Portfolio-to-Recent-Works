@@ -1,111 +1,341 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Download, Star } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, CheckCircle, Code2, Server } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, EffectFade } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/effect-fade";
+import { useTranslation } from "@/hooks/use-translation";
 
-export function HeroSection() {
-  const [typedText, setTypedText] = useState("")
-  const [showCursor, setShowCursor] = useState(true)
-  const fullText = "Transform your ideas into pixel-perfect reality."
+// ==================== DATA LAYER ====================
 
+const HERO_DATA = {
+  typing: {
+    baseText: "Transform your ideas into production-grade web experiences.",
+    speed: 35,
+    cursorDelay: 900,
+  },
+
+  tagline: "Next.js & Node.js Specialist",
+
+  title: {
+    line1: "Creative Idea To",
+    line2: "Excellent Products",
+  },
+
+  description:
+    "We are 50+ professional software engineers with more than 15 years of expertise in crafting high-performance, tailor-made digital solutions.",
+
+  ctas: [
+    {
+      id: "contact",
+      text: "Get Consultant",
+      href: "/contact",
+      variant: "primary",
+      icon: ArrowRight,
+    },
+    {
+      id: "services",
+      text: "Our Services",
+      href: "/services",
+      variant: "secondary",
+      icon: ArrowRight,
+    },
+  ],
+
+  backgroundImages: [
+    {
+      src: "assets/images/code.png",
+      alt: "Background slide image",
+    },
+    {
+      src: "/task-management-app.png",
+      alt: "Background slide image",
+    },
+    {
+      src: "/developer-portfolio-template.jpg",
+      alt: "Background slide image",
+    },
+  ],
+
+  techStack: [
+    { name: "Next.js", icon: Code2 },
+    { name: "Node.js", icon: Server },
+    { name: "TypeScript", icon: null },
+    { name: "Tailwind CSS", icon: null },
+    { name: "Prisma", icon: null },
+    { name: "PostgreSQL", icon: null },
+  ],
+
+  valueBullets: [
+    { text: "15+ years experience", icon: CheckCircle },
+    { text: "120+ delivered projects", icon: CheckCircle },
+    { text: "Performance & accessibility first", icon: CheckCircle },
+  ],
+
+  swiper: {
+    autoplayDelay: 5000,
+    effect: "fade",
+  },
+};
+
+// Translation keys mapping
+const TRANSLATION_KEYS = {
+  tagline: "hero-tagline",
+  titleLine1: "hero-title-line1",
+  titleLine2: "hero-title-line2",
+  description: "hero-description",
+  typing: "hero-typing",
+  ctaContact: "hero-cta-contact",
+  ctaServices: "hero-cta-services",
+  bullet1: "hero-bullet-1",
+  bullet2: "hero-bullet-2",
+  bullet3: "hero-bullet-3",
+  bgSlideAlt: "bg-slide-alt",
+};
+
+// ==================== COMPONENT ====================
+
+const HeroSection = () => {
+  const { t, currentLanguage, translate } = useTranslation();
+  const [typedText, setTypedText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
+  const isArabic = currentLanguage === "ar";
+
+  // Typing animation effect
   useEffect(() => {
-    let index = 0
-    const timer = setInterval(() => {
-      if (index < fullText.length) {
-        setTypedText(fullText.slice(0, index + 1))
-        index++
-      } else {
-        clearInterval(timer)
-        // Hide cursor after typing is complete
-        setTimeout(() => setShowCursor(false), 1000)
-      }
-    }, 50)
+    let cancelled = false;
+    let index = 0;
+    setTypedText("");
+    setShowCursor(true);
 
-    return () => clearInterval(timer)
-  }, [])
+    const startTyping = (text: string) => {
+      const timer = setInterval(() => {
+        if (cancelled) {
+          clearInterval(timer);
+          return;
+        }
+        if (index < text.length) {
+          setTypedText(text.slice(0, index + 1));
+          index++;
+        } else {
+          clearInterval(timer);
+          setTimeout(
+            () => !cancelled && setShowCursor(false),
+            HERO_DATA.typing.cursorDelay
+          );
+        }
+      }, HERO_DATA.typing.speed);
+    };
+
+    const run = async () => {
+      try {
+        const translated = await translate(HERO_DATA.typing.baseText, {
+          sourceLanguage: "en",
+          targetLanguage: currentLanguage,
+          key: TRANSLATION_KEYS.typing,
+        });
+        if (!cancelled) startTyping(translated);
+      } catch {
+        if (!cancelled) startTyping(HERO_DATA.typing.baseText);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLanguage, translate]);
+
+  // Prefetch translations
+  useEffect(() => {
+    if (currentLanguage === "en") return;
+
+    const translationItems = [
+      { text: HERO_DATA.tagline, key: TRANSLATION_KEYS.tagline },
+      { text: HERO_DATA.title.line1, key: TRANSLATION_KEYS.titleLine1 },
+      { text: HERO_DATA.title.line2, key: TRANSLATION_KEYS.titleLine2 },
+      { text: HERO_DATA.description, key: TRANSLATION_KEYS.description },
+      { text: HERO_DATA.ctas[0].text, key: TRANSLATION_KEYS.ctaContact },
+      { text: HERO_DATA.ctas[1].text, key: TRANSLATION_KEYS.ctaServices },
+      { text: HERO_DATA.valueBullets[0].text, key: TRANSLATION_KEYS.bullet1 },
+      { text: HERO_DATA.valueBullets[1].text, key: TRANSLATION_KEYS.bullet2 },
+      { text: HERO_DATA.valueBullets[2].text, key: TRANSLATION_KEYS.bullet3 },
+      {
+        text: HERO_DATA.backgroundImages[0].alt,
+        key: TRANSLATION_KEYS.bgSlideAlt,
+      },
+    ];
+
+    translationItems.forEach(({ text, key }) => {
+      translate(text, {
+        sourceLanguage: "en",
+        targetLanguage: currentLanguage,
+        key,
+      }).catch(() => void 0);
+    });
+  }, [currentLanguage, translate]);
 
   return (
-    <section className="relative py-20 lg:py-32 overflow-hidden">
-      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-      <div className="absolute top-20 left-10 w-20 h-20 bg-purple-500/10 rounded-full animate-float" />
-      <div className="absolute top-40 right-20 w-16 h-16 bg-purple-600/10 rounded-full animate-float animate-delay-200" />
-      <div className="absolute bottom-20 left-1/4 w-12 h-12 bg-purple-400/10 rounded-full animate-float animate-delay-400" />
+    <section
+      className="relative min-h-[90vh] flex items-center overflow-hidden px-4 md:px-8 lg:px-12"
+      aria-labelledby="hero-heading"
+    >
+      {/* Background Swiper */}
+      <div className="absolute inset-0 ">
+        <Swiper
+          modules={[Autoplay, EffectFade]}
+          effect={HERO_DATA.swiper.effect as any}
+          autoplay={{
+            delay: HERO_DATA.swiper.autoplayDelay,
+            disableOnInteraction: false,
+          }}
+          loop
+          allowTouchMove={false}
+          className="h-full"
+        >
+          {HERO_DATA.backgroundImages.map((image, index) => (
+            <SwiperSlide key={index}>
+              <Image
+                src={image.src}
+                alt={t(
+                  `${image.alt} ${index}`,
+                  `${TRANSLATION_KEYS.bgSlideAlt} ${index}`
+                )}
+                fill
+                priority
+                className="object-cover"
+              />
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
 
-      <div className="container mx-auto px-4 relative">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-8 animate-scale-in">
-            <Star className="h-4 w-4 fill-current animate-pulse-gentle" />
-            Premium Developer Templates & Services
-          </div>
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-slate-900/90 z-10" aria-hidden />
 
-          {/* Main Heading */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-balance mb-6 animate-fade-in-up">
-            Crafting{" "}
-            <span className="bg-gradient-to-r from-purple-600 to-purple-800 dark:from-purple-400 dark:to-purple-600 bg-clip-text text-transparent">
-              Premium
-            </span>{" "}
-            Digital Experiences
+      {/* Accents */}
+      <div
+        aria-hidden
+        className="absolute z-10 -left-24 -top-32 h-96 w-72 rotate-6 bg-gradient-to-b from-indigo-500 to-purple-600"
+      />
+      <div
+        aria-hidden
+        className="absolute z-10 -right-24 bottom-0 h-96 w-72 -rotate-6 bg-gradient-to-b from-purple-600 to-indigo-500"
+      />
+
+      {/* Content */}
+      <div className="relative z-10 container mx-auto px-4">
+        <div className="max-w-5xl">
+          {/* Tagline */}
+          <p
+            className={`text-indigo-300 font-semibold tracking-wide mb-4 ${
+              isArabic ? "text-right" : ""
+            }`}
+          >
+            {t(HERO_DATA.tagline, TRANSLATION_KEYS.tagline)}
+          </p>
+
+          {/* Title */}
+          <h1
+            id="hero-heading"
+            className={`text-white font-extrabold leading-[0.95] text-4xl md:text-6xl lg:text-7xl mb-6 ${
+              isArabic ? "text-right" : ""
+            }`}
+          >
+            {t(HERO_DATA.title.line1, TRANSLATION_KEYS.titleLine1)}
+            <br className="hidden sm:block" />
+            {t(HERO_DATA.title.line2, TRANSLATION_KEYS.titleLine2)}
           </h1>
 
-          <div className="text-xl md:text-2xl text-muted-foreground text-balance mb-8 max-w-3xl mx-auto animate-fade-in-up animate-delay-200">
-            <p className="mb-2">
-              Professional developer specializing in modern web applications, premium templates, and scalable solutions.
-            </p>
-            <p className="min-h-[2rem]">
+          {/* Description with typing effect */}
+          <p
+            className={`text-slate-200 text-lg md:text-xl max-w-3xl mb-8 ${
+              isArabic ? "text-right" : ""
+            }`}
+          >
+            {t(HERO_DATA.description, TRANSLATION_KEYS.description)}
+            <span className="block min-h-[1.75rem] mt-1 text-slate-300/90">
               {typedText}
               {showCursor && <span className="animate-pulse">|</span>}
-            </p>
+            </span>
+          </p>
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {HERO_DATA.ctas.map((cta, index) => {
+              const Icon = cta.icon;
+              const translationKey =
+                index === 0
+                  ? TRANSLATION_KEYS.ctaContact
+                  : TRANSLATION_KEYS.ctaServices;
+
+              return (
+                <Button
+                  key={cta.id}
+                  size="lg"
+                  className={
+                    cta.variant === "secondary"
+                      ? "bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 text-base font-semibold"
+                      : ""
+                  }
+                  asChild
+                >
+                  <Link href={cta.href}>
+                    {t(cta.text, translationKey)}
+                    {Icon && <Icon className="ml-2 h-4 w-4" aria-hidden />}
+                  </Link>
+                </Button>
+              );
+            })}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-fade-in-up animate-delay-300">
-            <Button
-              size="lg"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 text-lg animate-glow hover:animate-bounce-gentle transition-all duration-300"
-            >
-              <Link href="/templates" className="flex items-center gap-2">
-                Browse Templates
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="px-8 py-3 text-lg bg-transparent hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-300"
-            >
-              <Link href="/contact" className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Get Started
-              </Link>
-            </Button>
+          {/* Tech stack badges */}
+          <div className="mt-8 flex flex-wrap items-center gap-3 text-sm">
+            {HERO_DATA.techStack.map((tech) => {
+              const Icon = tech.icon;
+              return (
+                <span
+                  key={tech.name}
+                  className="inline-flex items-center gap-2 rounded-full bg-white/10 text-white px-3 py-1 backdrop-blur"
+                >
+                  {Icon && <Icon className="h-4 w-4" />}
+                  {tech.name}
+                </span>
+              );
+            })}
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 animate-fade-in-up animate-delay-400">
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className={`h-8 w-8 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 border-2 border-background animate-scale-in animate-delay-${i * 100}`}
-                  />
-                ))}
-              </div>
-              <span>500+ Happy Clients</span>
-            </div>
-            <div className="flex items-center gap-1 animate-fade-in-up animate-delay-500">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 fill-yellow-400 text-yellow-400 animate-scale-in animate-delay-${i * 50}`}
-                />
-              ))}
-              <span className="ml-2">4.9/5 Rating</span>
-            </div>
-          </div>
+          {/* Value bullets */}
+          <ul
+            className={`mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-slate-200 ${
+              isArabic ? "text-right" : ""
+            }`}
+          >
+            {HERO_DATA.valueBullets.map((bullet, index) => {
+              const Icon = bullet.icon;
+              const translationKey = [
+                TRANSLATION_KEYS.bullet1,
+                TRANSLATION_KEYS.bullet2,
+                TRANSLATION_KEYS.bullet3,
+              ][index];
+
+              return (
+                <li key={index} className="flex items-center gap-2">
+                  <Icon className="h-5 w-5 text-purple-600" />
+                  {t(bullet.text, translationKey)}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
+
+export default HeroSection;

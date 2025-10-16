@@ -30,8 +30,12 @@ export function useTranslation() {
         key?: string;
       }
     ) => {
-      const sourceLanguage = options?.sourceLanguage || "en";
-      const targetLanguage = options?.targetLanguage || currentLanguage;
+      const sourceLanguage = (options?.sourceLanguage || "en")
+        .toLowerCase()
+        .split("-")[0];
+      const targetLanguage = (options?.targetLanguage || currentLanguage)
+        .toLowerCase()
+        .split("-")[0];
       const key =
         options?.key ||
         `${sourceLanguage}-${targetLanguage}-${text.substring(0, 20)}`;
@@ -82,8 +86,12 @@ export function useTranslation() {
         targetLanguage?: string;
       }
     ) => {
-      const sourceLanguage = options?.sourceLanguage || "en";
-      const targetLanguage = options?.targetLanguage || currentLanguage;
+      const sourceLanguage = (options?.sourceLanguage || "en")
+        .toLowerCase()
+        .split("-")[0];
+      const targetLanguage = (options?.targetLanguage || currentLanguage)
+        .toLowerCase()
+        .split("-")[0];
 
       if (sourceLanguage === targetLanguage) {
         return texts;
@@ -133,12 +141,11 @@ export function useTranslation() {
         return existingTranslation.translatedText;
       }
 
-      // Trigger translation in background
-      translate(text, { key: translationKey }).catch(console.error);
-
-      return text; // Return original text while translating
+      // Do not trigger side effects during render. Callers should prefetch
+      // translations via translate()/translateBatch or useTranslatedText().
+      return text;
     },
-    [currentLanguage, getTranslation, translate]
+    [currentLanguage, getTranslation]
   );
 
   return {

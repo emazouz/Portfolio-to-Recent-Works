@@ -2,6 +2,7 @@ import { API_ROUTES } from "@/lib/server";
 import { CommentType } from "@/types/CommentType";
 import { CreateBlogInput } from "@/validators/blogValidated";
 import axios, { AxiosError } from "axios";
+import { string } from "zod";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -9,6 +10,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface Blog extends CreateBlogInput {
   id?: number;
   imageUrl?: string;
+  previewImages: string[];
   author?: {
     id: string;
     name: string;
@@ -55,7 +57,13 @@ export interface PaginatedResponse<T> {
   success: boolean;
   message: string;
 }
-
+export interface LocalizedContentType {
+  title: string;
+  excerpt: string;
+  metaDesc: string;
+  metaTitle: string;
+  content: string;
+}
 type BlogStore = {
   // State
   blogs: Blog[];
@@ -72,13 +80,15 @@ type BlogStore = {
   // Actions
   createBlog: (
     blog: CreateBlogInput,
-    imageFile: File
+    imageFile: File,
+    previewImages: File[]
   ) => Promise<ApiResponse<Blog>>;
 
   updateBlog: (
     blogId: number,
     blog: CreateBlogInput,
-    imageFile?: File
+    imageFile?: File,
+    previewImages?: File[]
   ) => Promise<ApiResponse<Blog>>;
 
   getBlogs: (
@@ -105,6 +115,11 @@ type BlogStore = {
   deleteBlog: (blogId: number) => Promise<ApiResponse<void>>;
 
   addLikeBlog: (blogId: number) => Promise<ApiResponse<void>>;
+
+  getLocalizedContent: (
+    blog: Blog,
+    currentLanguage: string
+  ) => LocalizedContentType;
 
   // Utility actions
   setCurrentBlog: (blog: Blog | null) => void;
@@ -134,11 +149,11 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-
 // Enhanced FormData creation with proper type handling
 const createFormDataFromRequest = (
   data: CreateBlogInput,
-  imageFile?: File
+  imageFile?: File,
+  previewImages?: File[]
 ): FormData => {
   const formData = new FormData();
 
@@ -152,6 +167,12 @@ const createFormDataFromRequest = (
   // Array and complex fields
   if (data.tags && Array.isArray(data.tags)) {
     formData.append("tags", JSON.stringify(data.tags));
+  }
+
+  if (previewImages) {
+    previewImages.forEach((img) => {
+      formData.append("previewImages", img, img.name);
+    });
   }
 
   // Array and complex fields
@@ -292,11 +313,19 @@ export const blogStore = create<BlogStore>()(
       },
 
       // Create blog
-      createBlog: async (blog: CreateBlogInput, imageFile: File) => {
+      createBlog: async (
+        blog: CreateBlogInput,
+        imageFile: File,
+        previewImages: File[]
+      ) => {
         set({ isLoading: true, error: null });
 
         try {
-          const formData = createFormDataFromRequest(blog, imageFile);
+          const formData = createFormDataFromRequest(
+            blog,
+            imageFile,
+            previewImages
+          );
           const response = await axiosInstance.post<ApiResponse<Blog>>(
             "/",
             formData,
@@ -339,12 +368,17 @@ export const blogStore = create<BlogStore>()(
       updateBlog: async (
         blogId: number,
         blog: CreateBlogInput,
-        imageFile?: File
+        imageFile?: File,
+        previewImages?: File[]
       ) => {
         set({ isLoading: true, error: null });
 
         try {
-          const formData = createFormDataFromRequest(blog, imageFile);
+          const formData = createFormDataFromRequest(
+            blog,
+            imageFile,
+            previewImages
+          );
           const response = await axiosInstance.put<ApiResponse<Blog>>(
             `/${blogId}`,
             formData,
@@ -506,6 +540,35 @@ export const blogStore = create<BlogStore>()(
         } finally {
           set({ isLoading: false });
         }
+      },
+
+      getLocalizedContent: (blog: Blog, currentLanguage: string) => {
+        // Ensure blog is defined and currentLanguage is valid
+        if (!blog || !currentLanguage) {
+          return {
+            title: "",
+            excerpt: "",
+            metaDesc: "",
+            metaTitle: "",
+            content: "",
+          };
+        }
+        return {
+          title: currentLanguage === "en" ? blog.title_en : blog.title_ar,
+          excerpt:
+            currentLanguage === "en"
+              ? blog.excerpt_en ?? ""
+              : blog.excerpt_ar ?? "",
+          metaDesc:
+            currentLanguage === "en"
+              ? blog.metaDesc_en ?? ""
+              : blog.metaDesc_ar ?? "",
+          metaTitle:
+            currentLanguage === "en"
+              ? blog.metaTitle_en ?? ""
+              : blog.metaTitle_ar ?? "",
+          content: currentLanguage === "en" ? blog.content_en : blog.content_ar,
+        };
       },
 
       // Utility actions

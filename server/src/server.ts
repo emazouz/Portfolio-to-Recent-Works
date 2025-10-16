@@ -7,11 +7,12 @@ import authRoute from "./routes/authRouter";
 import projectRoute from "./routes/projectRouter";
 import blogRoute from "./routes/blogRouter";
 import commentRoute from "./routes/commentRouter";
-import templatesRoute from "./routes/templatesRouter";
+import translationRoute from "./routes/translationRouter";
 import reviewRoute from "./routes/reviewRouter";
+
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 const app = express();
 
@@ -30,7 +31,7 @@ app.use("/api/auth", authRoute);
 app.use("/api/projects", projectRoute);
 app.use("/api/blogs", blogRoute);
 app.use("/api/comments", commentRoute);
-app.use("/api/templates", templatesRoute);
+app.use("/api", translationRoute);
 app.use("/api/reviews", reviewRoute);
 
 app.listen(PORT, () => {

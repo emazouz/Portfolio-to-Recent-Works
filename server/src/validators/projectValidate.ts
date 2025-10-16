@@ -77,17 +77,9 @@ const baseProjectSchema = {
     .optional()
     .or(z.literal("")),
 
-  metaDesc_en: z
-    .string()
-    .max(160, "Meta description must be less than 160 characters")
-    .optional()
-    .or(z.literal("")),
+  metaDesc_en: z.string().optional().or(z.literal("")),
 
-  metaDesc_ar: z
-    .string()
-    .max(160, "Meta description must be less than 160 characters")
-    .optional()
-    .or(z.literal("")),
+  metaDesc_ar: z.string().optional().or(z.literal("")),
 
   technologies: z
     .array(z.string().trim().min(1))

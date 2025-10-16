@@ -154,7 +154,7 @@ function FeaturedProjectCard({
       </CardContent>
       <CardFooter className="flex gap-2">
         <Button size="sm" asChild>
-          <Link href={`/portfolio/${project.slug_en || project.id}`}>
+          <Link href={`/portfolio/view/${project.id}`}>
             <Eye className="w-4 h-4 mr-2" />
             View Details
           </Link>
@@ -274,7 +274,7 @@ export default function ProjectList() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [currentLanguage] = useState<string>("en"); // This could come from a language context
-  
+
   const [projects, setProjects] = useState<Project[]>([]);
   // Store hook
   const { getProjects } = projectStore();

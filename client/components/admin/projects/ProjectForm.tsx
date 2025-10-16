@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/hooks/use-translation";
@@ -37,12 +35,22 @@ import {
   Loader2,
 } from "lucide-react";
 import Image from "next/image";
+import MarkdownEditor from "react-markdown-editor-lite";
+import ReactMarkdown from "react-markdown";
+import "react-markdown-editor-lite/lib/index.css";
 import { Project, projectStore } from "@/store/projectStore";
 import { CreateProjectInput } from "@/validators/projectValidate";
 import { toast } from "@/hooks/use-toast";
+import MarkdownRenderer, {
+  TabErrorIndicator,
+} from "@/components/markdown/markdown-renderer";
+
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
 
 interface ProjectFormProps {
-  projectId?: string;
+  projectId?: number;
 }
 
 interface ValidationErrors {
@@ -67,6 +75,10 @@ interface FormData {
   featured: boolean;
   sortOrder: number;
 }
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
 const INITIAL_FORM_DATA: FormData = {
   title_en: "",
@@ -111,31 +123,238 @@ const VALID_IMAGE_TYPES = [
 ];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_TECHNOLOGIES = 10;
+const URL_PATTERN = /^https?:\/\/.+/;
 
-export function ProjectForm({ projectId }: { projectId: number }) {
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+const generateSlug = (text: string, isArabic: boolean = false): string => {
+  if (isArabic) {
+    return text
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  }
+
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/(^-|-$)/g, "");
+};
+
+// ============================================================================
+// CUSTOM HOOKS
+// ============================================================================
+
+const useImageUpload = () => {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [existingImageUrl, setExistingImageUrl] = useState<string>("");
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string>("");
+
+  const validateImage = useCallback((file: File, t: any): string | null => {
+    if (!VALID_IMAGE_TYPES.includes(file.type)) {
+      return t(
+        "Please upload a valid image file (JPEG, PNG, WebP)",
+        "validation.invalidImageType"
+      );
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      return t(
+        "Image size should be less than 5MB",
+        "validation.imageSizeExceeded"
+      );
+    }
+
+    return null;
+  }, []);
+
+  const handleImageChange = useCallback(
+    (file: File, t: any) => {
+      const validationError = validateImage(file, t);
+
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
+
+      // Clean up previous preview
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+
+      const newPreviewUrl = URL.createObjectURL(file);
+      previewUrlRef.current = newPreviewUrl;
+
+      setImageFile(file);
+      setImagePreview(newPreviewUrl);
+
+      return { success: true, error: null };
+    },
+    [validateImage]
+  );
+
+  const removeImage = useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = "";
+    }
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const getCurrentImageUrl = useCallback(() => {
+    return imagePreview || existingImageUrl || null;
+  }, [imagePreview, existingImageUrl]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    imageFile,
+    imagePreview,
+    existingImageUrl,
+    dragActive,
+    fileInputRef,
+    setExistingImageUrl,
+    setDragActive,
+    handleImageChange,
+    removeImage,
+    getCurrentImageUrl,
+  };
+};
+
+const useFormValidation = () => {
+  const { t } = useTranslation();
+
+  const validateForm = useCallback(
+    (
+      formData: FormData,
+      technologies: string[],
+      imageFile: File | null,
+      projectId?: number
+    ): ValidationErrors => {
+      const errors: ValidationErrors = {};
+
+      // Required fields
+      if (!formData.title_en.trim()) {
+        errors.title_en = t(
+          "English title is required",
+          "validation.titleEnRequired"
+        );
+      }
+      if (!formData.title_ar.trim()) {
+        errors.title_ar = t(
+          "Arabic title is required",
+          "validation.titleArRequired"
+        );
+      }
+      if (!formData.description_en.trim()) {
+        errors.description_en = t(
+          "English description is required",
+          "validation.descriptionEnRequired"
+        );
+      }
+      if (!formData.description_ar.trim()) {
+        errors.description_ar = t(
+          "Arabic description is required",
+          "validation.descriptionArRequired"
+        );
+      }
+      if (!formData.category) {
+        errors.category = t(
+          "Category is required",
+          "validation.categoryRequired"
+        );
+      }
+
+      // URL validation
+      if (formData.liveUrl && !URL_PATTERN.test(formData.liveUrl.trim())) {
+        errors.liveUrl = t("Please enter a valid URL", "validation.invalidUrl");
+      }
+      if (formData.githubUrl && !URL_PATTERN.test(formData.githubUrl.trim())) {
+        errors.githubUrl = t(
+          "Please enter a valid URL",
+          "validation.invalidUrl"
+        );
+      }
+
+      // Image validation
+      if (!projectId && !imageFile) {
+        errors.image = t(
+          "Project image is required",
+          "validation.imageRequired"
+        );
+      }
+
+      // Technologies validation
+      if (technologies.length === 0) {
+        errors.technologies = t(
+          "At least one technology is required",
+          "validation.technologiesRequired"
+        );
+      }
+
+      return errors;
+    },
+    [t]
+  );
+
+  return { validateForm };
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export function ProjectForm({ projectId }: ProjectFormProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(!!projectId);
   const [technologies, setTechnologies] = useState<string[]>([]);
   const [newTechnology, setNewTechnology] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
-  const [existingImageUrl, setExistingImageUrl] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
   );
-  const [dragActive, setDragActive] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { createProject, updateProject, getProjectById } = projectStore();
-
-  // Form state
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
 
-  // Fix: Proper data loading with error handling
+  const { createProject, updateProject, getProjectById } = projectStore();
+  const { validateForm } = useFormValidation();
+  const {
+    imageFile,
+    existingImageUrl,
+    dragActive,
+    fileInputRef,
+    setExistingImageUrl,
+    setDragActive,
+    handleImageChange,
+    removeImage,
+    getCurrentImageUrl,
+  } = useImageUpload();
+
+  // ============================================================================
+  // LOAD PROJECT DATA
+  // ============================================================================
+
   useEffect(() => {
     const loadProjectData = async () => {
       if (!projectId) return;
@@ -157,7 +376,6 @@ export function ProjectForm({ projectId }: { projectId: number }) {
         if (result.data) {
           const project = result.data as Project;
 
-          // Set form data with proper type conversion
           setFormData({
             title_en: project.title_en || "",
             title_ar: project.title_ar || "",
@@ -177,12 +395,10 @@ export function ProjectForm({ projectId }: { projectId: number }) {
             sortOrder: Number(project.sortOrder) || 0,
           });
 
-          // Set technologies
           if (project.technologies && Array.isArray(project.technologies)) {
             setTechnologies(project.technologies);
           }
 
-          // Set existing image URL for display
           if (project.imageUrl) {
             setExistingImageUrl(project.imageUrl);
           }
@@ -202,210 +418,27 @@ export function ProjectForm({ projectId }: { projectId: number }) {
     };
 
     loadProjectData();
-  }, [projectId, getProjectById, router, t]);
+  }, [projectId, getProjectById, router, t, setExistingImageUrl]);
 
-  // Fix: Better change tracking
+  // ============================================================================
+  // TRACK UNSAVED CHANGES
+  // ============================================================================
+
   useEffect(() => {
     if (isInitialLoading) return;
 
-    const currentData = JSON.stringify({
-      ...formData,
-      technologies,
-      hasNewImage: !!imageFile,
-    });
+    const hasChanges =
+      JSON.stringify(formData) !== JSON.stringify(INITIAL_FORM_DATA) ||
+      technologies.length > 0 ||
+      !!imageFile;
 
-    const initialDataString = projectId
-      ? JSON.stringify({
-          ...INITIAL_FORM_DATA,
-          technologies: [],
-          hasNewImage: false,
-        })
-      : JSON.stringify({
-          ...INITIAL_FORM_DATA,
-          technologies,
-          hasNewImage: !!imageFile,
-        });
+    setHasUnsavedChanges(hasChanges);
+  }, [formData, technologies, imageFile, isInitialLoading]);
 
-    setHasUnsavedChanges(currentData !== initialDataString);
-  }, [formData, technologies, imageFile, projectId, isInitialLoading]);
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
 
-  // Enhanced validation functions
-  const validateImage = useCallback(
-    (file: File): string | null => {
-      if (!VALID_IMAGE_TYPES.includes(file.type)) {
-        return t(
-          "Please upload a valid image file (JPEG, PNG, WebP)",
-          "validation.invalidImageType"
-        );
-      }
-
-      if (file.size > MAX_IMAGE_SIZE) {
-        return t(
-          "Image size should be less than 5MB",
-          "validation.imageSizeExceeded"
-        );
-      }
-
-      return null;
-    },
-    [t]
-  );
-
-  const validateForm = useCallback((): ValidationErrors => {
-    const errors: ValidationErrors = {};
-
-    // Required fields validation
-    if (!formData.title_en.trim()) {
-      errors.title_en = t(
-        "English title is required",
-        "validation.titleEnRequired"
-      );
-    }
-    if (!formData.title_ar.trim()) {
-      errors.title_ar = t(
-        "Arabic title is required",
-        "validation.titleArRequired"
-      );
-    }
-    if (!formData.description_en.trim()) {
-      errors.description_en = t(
-        "English description is required",
-        "validation.descriptionEnRequired"
-      );
-    }
-    if (!formData.description_ar.trim()) {
-      errors.description_ar = t(
-        "Arabic description is required",
-        "validation.descriptionArRequired"
-      );
-    }
-    if (!formData.category) {
-      errors.category = t(
-        "Category is required",
-        "validation.categoryRequired"
-      );
-    }
-
-    // URL validation
-    const urlPattern = /^https?:\/\/.+/;
-    if (formData.liveUrl && !urlPattern.test(formData.liveUrl.trim())) {
-      errors.liveUrl = t("Please enter a valid URL", "validation.invalidUrl");
-    }
-    if (formData.githubUrl && !urlPattern.test(formData.githubUrl.trim())) {
-      errors.githubUrl = t("Please enter a valid URL", "validation.invalidUrl");
-    }
-
-    // Fix: Image validation logic
-    if (!projectId) {
-      // For new projects, image is required
-      if (!imageFile) {
-        errors.image = t(
-          "Project image is required",
-          "validation.imageRequired"
-        );
-      }
-    }
-    // For updates, image is optional - no validation needed
-
-    // Technologies validation
-    if (technologies.length === 0) {
-      errors.technologies = t(
-        "At least one technology is required",
-        "validation.technologiesRequired"
-      );
-    }
-
-    return errors;
-  }, [formData, imageFile, technologies, projectId, t]);
-
-  // Enhanced image handling
-  const handleImageChange = useCallback(
-    (file: File) => {
-      const validationError = validateImage(file);
-
-      if (validationError) {
-        setValidationErrors((prev) => ({ ...prev, image: validationError }));
-        return;
-      }
-
-      // Clean up previous preview
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
-
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-
-      // Clear image validation error
-      setValidationErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.image;
-        return newErrors;
-      });
-    },
-    [imagePreview, validateImage]
-  );
-
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        handleImageChange(file);
-      }
-    },
-    [handleImageChange]
-  );
-
-  // Drag and drop handlers
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX;
-      const y = e.clientY;
-
-      if (
-        x < rect.left ||
-        x >= rect.right ||
-        y < rect.top ||
-        y >= rect.bottom
-      ) {
-        setDragActive(false);
-      }
-    }
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-
-      const files = Array.from(e.dataTransfer.files);
-      const imageFile = files.find((file) =>
-        VALID_IMAGE_TYPES.includes(file.type)
-      );
-
-      if (imageFile) {
-        handleImageChange(imageFile);
-      } else if (files.length > 0) {
-        setValidationErrors((prev) => ({
-          ...prev,
-          image: t(
-            "Please drop a valid image file",
-            "validation.invalidImageDrop"
-          ),
-        }));
-      }
-    },
-    [handleImageChange, t]
-  );
-
-  // Enhanced input change handler
   const handleInputChange = useCallback(
     (field: keyof FormData, value: string | boolean | number) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
@@ -421,37 +454,105 @@ export function ProjectForm({ projectId }: { projectId: number }) {
 
       // Auto-generate slugs
       if (field === "title_en" && typeof value === "string") {
-        const slug = value
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/(^-|-$)/g, "");
-
-        setFormData((prev) => ({ ...prev, slug_en: slug }));
+        setFormData((prev) => ({
+          ...prev,
+          slug_en: generateSlug(value, false),
+        }));
       }
 
       if (field === "title_ar" && typeof value === "string") {
-        const slug = value
-          .trim()
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/(^-|-$)/g, "");
-
-        setFormData((prev) => ({ ...prev, slug_ar: slug }));
+        setFormData((prev) => ({
+          ...prev,
+          slug_ar: generateSlug(value, true),
+        }));
       }
     },
     [validationErrors]
   );
 
-  // Enhanced technology management
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const result = handleImageChange(file, t);
+        if (!result.success && result.error) {
+          setValidationErrors((prev) => ({ ...prev, image: result.error! }));
+        } else {
+          setValidationErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.image;
+            return newErrors;
+          });
+        }
+      }
+    },
+    [handleImageChange, t]
+  );
+
+  const handleDrag = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.type === "dragenter" || e.type === "dragover") {
+        setDragActive(true);
+      } else if (e.type === "dragleave") {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+
+        if (
+          x < rect.left ||
+          x >= rect.right ||
+          y < rect.top ||
+          y >= rect.bottom
+        ) {
+          setDragActive(false);
+        }
+      }
+    },
+    [setDragActive]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+
+      const files = Array.from(e.dataTransfer.files);
+      const imageFile = files.find((file) =>
+        VALID_IMAGE_TYPES.includes(file.type)
+      );
+
+      if (imageFile) {
+        const result = handleImageChange(imageFile, t);
+        if (!result.success && result.error) {
+          setValidationErrors((prev) => ({ ...prev, image: result.error! }));
+        } else {
+          setValidationErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.image;
+            return newErrors;
+          });
+        }
+      } else if (files.length > 0) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          image: t(
+            "Please drop a valid image file",
+            "validation.invalidImageDrop"
+          ),
+        }));
+      }
+    },
+    [handleImageChange, t, setDragActive]
+  );
+
   const addTechnology = useCallback(() => {
     const tech = newTechnology.trim();
 
-    if (!tech) {
-      return;
-    }
+    if (!tech) return;
 
     if (technologies.includes(tech)) {
       toast({
@@ -480,7 +581,6 @@ export function ProjectForm({ projectId }: { projectId: number }) {
     setTechnologies((prev) => [...prev, tech]);
     setNewTechnology("");
 
-    // Clear technologies validation error
     if (validationErrors.technologies) {
       setValidationErrors((prev) => {
         const newErrors = { ...prev };
@@ -504,15 +604,13 @@ export function ProjectForm({ projectId }: { projectId: number }) {
     [addTechnology]
   );
 
-  // Fix: Enhanced form submission with proper validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const errors = validateForm();
+    const errors = validateForm(formData, technologies, imageFile, projectId);
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      // Focus on first tab with errors
       const tabsWithErrors = {
         basic: ["title_en", "title_ar", "category", "image"],
         content: ["description_en", "description_ar", "technologies"],
@@ -549,14 +647,12 @@ export function ProjectForm({ projectId }: { projectId: number }) {
 
       let result;
       if (projectId) {
-        // For updates, image is optional
         result = await updateProject(
           projectId,
           projectData,
           imageFile || undefined
         );
       } else {
-        // For creates, image is required (already validated above)
         if (!imageFile) {
           setValidationErrors({
             image: t("Project image is required", "validation.imageRequired"),
@@ -587,7 +683,6 @@ export function ProjectForm({ projectId }: { projectId: number }) {
       });
 
       setHasUnsavedChanges(false);
-
       router.push("/admin/projects");
     } catch (error) {
       console.error("Error saving project:", error);
@@ -604,7 +699,6 @@ export function ProjectForm({ projectId }: { projectId: number }) {
     }
   };
 
-  // Handle navigation with unsaved changes
   const handleBack = useCallback(() => {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -618,28 +712,10 @@ export function ProjectForm({ projectId }: { projectId: number }) {
     router.back();
   }, [hasUnsavedChanges, router, t]);
 
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
-    };
-  }, [imagePreview]);
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
-  // Remove image handler
-  const removeImage = useCallback(() => {
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-    setImageFile(null);
-    setImagePreview("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, [imagePreview]);
-
-  // Show loading state during initial data load
   if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -653,12 +729,9 @@ export function ProjectForm({ projectId }: { projectId: number }) {
     );
   }
 
-  // Get current image URL for display
-  const getCurrentImageUrl = () => {
-    if (imagePreview) return imagePreview;
-    if (existingImageUrl) return existingImageUrl;
-    return null;
-  };
+  const currentImageUrl = getCurrentImageUrl();
+  const hasErrorsInTab = (tabFields: string[]) =>
+    tabFields.some((field) => validationErrors[field]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -712,27 +785,21 @@ export function ProjectForm({ projectId }: { projectId: number }) {
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic" className="relative">
             {t("Basic Info", "admin.form.basic")}
-            {["title_en", "title_ar", "category", "image"].some(
-              (field) => validationErrors[field]
-            ) && (
-              <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+            {hasErrorsInTab(["title_en", "title_ar", "category", "image"]) && (
+              <TabErrorIndicator />
             )}
           </TabsTrigger>
           <TabsTrigger value="content" className="relative">
             {t("Content", "admin.form.content")}
-            {["description_en", "description_ar", "technologies"].some(
-              (field) => validationErrors[field]
-            ) && (
-              <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
-            )}
+            {hasErrorsInTab([
+              "description_en",
+              "description_ar",
+              "technologies",
+            ]) && <TabErrorIndicator />}
           </TabsTrigger>
           <TabsTrigger value="links" className="relative">
             {t("Links", "admin.form.links")}
-            {["liveUrl", "githubUrl"].some(
-              (field) => validationErrors[field]
-            ) && (
-              <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
-            )}
+            {hasErrorsInTab(["liveUrl", "githubUrl"]) && <TabErrorIndicator />}
           </TabsTrigger>
           <TabsTrigger value="seo">{t("SEO", "admin.form.seo")}</TabsTrigger>
           <TabsTrigger value="settings">
@@ -740,6 +807,7 @@ export function ProjectForm({ projectId }: { projectId: number }) {
           </TabsTrigger>
         </TabsList>
 
+        {/* BASIC INFO TAB */}
         <TabsContent value="basic" className="space-y-6">
           <Card>
             <CardHeader>
@@ -880,7 +948,7 @@ export function ProjectForm({ projectId }: { projectId: number }) {
                 </div>
               </div>
 
-              {/* Enhanced Image Upload */}
+              {/* Image Upload */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   {t("Project Image", "admin.form.projectImage")}{" "}
@@ -923,13 +991,13 @@ export function ProjectForm({ projectId }: { projectId: number }) {
                     }
                   />
 
-                  {getCurrentImageUrl() ? (
+                  {currentImageUrl ? (
                     <div className="space-y-4">
                       <div className="relative group">
                         <Image
                           width={400}
                           height={200}
-                          src={getCurrentImageUrl()!}
+                          src={currentImageUrl}
                           alt="Project preview"
                           className="w-full max-h-64 object-cover rounded-lg"
                           onError={(e) => {
@@ -950,19 +1018,17 @@ export function ProjectForm({ projectId }: { projectId: number }) {
                           >
                             {t("Change", "common.change")}
                           </Button>
-                          {(imagePreview || !projectId) && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeImage();
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeImage();
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -1007,6 +1073,7 @@ export function ProjectForm({ projectId }: { projectId: number }) {
           </Card>
         </TabsContent>
 
+        {/* CONTENT TAB */}
         <TabsContent value="content" className="space-y-6">
           <Card>
             <CardHeader>
@@ -1143,6 +1210,7 @@ export function ProjectForm({ projectId }: { projectId: number }) {
           </Card>
         </TabsContent>
 
+        {/* LINKS TAB */}
         <TabsContent value="links" className="space-y-6">
           <Card>
             <CardHeader>
@@ -1202,6 +1270,7 @@ export function ProjectForm({ projectId }: { projectId: number }) {
           </Card>
         </TabsContent>
 
+        {/* SEO TAB */}
         <TabsContent value="seo" className="space-y-6">
           <Card>
             <CardHeader>
@@ -1309,52 +1378,44 @@ export function ProjectForm({ projectId }: { projectId: number }) {
               <div className="space-y-2">
                 <Label htmlFor="metaDesc_en" className="text-sm font-medium">
                   {t("Meta Description (English)", "admin.form.metaDescEn")}
+                  <span className="text-blue-600 text-xs ml-2 font-normal">
+                    Markdown Editor
+                  </span>
                 </Label>
-                <Textarea
-                  id="metaDesc_en"
+                <MarkdownEditor
                   value={formData.metaDesc_en}
-                  onChange={(e) =>
-                    handleInputChange("metaDesc_en", e.target.value)
-                  }
-                  placeholder={t(
-                    "SEO description for search results",
-                    "admin.form.metaDescPlaceholder"
-                  )}
-                  rows={3}
-                  maxLength={160}
+                  onChange={(ev) => handleInputChange("metaDesc_en", ev.text)}
+                  style={{
+                    width: "100%",
+                    height: "300px",
+                  }}
+                  renderHTML={(text) => <MarkdownRenderer text={text} />}
                 />
-                <p className="text-xs text-gray-500">
-                  {formData.metaDesc_en.length}/160{" "}
-                  {t("characters", "common.characters")}
-                </p>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="metaDesc_ar" className="text-sm font-medium">
                   {t("Meta Description (Arabic)", "admin.form.metaDescAr")}
+                  <span className="text-blue-600 text-xs ml-2 font-normal">
+                    Markdown Editor
+                  </span>
                 </Label>
-                <Textarea
-                  id="metaDesc_ar"
+                <MarkdownEditor
                   value={formData.metaDesc_ar}
-                  onChange={(e) =>
-                    handleInputChange("metaDesc_ar", e.target.value)
-                  }
-                  placeholder={t(
-                    "SEO description in Arabic",
-                    "admin.form.metaDescArPlaceholder"
-                  )}
-                  rows={3}
-                  dir="rtl"
-                  maxLength={160}
+                  onChange={(ev) => handleInputChange("metaDesc_ar", ev.text)}
+                  style={{
+                    width: "100%",
+                    height: "300px",
+                  }}
+                  renderHTML={(text) => <MarkdownRenderer text={text} />}
                 />
-                <p className="text-xs text-gray-500">
-                  {formData.metaDesc_ar.length}/160{" "}
-                  {t("characters", "common.characters")}
-                </p>
               </div>
+              
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* SETTINGS TAB */}
         <TabsContent value="settings" className="space-y-6">
           <Card>
             <CardHeader>

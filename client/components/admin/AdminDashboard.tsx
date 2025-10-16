@@ -19,7 +19,6 @@ import {
   Download,
   Star,
 } from "lucide-react";
-import TemplateAnalyticsDashboard from "./TemplateAnalytics";
 
 export function AdminDashboard() {
   const { t } = useTranslation();

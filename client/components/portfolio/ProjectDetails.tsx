@@ -14,6 +14,8 @@ import { useEffect, useState } from "react";
 import NotFound, { ProjectNotFound } from "../ui/NotFound";
 import { toast } from "@/hooks/use-toast";
 import Loader from "@/components/ui/Loader";
+import { MarkdownContent } from "@/components/markdown/markdown-content";
+import { ProjectReviews } from "./ProjectReviews";
 
 // Helper functions
 function getLocalizedContent(project: Project, language: string) {
@@ -286,37 +288,106 @@ export default function ProjectDetails({ id }: { id: number }) {
 
       <Separator className="my-12" />
 
-      {/* Detailed Description */}
       <section className="py-12 px-4">
         <div className="container mx-auto max-w-4xl">
-          <div className="prose prose-lg dark:prose-invert max-w-none">
-            <h2>Project Overview</h2>
-            <p>{localizedContent.description}</p>
+          <div className="prose prose-lg dark:prose-invert max-w-none space-y-3">
+            <h1 className="h1-bold">Project Overview</h1>
+            <div className="text-lg leading-relaxed">
+              {localizedContent.description}
+            </div>
+            <Separator className="my-12" />
+            <div className="text-lg leading-relaxed">
+              {localizedContent.metaDesc && (
+                <div className="prose prose-lg max-w-none py-4 md:py-6">
+                  <MarkdownContent content={localizedContent.metaDesc} />
+                </div>
+              )}
+            </div>
+            <Separator className="my-12" />
+            {project.technologies && project.technologies.length > 0 && (
+              <div className="py-4 md:py-6">
+                <h1 className="h1-bold">Technologies & Tools</h1>
+                <p>
+                  This project leverages a modern technology stack to deliver
+                  optimal performance and user experience:
+                </p>
+                <div className="flex flex-wrap gap-2 my-4">
+                  {project.technologies.map((tech, index) => (
+                    <Badge
+                      key={`${tech}-${index}`}
+                      variant="outline"
+                      className="text-sm"
+                    >
+                      {tech}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Separator className="my-12" />
+            <h1 className="h1-bold">Project Status</h1>
+            <div className="flex items-center gap-3 mb-4">
+              <Badge
+                variant={
+                  project.status === "COMPLETED"
+                    ? "default"
+                    : project.status === "IN_PROGRESS"
+                    ? "secondary"
+                    : "outline"
+                }
+                className="text-sm"
+              >
+                {getStatusText(project.status, currentLanguage)}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {project.status === "COMPLETED"
+                  ? "Successfully delivered and deployed"
+                  : project.status === "IN_PROGRESS"
+                  ? "Currently in active development"
+                  : project.status === "PLANNING"
+                  ? "In planning and design phase"
+                  : "Development temporarily paused"}
+              </span>
+            </div>
+            <Separator className="my-12" />
+            {(project.liveUrl || project.githubUrl) && (
+              <div>
+                <h1 className="h1-bold">Project Links</h1>
+                <div className="flex flex-wrap gap-3">
+                  {project.liveUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={project.liveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Live Demo
+                      </a>
+                    </Button>
+                  )}
+                  {project.githubUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a
+                        href={project.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Github className="w-4 h-4 mr-2" />
+                        Source Code
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
 
-            <h3>Key Features</h3>
-            <ul>
-              <li>Modern, responsive design optimized for all devices</li>
-              <li>
-                High-performance architecture with optimized loading times
-              </li>
-              <li>Comprehensive user experience with intuitive navigation</li>
-              <li>Scalable codebase following industry best practices</li>
-            </ul>
+            <Separator className="my-12" />
 
-            <h3>Technical Challenges</h3>
-            <p>
-              This project presented several interesting technical challenges
-              that required innovative solutions. The implementation focused on
-              performance optimization, user experience enhancement, and
-              maintainable code architecture.
-            </p>
-
-            <h3>Solutions Implemented</h3>
-            <p>
-              Through careful planning and iterative development, we
-              successfully addressed all technical requirements while
-              maintaining high code quality and performance standards.
-            </p>
+            <div className="mb-8 sm:mb-12">
+              {/* reviews */}
+              <ProjectReviews projectId={project.id} />
+            </div>
           </div>
         </div>
       </section>

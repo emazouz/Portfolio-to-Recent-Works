@@ -12,6 +12,12 @@ export const BlogCategoryEnum = z.enum([
   "TECHNOLOGY",
   "OTHER",
 ]);
+const BlogStatusEnum = z.enum([
+  "DRAFT",
+  "PUBLISHED",
+  "ARCHIVED",
+  "IN_PROGRESS",
+]);
 
 // Main blog creation schema
 export const createBlogSchema = z.object({
@@ -39,29 +45,27 @@ export const createBlogSchema = z.object({
     ),
   excerpt_en: z.string().max(500, "English excerpt too long").optional(),
   excerpt_ar: z.string().max(500, "Arabic excerpt too long").optional(),
-  authorId: z.string().uuid("Invalid author ID").optional(),
+  //   authorId: z.string().uuid("Invalid author ID").optional(),
   published: z.boolean().default(false),
   featured: z.boolean().default(false),
-  category: BlogCategoryEnum.default("OTHER"),
+  category: BlogCategoryEnum.optional(),
   tags: z.array(z.string().min(1).max(50)).max(10, "Too many tags").default([]),
   readTime: z.number().int().min(1).max(999).optional(),
   // SEO fields
   metaTitle_en: z.string().max(60, "English meta title too long").optional(),
   metaTitle_ar: z.string().max(60, "Arabic meta title too long").optional(),
-  metaDesc_en: z
-    .string()
-    .max(160, "English meta description too long")
-    .optional(),
-  metaDesc_ar: z
-    .string()
-    .max(160, "Arabic meta description too long")
-    .optional(),
+  metaDesc_en: z.string().optional(),
+
+  status: BlogStatusEnum.default("DRAFT"),
+  metaDesc_ar: z.string().optional(),
   keywords: z
     .array(z.string().min(1).max(30))
     .max(15, "Too many keywords")
     .default([]),
   // Scheduling
   publishDate: z.string().datetime().optional().or(z.date().optional()),
+
+
 });
 
 export const updateBlogSchema = createBlogSchema.partial().extend({

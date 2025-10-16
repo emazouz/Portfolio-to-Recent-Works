@@ -138,38 +138,16 @@ const createFormDataFromRequest = (
   formData.append("status", data.status);
 
   // Optional fields with validation
-  if (data.liveUrl?.trim()) {
-    formData.append("liveUrl", data.liveUrl.trim());
-  }
-
-  if (data.githubUrl?.trim()) {
-    formData.append("githubUrl", data.githubUrl.trim());
-  }
+  formData.append("liveUrl", data.liveUrl?.trim() || "");
+  formData.append("githubUrl", data.githubUrl?.trim() || "");
 
   // SEO fields
-  if (data.slug_en?.trim()) {
-    formData.append("slug_en", data.slug_en.trim());
-  }
-
-  if (data.slug_ar?.trim()) {
-    formData.append("slug_ar", data.slug_ar.trim());
-  }
-
-  if (data.metaTitle_en?.trim()) {
-    formData.append("metaTitle_en", data.metaTitle_en.trim());
-  }
-
-  if (data.metaTitle_ar?.trim()) {
-    formData.append("metaTitle_ar", data.metaTitle_ar.trim());
-  }
-
-  if (data.metaDesc_en?.trim()) {
-    formData.append("metaDesc_en", data.metaDesc_en.trim());
-  }
-
-  if (data.metaDesc_ar?.trim()) {
-    formData.append("metaDesc_ar", data.metaDesc_ar.trim());
-  }
+  formData.append("slug_en", data.slug_en?.trim() || "");
+  formData.append("slug_ar", data.slug_ar?.trim() || "");
+  formData.append("metaTitle_en", data.metaTitle_en?.trim() || "");
+  formData.append("metaTitle_ar", data.metaTitle_ar?.trim() || "");
+  formData.append("metaDesc_en", data.metaDesc_en?.trim() || "");
+  formData.append("metaDesc_ar", data.metaDesc_ar?.trim() || "");
 
   // Array and complex fields
   if (data.technologies && Array.isArray(data.technologies)) {
@@ -335,6 +313,7 @@ export const projectStore = create<ProjectStore>()(
 
         try {
           const formData = createFormDataFromRequest(project, imageFile);
+
           const response = await axiosInstance.put<ApiResponse<Project>>(
             `/${projectId}`,
             formData,

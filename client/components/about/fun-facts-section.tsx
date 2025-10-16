@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Coffee, Code, Globe, Heart, Zap, Users } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card";
+import { Coffee, Code, Globe, Heart, Zap, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const funFacts = [
   {
@@ -41,28 +41,28 @@ const funFacts = [
     description: "Led 10+ cross-functional teams",
     color: "from-purple-500 to-violet-500",
   },
-]
+];
 
 export function FunFactsSection() {
-  const [isVisible, setIsVisible] = useState(false)
-  const sectionRef = useRef<HTMLElement>(null)
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true)
+          setIsVisible(true);
         }
       },
-      { threshold: 0.2 },
-    )
+      { threshold: 0.2 }
+    );
 
     if (sectionRef.current) {
-      observer.observe(sectionRef.current)
+      observer.observe(sectionRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [])
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section id="fun-facts" ref={sectionRef} className="py-20 bg-muted/30">
@@ -72,7 +72,9 @@ export function FunFactsSection() {
             isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
           }`}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Fun Facts About Me</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Fun Facts About Me
+          </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Beyond the code - what makes me tick as a developer and human
           </p>
@@ -80,13 +82,15 @@ export function FunFactsSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {funFacts.map((fact, index) => {
-            const Icon = fact.icon
+            const Icon = fact.icon;
 
             return (
               <Card
                 key={index}
                 className={`group hover:shadow-xl transition-all duration-500 cursor-pointer transform hover:scale-105 hover:-rotate-1 ${
-                  isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                  isVisible
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-10 opacity-0"
                 }`}
                 style={{
                   transitionDelay: `${index * 150}ms`,
@@ -109,14 +113,16 @@ export function FunFactsSection() {
                     <h3 className="font-bold text-lg group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
                       {fact.title}
                     </h3>
-                    <p className="text-muted-foreground text-sm">{fact.description}</p>
+                    <p className="text-muted-foreground text-sm">
+                      {fact.description}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </div>
     </section>
-  )
+  );
 }

@@ -5,7 +5,7 @@ import { Download, Mail, Github, Linkedin, Twitter } from "lucide-react";
 
 export function AboutHero() {
   return (
-    <section className="min-h-screen flex items-center justify-center py-20">
+    <section className="min-h-screen flex items-center justify-center py-20" id="hero">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-16 items-start">

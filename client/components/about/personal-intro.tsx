@@ -24,7 +24,7 @@ export function PersonalIntro() {
   }, []);
 
   return (
-    <section id="experience" ref={sectionRef} className="py-20">
+    <section id="intro" ref={sectionRef} className="py-20">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="space-y-16">

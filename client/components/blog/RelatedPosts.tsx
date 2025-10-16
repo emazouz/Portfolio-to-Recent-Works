@@ -9,23 +9,23 @@ import { useTranslation } from "@/hooks/use-translation";
 interface RelatedPostsProps {
   currentBlogId: number;
   category: string;
-  blogs: any[];
 }
 
 export function RelatedPosts({
   currentBlogId,
   category,
-  blogs,
+
 }: RelatedPostsProps) {
   const { currentLanguage } = useTranslation();
 
-  const relatedPosts = blogs
-    .filter((blog) => blog.id !== currentBlogId && blog.category === category)
-    .slice(0, 3);
+  // const relatedPosts = []
+  // blogs
+  //   .filter((blog) => blog.id !== currentBlogId && blog.category === category)
+  //   .slice(0, 3);
 
-  if (relatedPosts.length === 0) {
-    return null;
-  }
+  // if (relatedPosts.length === 0) {
+  //   return null;
+  // }
 
   return (
     <div>
@@ -33,7 +33,7 @@ export function RelatedPosts({
         {currentLanguage === "ar" ? "مقالات مشابهة" : "Related Posts"}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {relatedPosts.map((post) => (
+        {/* {relatedPosts.map((post) => (
           <Link key={post.id} href={`/blog/ViewBlog/${post.id}`}>
             <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
               <div className="relative overflow-hidden">
@@ -73,7 +73,7 @@ export function RelatedPosts({
               </CardContent>
             </Card>
           </Link>
-        ))}
+        ))} */}
       </div>
     </div>
   );

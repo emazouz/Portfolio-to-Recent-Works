@@ -33,23 +33,18 @@ export const useTranslationStore = create<TranslationState>()(
       supportedLanguages: [
         { code: "en", name: "English", flag: "🇺🇸" },
         { code: "ar", name: "العربية", flag: "🇸🇦" },
-        { code: "es", name: "Español", flag: "🇪🇸" },
-        { code: "fr", name: "Français", flag: "🇫🇷" },
-        { code: "de", name: "Deutsch", flag: "🇩🇪" },
-        { code: "it", name: "Italiano", flag: "🇮🇹" },
-        { code: "pt", name: "Português", flag: "🇵🇹" },
-        { code: "ru", name: "Русский", flag: "🇷🇺" },
-        { code: "ja", name: "日本語", flag: "🇯🇵" },
-        { code: "ko", name: "한국어", flag: "🇰🇷" },
-        { code: "zh", name: "中文", flag: "🇨🇳" },
-        { code: "hi", name: "हिन्दी", flag: "🇮🇳" },
       ],
       translations: {},
       isTranslating: false,
       error: null,
 
       setLanguage: (language: string) => {
-        set({ currentLanguage: language, error: null });
+        const normalized = language.toLowerCase().split("-")[0];
+        const allowed = ["en", "ar"];
+        set({
+          currentLanguage: allowed.includes(normalized) ? normalized : "en",
+          error: null,
+        });
       },
 
       addTranslation: (translation: Translation) => {

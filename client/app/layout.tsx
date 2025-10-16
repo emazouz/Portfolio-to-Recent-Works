@@ -4,16 +4,20 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
-import "./globals.css";
+import "../assets/styles/globals.css";
 import { Toaster } from "@/components/ui/Toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TranslationProvider } from "@/components/TranslationProvider";
-import CommonLayout from "../components/common/layout";
+import { APP_NAME, APP_DESCRIPTION, SERVER_URL } from "@/constants";
 
 export const metadata: Metadata = {
-  title: "Developer Portfolio - Premium Templates & Services",
-  description:
-    "Professional developer portfolio showcasing premium templates, web development services, and technical expertise.",
+  title: {
+    template: `%s | ${APP_NAME}`,
+    default: APP_NAME,
+  },
+
+  description: APP_DESCRIPTION,
+  metadataBase: new URL(SERVER_URL),
   generator: "v0.app",
   keywords: [
     "developer",
@@ -25,9 +29,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Developer Portfolio" }],
   openGraph: {
-    title: "Developer Portfolio - Premium Templates & Services",
-    description:
-      "Professional developer portfolio showcasing premium templates, web development services, and technical expertise.",
+    title: {
+      template: `%s | ${APP_NAME}`,
+      default: APP_NAME,
+    },
+    description: APP_DESCRIPTION,
     type: "website",
   },
 };
@@ -49,10 +55,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TranslationProvider>
-            <CommonLayout>
-              <Suspense fallback={null}>{children}</Suspense>
-              <Analytics />
-            </CommonLayout>
+            <Suspense fallback={null}>{children}</Suspense>
+            <Analytics />
             <Toaster />
           </TranslationProvider>
         </ThemeProvider>

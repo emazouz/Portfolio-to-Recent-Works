@@ -1,0 +1,29 @@
+import HeroSection from "@/components/hero-section";
+import { ServicesSection } from "@/components/services-section";
+import { FeaturedProjectsSection } from "@/components/featured-projects-section";
+import { LatestArticlesSection } from "@/components/latest-articles-section";
+import { TestimonialsSection } from "@/components/testimonials-section";
+import { StatsSection } from "@/components/stats-section";
+import { FAQSection } from "@/components/faq-section";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Emazouz developer portfolio",
+};
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-background">
+      <main>
+        <HeroSection />
+        <ServicesSection />
+        <FeaturedProjectsSection />
+        <StatsSection />
+        <LatestArticlesSection />
+        <TestimonialsSection />
+        <FAQSection />
+      </main>
+    </div>
+  );
+}

@@ -158,7 +158,7 @@ export function LanguageToggle() {
       {supportedLanguages.map((language) => (
         <DropdownItem
           key={language.code}
-          onClick={() => setLanguage(language.code)}
+          onClick={() => !isTranslating && setLanguage(language.code)}
           className={cn(
             "flex items-center justify-between",
             currentLanguage === language.code &&

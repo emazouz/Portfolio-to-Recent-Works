@@ -28,12 +28,7 @@ const navigation = [
     href: "/admin",
     icon: LayoutDashboard,
   },
-  {
-    name: "Templates",
-    nameKey: "admin.nav.templates",
-    href: "/admin/templates",
-    icon: FileText,
-  },
+
   {
     name: "Projects",
     nameKey: "admin.nav.projects",
@@ -47,22 +42,16 @@ const navigation = [
     icon: BookOpen,
   },
   {
+    name: "Reviews",
+    nameKey: "admin.nav.users",
+    href: "/admin/reviews",
+    icon: Star,
+  },
+  {
     name: "Users",
     nameKey: "admin.nav.users",
     href: "/admin/users",
     icon: Users,
-  },
-  {
-    name: "Orders",
-    nameKey: "admin.nav.orders",
-    href: "/admin/orders",
-    icon: ShoppingCart,
-  },
-  {
-    name: "Reviews",
-    nameKey: "admin.nav.reviews",
-    href: "/admin/reviews",
-    icon: Star,
   },
   {
     name: "Settings",

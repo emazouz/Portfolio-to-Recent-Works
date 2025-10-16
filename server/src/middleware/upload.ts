@@ -38,7 +38,6 @@ const uploadMiddleware = upload.fields([
   { name: "gallery", maxCount: 1 },
   { name: "previewImages", maxCount: 5 },
   { name: "imageUrl", maxCount: 1 },
-  { name: "zipFile", maxCount: 1 },
 ]);
 
 export const getFiles = (files: any): MulterFiles => {
@@ -47,7 +46,6 @@ export const getFiles = (files: any): MulterFiles => {
     gallery: files.gallery || [],
     previewImages: files.previewImages || [],
     imageUrl: files.imageUrl || [],
-    zipFile: files.zipFile || [],
   };
 };
 

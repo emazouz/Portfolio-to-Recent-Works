@@ -80,8 +80,6 @@ export const createBlog = asyncHandler(
       const processedData = processBlogData(req.body);
 
       // Validate the processed data
-      console.log("processedData :", processedData);
-      console.log("files :", files);
       const validation = validateBlogData(processedData);
       const fileErrors = validateBlogFiles(files);
 
@@ -116,6 +114,27 @@ export const createBlog = asyncHandler(
             StatusCodes.BAD_REQUEST,
             false,
             "Failed to upload image. Please try again."
+          );
+        }
+      }
+
+      // Handle preview images upload
+      let previewImages: string[] = [];
+      if (files.previewImages && files.previewImages.length > 0) {
+        try {
+          const uploadedPreviews = await Promise.all(
+            files.previewImages.map((file) =>
+              uploadToCloudinary(file, "Blog/previewImages")
+            )
+          );
+          previewImages = uploadedPreviews.map((img) => img.url);
+        } catch (uploadError) {
+          console.error("Preview images upload failed:", uploadError);
+          return sendResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            false,
+            "Failed to upload preview images. Please try again."
           );
         }
       }
@@ -166,6 +185,7 @@ export const createBlog = asyncHandler(
             category: validData.category,
             tags: validData.tags,
             imageUrl,
+            previewImages,
             readTime,
             metaTitle_en: validData.metaTitle_en,
             metaTitle_ar: validData.metaTitle_ar,
@@ -343,6 +363,7 @@ export const getBlogById = asyncHandler(
 
       const blog = await prisma.blog.findUnique({
         where: { id: Number(id) },
+
         include: {
           author: {
             select: {
@@ -597,12 +618,54 @@ export const updateBlog = asyncHandler(
         }
       }
 
+      // Handle preview images upload
+      let previewImages: string[] = existingBlog.previewImages || [];
+      if (files.previewImages && files.previewImages.length > 0) {
+        console.log(" xxx 1 ");
+        try {
+          const uploadedPreviews = await Promise.all(
+            files.previewImages.map((file) =>
+              uploadToCloudinary(file, "Blog/previewImages")
+            )
+          );
+          // Delete old preview images if they exist
+          if (
+            existingBlog.previewImages &&
+            existingBlog.previewImages.length > 0
+          ) {
+            try {
+              await Promise.all(
+                existingBlog.previewImages.map((url) =>
+                  deleteFromCloudinary(url)
+                )
+              );
+            } catch (deleteError) {
+              console.warn("Failed to delete old preview images:", deleteError);
+            }
+          }
+          console.log(" xxx 2 ");
+
+          previewImages = uploadedPreviews.map((img) => img.url);
+        } catch (uploadError) {
+          console.error("Preview images upload failed:", uploadError);
+          return sendResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            false,
+            "Failed to upload preview images. Please try again."
+          );
+        }
+      }
       // Update the blog
+
+      console.log(" ...validData: ", { ...validData });
+
       const updatedBlog = await prisma.blog.update({
         where: { id: Number(id) },
         data: {
           ...validData,
           imageUrl,
+          previewImages,
           publishDate: validData.publishDate
             ? new Date(validData.publishDate)
             : existingBlog.publishDate,

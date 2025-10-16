@@ -10,13 +10,13 @@ export type GetReviewsOptions = {
   minRating?: number;
   maxRating?: number;
   userId?: string; // Changed to string to match Prisma schema
-  templateId?: number;
+  projectId?: number;
   verifiedOnly?: boolean | string;
 };
 
 export interface ReviewType {
   id: number;
-  templateId: number;
+  projectId: number;
   userId: string;
   rating: number;
   comment: string;
@@ -30,10 +30,10 @@ export interface ReviewType {
     email: string;
     avatar: string | null;
   };
-  template: {
+  project: {
     title_en: string;
     title_ar: string;
-    price: string;
+    rating: number;
   };
 }
 
@@ -51,7 +51,7 @@ type ReviewStoreType = {
   error: string | null;
 
   addReviews: (
-    templateId: number,
+    projectId: number,
     rating: number,
     comment: string
   ) => Promise<ResponseType>;
@@ -62,10 +62,14 @@ type ReviewStoreType = {
     comment: string
   ) => Promise<ResponseType>;
 
-  getTemplateReviews: (templateId: number) => Promise<ResponseType>;
+  getProjectReviews: (projectId: number) => Promise<ResponseType>;
 
   getAllReviews: (options?: GetReviewsOptions | {}) => Promise<ResponseType>;
   deleteReview: (reviewId: number) => Promise<ResponseType>;
+  toggleVerified: (
+    reviewId: number,
+    isVerified: boolean
+  ) => Promise<{ success: boolean; message: string }>;
 };
 
 const axiosInstance = axios.create({
@@ -85,14 +89,14 @@ export const reviewStore = create<ReviewStoreType>()(
       error: null,
 
       addReviews: async (
-        templateId: number,
+        projectId: number,
         rating: number,
         comment: string
       ) => {
         set({ isLoading: true, error: null });
 
         try {
-          const response = await axiosInstance.post(`/${templateId}`, {
+          const response = await axiosInstance.post(`/${projectId}`, {
             rating,
             comment: comment.trim(),
           });
@@ -135,11 +139,11 @@ export const reviewStore = create<ReviewStoreType>()(
         }
       },
 
-      getTemplateReviews: async (templateId: number) => {
+      getProjectReviews: async (projectId: number) => {
         set({ isLoading: true, error: null });
 
         try {
-          const response = await axiosInstance.get(`/${templateId}`);
+          const response = await axiosInstance.get(`/${projectId}`);
 
           if (!response.data.success) {
             set({ error: response.data.message });
@@ -326,12 +330,42 @@ export const reviewStore = create<ReviewStoreType>()(
           set({ isLoading: false });
         }
       },
+
+      toggleVerified: async (reviewId: number, isVerified: boolean) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await axiosInstance.put(`/${reviewId}/verified`, {
+            isVerified,
+          });
+
+          if (!response.data.success) {
+            set({ error: response.data.message });
+            return {
+              success: false,
+              message: response.data.message,
+            };
+          }
+
+          return {
+            success: true,
+            message: response.data.message,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            message: "Failed to update verification status",
+          };
+        } finally {
+          set({ isLoading: false });
+        }
+      },
     }),
     {
-      name: "template-storage",
+      name: "project-storage",
       partialize: (state) => ({
-        // Only persist templates list, not loading states or errors
-        templates: state.reviews,
+        // Only persist projects list, not loading states or errors
+        projects: state.reviews,
       }),
     }
   )

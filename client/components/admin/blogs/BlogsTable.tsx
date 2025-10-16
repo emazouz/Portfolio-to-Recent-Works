@@ -36,9 +36,9 @@ import {
 } from "lucide-react";
 import { CustomDropdown, DropdownItem } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Blog } from "@/store/blogStore";
-import { useBlogsData } from "@/hooks/blogs/useBlogsData";
+import { Blog, blogStore } from "@/store/blogStore";
 import { BLOG_CATEGORIES } from "@/constants/BlogConstants";
+import { toast } from "@/hooks/use-toast";
 
 // Custom Hooks
 function useBlogFilters() {
@@ -273,8 +273,42 @@ function EmptyState({
 export function BlogsTable() {
   const { t } = useTranslation();
   const { filters, setters, resetFilters } = useBlogFilters();
-  const { blogs, pagination, isLoading, error, fetchBlogs, handleDeleteBlog } =
-    useBlogsData();
+  const { blogs, pagination, isLoading, error, getBlogs, deleteBlog } =
+    blogStore();
+
+  const fetchBlogs = useCallback(async () => {
+    const result = await getBlogs();
+  }, [getBlogs]);
+
+  const handleDeleteBlog = useCallback(
+    async (id: number) => {
+      if (!id) return;
+
+      try {
+        const result = await deleteBlog(id);
+        if (!result.success) {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "error",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Failed to deleted blog",
+          variant: "error",
+        });
+      }
+    },
+    [deleteBlog]
+  );
 
   // Memoized filtered blogs
   const filteredBlogs = useMemo(() => {
@@ -355,7 +389,7 @@ export function BlogsTable() {
             {t("All Blog Posts", "admin.blogs.all")}
             {pagination && (
               <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({pagination.totalCount} {t("total", "common.total")})
+                ({pagination.total} {t("total", "common.total")})
               </span>
             )}
           </CardTitle>

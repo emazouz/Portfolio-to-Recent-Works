@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowLeft,
   Edit,
@@ -19,13 +18,13 @@ import {
   Calendar,
   Globe,
   Loader2,
-  AlertCircle,
 } from "lucide-react";
 import { Project, projectStore } from "@/store/projectStore";
 import { toast } from "@/hooks/use-toast";
 import Image from "next/image";
 import Loader from "@/components/ui/Loader";
 import { ProjectNotFound } from "@/components/ui/NotFound";
+import { MarkdownContent } from "@/components/markdown/markdown-content";
 
 // Status color mapping for better UX
 const getStatusColor = (status: string) => {
@@ -445,9 +444,13 @@ export function ProjectDetails({ projectId }: { projectId: number }) {
                         "admin.projects.metaDescEn"
                       )}
                     </p>
-                    <div className="bg-muted/50 p-2 rounded text-sm">
-                      {project.metaDesc_en ||
-                        t("Not set", "admin.projects.notSet")}
+
+                    <div className="text-lg leading-relaxed">
+                      {project.metaDesc_en && (
+                        <div className="prose prose-lg py-4 md:py-6">
+                          <MarkdownContent content={project.metaDesc_en} />
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>

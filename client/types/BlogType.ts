@@ -32,8 +32,6 @@ export interface SeoTabProps {
   clearFieldError: (field: string) => void;
 }
 
-
-
 export interface BasicInfoTabProps {
   formData: Blog;
   keywords?: string[];
@@ -46,7 +44,6 @@ export interface BasicInfoTabProps {
   onInputChange: (field: keyof Blog, value: string | boolean) => void;
   clearFieldError: (field: string) => void;
 }
-
 
 export const INITIAL_FORM_DATA = {
   title_en: "",
@@ -112,6 +109,7 @@ export interface SettingsTabProps {
 
 export interface MediaTabProps {
   imageUrl: string;
+  images: string[] | [];
   imageFile: File | null;
   imagePreview: string;
   existingImageUrl: string;
@@ -125,9 +123,16 @@ export interface MediaTabProps {
   handleDrop: (e: React.DragEvent) => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   clearFieldError: (field: string) => void;
+  maxImages: number;
+  handleImageFile:  (file: File) => void;
+  removeImage: (index: number) => void;
+  setExistingImageUrl: (url: string) => void;
+  handleMultipleImageFiles: (files: File[]) => void;
+  removeMultipleImage: (index: string) => void;
+  removeAllImages: () => void;
+  canAddMoreImages: boolean;
+  remainingSlots: number;
 }
-
-
 
 export interface ContentTabProps {
   formData: Blog;
@@ -141,4 +146,3 @@ export interface ContentTabProps {
   };
   clearFieldError: (field: string) => void;
 }
-
