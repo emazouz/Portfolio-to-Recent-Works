@@ -14,8 +14,8 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageToggle } from "@/components/shared/language-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { SearchModal } from "@/components/search-modal";
@@ -25,7 +25,7 @@ import {
   DropdownHeader,
   DropdownItem,
   DropdownSeparator,
-} from "./ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 type MoreNavItem = { name: string; href: string; authRequired?: boolean };
 
@@ -33,12 +33,14 @@ const navigation = [
   { name: "Home", href: "/" },
   { name: "About Me", href: "/about" },
   { name: "Portfolio", href: "/portfolio" },
+  { name: "Services", href: "/services" },
   { name: "Blogs", href: "/blog" },
 ];
 
 const moreNavigation: MoreNavItem[] = [
   { name: "Testimonials", href: "/testimonials" },
   { name: "Contact", href: "/contact" },
+  { name: "FAQ", href: "/faq" },
 ];
 
 export function Navigation() {
@@ -89,18 +91,18 @@ export function Navigation() {
     <>
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200">
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
+          <div className="flex h-18 items-center justify-between">
+            {/* Logo: Changed hardcoded gradients to use theme-aware primary color */}
             <Link
               href="/"
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
             >
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-sm">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
                 <span className="text-primary-foreground font-bold text-lg">
                   D
                 </span>
               </div>
-              <span className="font-bold text-xl bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+              <span className="font-bold text-xl text-primary">
                 DevPortfolio
               </span>
             </Link>
@@ -154,7 +156,8 @@ export function Navigation() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsSearchOpen(true)}
-                className="h-9 w-9 hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors"
+                // Uses custom 'hover:bg-muted' which is theme-aware
+                className="h-9 w-9 hover:bg-muted transition-colors"
                 title="Search"
               >
                 <Search className="h-4 w-4" />
@@ -170,7 +173,7 @@ export function Navigation() {
                   trigger={
                     <Button
                       variant="ghost"
-                      className="relative h-8 w-8 rounded-full hover:ring-2 hover:ring-purple-200 dark:hover:ring-purple-800 transition-all"
+                      className="relative h-8 w-8 rounded-full hover:ring-2 hover:ring-ring transition-all"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage
@@ -178,7 +181,8 @@ export function Navigation() {
                           alt={user.name}
                           className="object-cover"
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                        {/* Avatar Fallback: Uses solid primary color */}
+                        <AvatarFallback className="bg-primary text-primary-foreground">
                           {user.name
                             .split(" ")
                             .slice(0, 2)
@@ -200,7 +204,8 @@ export function Navigation() {
                           alt={user.name}
                           className="object-cover"
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                        {/* Avatar Fallback in Dropdown: Uses solid primary color */}
+                        <AvatarFallback className="bg-primary text-primary-foreground">
                           {user.name
                             .split(" ")
                             .slice(0, 2)
@@ -218,6 +223,7 @@ export function Navigation() {
                     </div>
                   </DropdownHeader>
 
+                  {/* Dropdown Menu Items */}
                   <DropdownItem asChild>
                     <Link href="/dashboard" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
@@ -245,6 +251,7 @@ export function Navigation() {
                   <DropdownSeparator />
                   <DropdownItem
                     onClick={handleLogout}
+                    // Uses the defined destructive colors for sign out
                     variant="destructive"
                     className="cursor-pointer"
                   >
@@ -260,7 +267,8 @@ export function Navigation() {
                   <Button
                     asChild
                     size="sm"
-                    className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-sm"
+                    // Uses primary background and hover state
+                    className="bg-primary hover:bg-primary/90 shadow-sm text-primary-foreground"
                   >
                     <Link href="/auth/signup">Sign Up</Link>
                   </Button>
@@ -301,6 +309,7 @@ export function Navigation() {
           {isOpen && (
             <div className="md:hidden py-4 border-t animate-in slide-in-from-top-2 duration-200">
               <div className="flex flex-col space-y-2">
+                {/* Main Links */}
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
@@ -317,6 +326,7 @@ export function Navigation() {
                   </Link>
                 ))}
 
+                {/* More Links Section */}
                 <div className="border-t pt-4 mt-4">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
                     More
@@ -359,7 +369,8 @@ export function Navigation() {
                           alt={user.name}
                           className="object-cover"
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                        {/* Avatar Fallback: Uses solid primary color */}
+                        <AvatarFallback className="bg-primary text-primary-foreground">
                           {user.name
                             .split(" ")
                             .slice(0, 2)
@@ -379,6 +390,7 @@ export function Navigation() {
                     </div>
 
                     <div className="space-y-1 px-3">
+                      {/* Mobile User Links */}
                       <Link
                         href="/dashboard"
                         onClick={closeMenu}
@@ -408,7 +420,8 @@ export function Navigation() {
                           handleLogout();
                           closeMenu();
                         }}
-                        className="flex items-center space-x-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 py-2 px-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors w-full"
+                        // Uses defined destructive colors for Sign Out button
+                        className="flex items-center space-x-2 text-sm font-medium text-destructive hover:text-destructive/80 py-2 px-2 rounded-md hover:bg-destructive/10 transition-colors w-full"
                       >
                         <LogOut className="h-4 w-4" />
                         <span>Sign out</span>
@@ -422,7 +435,8 @@ export function Navigation() {
                     </Button>
                     <Button
                       asChild
-                      className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                      // Uses primary background and hover state
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
                       onClick={closeMenu}
                     >
                       <Link href="/auth/signup">Sign Up</Link>

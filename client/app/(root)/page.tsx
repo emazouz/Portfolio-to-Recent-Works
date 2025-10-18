@@ -1,8 +1,8 @@
 import HeroSection from "@/components/hero-section";
-import { ServicesSection } from "@/components/services-section";
-import { FeaturedProjectsSection } from "@/components/featured-projects-section";
-import { LatestArticlesSection } from "@/components/latest-articles-section";
-import { TestimonialsSection } from "@/components/testimonials-section";
+import { ServicesSection } from "@/components/services/services-section";
+import { FeaturedProjectsSection } from "@/components/portfolio/featured-projects-section";
+import { LatestArticlesSection } from "@/components/blog/latest-articles-section";
+import TestimonialsSection from "@/components/testimonials-section";
 import { StatsSection } from "@/components/stats-section";
 import { FAQSection } from "@/components/faq-section";
 import { Metadata } from "next";
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className=" space-x-20">
       <main>
         <HeroSection />
         <ServicesSection />

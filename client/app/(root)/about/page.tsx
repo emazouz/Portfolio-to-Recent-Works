@@ -1,10 +1,8 @@
 import { AboutHero } from "@/components/about/about-hero";
-import { PersonalIntro } from "@/components/about/personal-intro";
-import { SkillsSection } from "@/components/about/skills-section";
 import { ExperienceTimeline } from "@/components/about/experience-timeline";
-import { FunFactsSection } from "@/components/about/fun-facts-section";
+import FunFactsSection from "@/components/about/fun-facts-section";
 import { AboutCTA } from "@/components/about/about-cta";
-import { ScrollProgress } from "@/components/about/scroll-progress";
+import CertificationsSection from "@/components/about/certifications-section";
 
 export const metadata = {
   title: "About - Developer Portfolio",
@@ -14,13 +12,11 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <ScrollProgress />
+    <div className="wrapper space-y-20">
       <main>
         <AboutHero />
-        <PersonalIntro />
-        <SkillsSection />
         <ExperienceTimeline />
+        <CertificationsSection />
         <FunFactsSection />
         <AboutCTA />
       </main>

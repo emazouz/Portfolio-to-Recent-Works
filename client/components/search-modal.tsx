@@ -1,27 +1,35 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Search, X, FileText, Package, User, MessageSquare } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Link from "next/link"
+import { useState, useEffect } from "react";
+import {
+  Search,
+  X,
+  FileText,
+  Package,
+  User,
+  MessageSquare,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
 
 interface SearchResult {
-  id: string
-  title: string
-  description: string
-  type: "template" | "project" | "blog" | "page"
-  href: string
-  icon: React.ComponentType<{ className?: string }>
+  id: string;
+  title: string;
+  description: string;
+  type: "template" | "project" | "blog" | "page";
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const mockSearchResults: SearchResult[] = [
   {
     id: "1",
     title: "Modern E-commerce Dashboard",
-    description: "Complete dashboard template with analytics and inventory management",
+    description:
+      "Complete dashboard template with analytics and inventory management",
     type: "template",
     href: "/templates/ecommerce-dashboard",
     icon: Package,
@@ -66,93 +74,113 @@ const mockSearchResults: SearchResult[] = [
     href: "/contact",
     icon: MessageSquare,
   },
-]
+];
 
 interface SearchModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
-  const [query, setQuery] = useState("")
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     if (query.trim()) {
       const filtered = mockSearchResults.filter(
         (item) =>
           item.title.toLowerCase().includes(query.toLowerCase()) ||
-          item.description.toLowerCase().includes(query.toLowerCase()),
-      )
-      setResults(filtered)
-      setSelectedIndex(0)
+          item.description.toLowerCase().includes(query.toLowerCase())
+      );
+      setResults(filtered);
+      setSelectedIndex(0);
     } else {
-      setResults(mockSearchResults.slice(0, 6)) // Show popular results
+      setResults(mockSearchResults.slice(0, 6)); // Show popular results
     }
-  }, [query])
+  }, [query]);
 
   useEffect(() => {
     if (!isOpen) {
-      setQuery("")
-      setSelectedIndex(0)
+      setQuery("");
+      setSelectedIndex(0);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
+  // Keyboard navigation logic
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return
+      if (!isOpen) return;
 
       if (e.key === "Escape") {
-        onClose()
+        onClose();
       } else if (e.key === "ArrowDown") {
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev + 1) % results.length)
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % results.length);
       } else if (e.key === "ArrowUp") {
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev - 1 + results.length) % results.length)
+        e.preventDefault();
+        setSelectedIndex(
+          (prev) => (prev - 1 + results.length) % results.length
+        );
       } else if (e.key === "Enter" && results[selectedIndex]) {
-        window.location.href = results[selectedIndex].href
+        // Redirect on Enter key press
+        window.location.href = results[selectedIndex].href;
       }
-    }
+    };
 
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [isOpen, results, selectedIndex, onClose])
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, results, selectedIndex, onClose]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
+  /**
+   * Generates theme-aware Tailwind classes for result type badges.
+   * Uses primary, secondary, and accent colors for distinction.
+   */
   const getTypeColor = (type: string) => {
     switch (type) {
       case "template":
-        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+        // Uses Primary for template focus
+        return "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground";
       case "project":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+        // Uses Secondary for project distinction
+        return "bg-secondary/10 text-secondary-foreground dark:bg-secondary/20 dark:text-secondary";
       case "blog":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+        // Uses Accent for articles/blogs
+        return "bg-accent text-accent-foreground dark:bg-accent/80 dark:text-accent-foreground";
       case "page":
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
+        // Uses Muted for general pages
+        return "bg-muted text-muted-foreground dark:bg-muted/50";
       default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
+        return "bg-muted text-muted-foreground";
     }
-  }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 search-overlay animate-slide-down">
+    // Backdrop overlay
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
       <div className="flex min-h-full items-start justify-center p-4 pt-16">
-        <div className="w-full max-w-2xl bg-background border rounded-lg shadow-2xl animate-scale-in">
+        {/* Modal Container */}
+        <div className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-2xl animate-in fade-in-0 slide-in-from-top-4 duration-300">
           {/* Search Header */}
-          <div className="flex items-center gap-3 p-4 border-b">
+          <div className="flex items-center gap-3 p-4 border-b border-border">
             <Search className="h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search templates, projects, articles..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="border-0 focus-visible:ring-0 text-lg"
+              // Removes default ring and border, relies on modal border
+              className="border-0 focus-visible:ring-0 text-lg bg-transparent shadow-none"
               autoFocus
             />
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="Close search"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
             </Button>
           </div>
 
@@ -166,14 +194,17 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   </div>
                 )}
                 {results.map((result, index) => {
-                  const Icon = result.icon
+                  const Icon = result.icon;
                   return (
                     <Link
                       key={result.id}
                       href={result.href}
                       onClick={onClose}
                       className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                        index === selectedIndex ? "bg-purple-50 dark:bg-purple-900/20" : "hover:bg-muted/50"
+                        // Selected item styling uses the primary color background
+                        index === selectedIndex
+                          ? "bg-primary/10 text-primary-foreground dark:bg-primary/20"
+                          : "hover:bg-muted/50"
                       }`}
                     >
                       <div className="flex-shrink-0">
@@ -181,37 +212,67 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-sm truncate">{result.title}</p>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(result.type)}`}>
+                          <p className="font-medium text-sm truncate">
+                            {result.title}
+                          </p>
+                          {/* Uses the dynamic getTypeColor function */}
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${getTypeColor(
+                              result.type
+                            )}`}
+                          >
                             {result.type}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{result.description}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {result.description}
+                        </p>
                       </div>
                     </Link>
-                  )
+                  );
                 })}
               </div>
             ) : (
               <div className="p-8 text-center text-muted-foreground">
                 <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No results found for "{query}"</p>
-                <p className="text-sm mt-1">Try searching for templates, projects, or articles</p>
+                <p className="text-sm mt-1">
+                  Try searching for templates, projects, or articles
+                </p>
               </div>
             )}
           </div>
 
-          {/* Search Footer */}
-          <div className="flex items-center justify-between p-3 border-t text-xs text-muted-foreground bg-muted/30">
+          {/* Search Footer (Keybinds) */}
+          <div className="flex items-center justify-between p-3 border-t border-border text-xs text-muted-foreground bg-muted/30 rounded-b-lg">
             <div className="flex items-center gap-4">
-              <span>↑↓ Navigate</span>
-              <span>↵ Select</span>
-              <span>ESC Close</span>
+              {/* Using <kbd> for better accessibility and style */}
+              <div className="flex items-center gap-1">
+                <kbd className="inline-flex items-center justify-center h-5 w-5 rounded-sm border bg-card text-xs">
+                  ↑
+                </kbd>
+                <kbd className="inline-flex items-center justify-center h-5 w-5 rounded-sm border bg-card text-xs">
+                  ↓
+                </kbd>
+                <span>Navigate</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <kbd className="inline-flex items-center justify-center h-5 w-5 rounded-sm border bg-card text-xs">
+                  ↵
+                </kbd>
+                <span>Select</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <kbd className="inline-flex items-center justify-center h-5 w-auto px-1 rounded-sm border bg-card text-xs">
+                  ESC
+                </kbd>
+                <span>Close</span>
+              </div>
             </div>
             <span>{results.length} results</span>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

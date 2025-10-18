@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, Code2, Server } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle,
+  Code2,
+  Component,
+  Database,
+  Pyramid,
+  RemoveFormatting,
+  Server,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade } from "swiper/modules";
@@ -11,7 +20,7 @@ import "swiper/css";
 import "swiper/css/effect-fade";
 import { useTranslation } from "@/hooks/use-translation";
 
-// ==================== DATA LAYER ====================
+// ==================== DATA LAYER (unchanged) ====================
 
 const HERO_DATA = {
   typing: {
@@ -35,13 +44,15 @@ const HERO_DATA = {
       id: "contact",
       text: "Get Consultant",
       href: "/contact",
-      variant: "primary",
+      bg: "primary",
+      variant: "default",
       icon: ArrowRight,
     },
     {
       id: "services",
       text: "Our Services",
       href: "/services",
+      bg: "secondary",
       variant: "secondary",
       icon: ArrowRight,
     },
@@ -65,10 +76,10 @@ const HERO_DATA = {
   techStack: [
     { name: "Next.js", icon: Code2 },
     { name: "Node.js", icon: Server },
-    { name: "TypeScript", icon: null },
-    { name: "Tailwind CSS", icon: null },
-    { name: "Prisma", icon: null },
-    { name: "PostgreSQL", icon: null },
+    { name: "TypeScript", icon: RemoveFormatting },
+    { name: "Tailwind CSS", icon: Component },
+    { name: "Prisma", icon: Pyramid },
+    { name: "PostgreSQL", icon: Database },
   ],
 
   valueBullets: [
@@ -83,7 +94,7 @@ const HERO_DATA = {
   },
 };
 
-// Translation keys mapping
+// Translation keys mapping (unchanged)
 const TRANSLATION_KEYS = {
   tagline: "hero-tagline",
   titleLine1: "hero-title-line1",
@@ -106,7 +117,7 @@ const HeroSection = () => {
   const [showCursor, setShowCursor] = useState(true);
   const isArabic = currentLanguage === "ar";
 
-  // Typing animation effect
+  // Typing animation effect (unchanged)
   useEffect(() => {
     let cancelled = false;
     let index = 0;
@@ -151,7 +162,7 @@ const HeroSection = () => {
     };
   }, [currentLanguage, translate]);
 
-  // Prefetch translations
+  // Prefetch translations (unchanged)
   useEffect(() => {
     if (currentLanguage === "en") return;
 
@@ -182,10 +193,10 @@ const HeroSection = () => {
 
   return (
     <section
-      className="relative min-h-[90vh] flex items-center overflow-hidden px-4 md:px-8 lg:px-12"
+      className="relative min-h-[90vh] flex items-center overflow-hidden"
       aria-labelledby="hero-heading"
     >
-      {/* Background Swiper */}
+      {/* Background Swiper (unchanged) */}
       <div className="absolute inset-0 ">
         <Swiper
           modules={[Autoplay, EffectFade]}
@@ -215,35 +226,43 @@ const HeroSection = () => {
         </Swiper>
       </div>
 
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-slate-900/90 z-10" aria-hidden />
-
-      {/* Accents */}
+      {/* Dark overlay: FIX - Use a solid theme color (like card foreground) that Tailwind can apply opacity to. */}
       <div
+        className="absolute inset-0 bg-white/95 dark:bg-slate-900/90 z-10"
         aria-hidden
-        className="absolute z-10 -left-24 -top-32 h-96 w-72 rotate-6 bg-gradient-to-b from-indigo-500 to-purple-600"
       />
+
+      {/* Accents: FIX - Use inline style for the 'bg-chart-1' gradient variable. */}
       <div
         aria-hidden
-        className="absolute z-10 -right-24 bottom-0 h-96 w-72 -rotate-6 bg-gradient-to-b from-purple-600 to-indigo-500"
+        className="absolute z-10 -left-24 -top-32 h-96 w-72 rotate-6"
+        // ✅ Correct way to use the CSS Variable gradient
+        style={{ backgroundImage: "var(--chart-6)" }}
+      />
+
+      <div
+        aria-hidden
+        className="absolute z-10 -right-24 bottom-0 h-96 w-72 -rotate-6"
+        // ✅ Correct way to use the CSS Variable gradient
+        style={{ backgroundImage: "var(--chart-4)" }}
       />
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4">
+      <div className="relative wrapper z-20 container mx-auto px-4">
         <div className="max-w-5xl">
-          {/* Tagline */}
+          {/* Tagline: Uses primary color for accent */}
           <p
-            className={`text-indigo-300 font-semibold tracking-wide mb-4 ${
+            className={`text-secondary font-semibold tracking-wide mb-4 ${
               isArabic ? "text-right" : ""
             }`}
           >
             {t(HERO_DATA.tagline, TRANSLATION_KEYS.tagline)}
           </p>
 
-          {/* Title */}
+          {/* Title: Uses foreground color */}
           <h1
             id="hero-heading"
-            className={`text-white font-extrabold leading-[0.95] text-4xl md:text-6xl lg:text-7xl mb-6 ${
+            className={`text-foreground font-extrabold leading-[0.95] text-4xl md:text-6xl lg:text-7xl mb-6 ${
               isArabic ? "text-right" : ""
             }`}
           >
@@ -252,14 +271,14 @@ const HeroSection = () => {
             {t(HERO_DATA.title.line2, TRANSLATION_KEYS.titleLine2)}
           </h1>
 
-          {/* Description with typing effect */}
+          {/* Description with typing effect: Uses muted-foreground for description and foreground for typing */}
           <p
-            className={`text-slate-200 text-lg md:text-xl max-w-3xl mb-8 ${
+            className={`text-muted-foreground text-lg md:text-xl max-w-3xl mb-8 ${
               isArabic ? "text-right" : ""
             }`}
           >
             {t(HERO_DATA.description, TRANSLATION_KEYS.description)}
-            <span className="block min-h-[1.75rem] mt-1 text-slate-300/90">
+            <span className="block min-h-[1.75rem] mt-1 text-foreground/90">
               {typedText}
               {showCursor && <span className="animate-pulse">|</span>}
             </span>
@@ -274,15 +293,13 @@ const HeroSection = () => {
                   ? TRANSLATION_KEYS.ctaContact
                   : TRANSLATION_KEYS.ctaServices;
 
+              // Applying theme-aware button styling based on 'variant'
               return (
                 <Button
                   key={cta.id}
                   size="lg"
-                  className={
-                    cta.variant === "secondary"
-                      ? "bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 text-base font-semibold"
-                      : ""
-                  }
+                  variant={cta.variant as "default" | "secondary"}
+                  className={`px-8 py-6 text-base font-semibold bg-${cta.bg} hover:bg-${cta.bg}/50 transition-colors`}
                   asChild
                 >
                   <Link href={cta.href}>
@@ -294,14 +311,14 @@ const HeroSection = () => {
             })}
           </div>
 
-          {/* Tech stack badges */}
+          {/* Tech stack badges: Uses accent colors */}
           <div className="mt-8 flex flex-wrap items-center gap-3 text-sm">
             {HERO_DATA.techStack.map((tech) => {
               const Icon = tech.icon;
               return (
                 <span
                   key={tech.name}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/10 text-white px-3 py-1 backdrop-blur"
+                  className="inline-flex items-center gap-2 rounded-full bg-accent text-accent-foreground/90 px-3 py-1 backdrop-blur"
                 >
                   {Icon && <Icon className="h-4 w-4" />}
                   {tech.name}
@@ -310,9 +327,9 @@ const HeroSection = () => {
             })}
           </div>
 
-          {/* Value bullets */}
+          {/* Value bullets: Uses text-primary for the icon color */}
           <ul
-            className={`mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-slate-200 ${
+            className={`mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-foreground/80 ${
               isArabic ? "text-right" : ""
             }`}
           >
@@ -325,8 +342,11 @@ const HeroSection = () => {
               ][index];
 
               return (
-                <li key={index} className="flex items-center gap-2">
-                  <Icon className="h-5 w-5 text-purple-600" />
+                <li
+                  key={index}
+                  className="flex items-center gap-2 bg-accent text-accent-foreground/90 px-3 py-1 backdrop-blur rounded-full"
+                >
+                  <Icon className="h-5 w-5 text-primary" />
                   {t(bullet.text, translationKey)}
                 </li>
               );

@@ -4,7 +4,7 @@ import { useTranslation } from "@/hooks/use-translation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Search, User, LogOut, Settings } from "lucide-react";
-import { ThemeToggle } from "../theme-toggle";
+import { ThemeToggle } from "../shared/theme-toggle";
 import { LanguageToggle } from "../language-toggle";
 import { SearchModal } from "../search-modal";
 import { Badge } from "@/components/ui/badge";

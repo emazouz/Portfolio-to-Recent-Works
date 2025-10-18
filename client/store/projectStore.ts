@@ -8,6 +8,8 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface Project extends CreateProjectInput {
   id: number;
   imageUrl?: string;
+  ratingsCount: number;
+  rating: number;
   createdAt: string;
   updatedAt: string;
 }

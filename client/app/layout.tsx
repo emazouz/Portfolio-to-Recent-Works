@@ -6,9 +6,10 @@ import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import "../assets/styles/globals.css";
 import { Toaster } from "@/components/ui/Toaster";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/shared/theme-provider";
 import { TranslationProvider } from "@/components/TranslationProvider";
 import { APP_NAME, APP_DESCRIPTION, SERVER_URL } from "@/constants";
+import { BackToTop } from "@/components/back-to-top";
 
 export const metadata: Metadata = {
   title: {
@@ -58,6 +59,7 @@ export default function RootLayout({
             <Suspense fallback={null}>{children}</Suspense>
             <Analytics />
             <Toaster />
+            <BackToTop />
           </TranslationProvider>
         </ThemeProvider>
       </body>

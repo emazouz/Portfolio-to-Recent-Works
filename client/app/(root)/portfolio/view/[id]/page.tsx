@@ -9,12 +9,9 @@ export const metadata = {
 export default async function ViewProjectPage({ params }: ParamsProps) {
   const resolvePrams = await params;
   const projectId = parseInt(resolvePrams.id);
-  return <ProjectDetails id={projectId} />;
+  return (
+    <main className="min-h-screen wrapper bg-background py-10">
+      <ProjectDetails id={projectId} />
+    </main>
+  );
 }
-
-
-/*
-
-Manage online stores efficiently with real-time analytics and inventory control.
-
-*/
