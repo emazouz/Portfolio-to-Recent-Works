@@ -26,6 +26,7 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 
 type MoreNavItem = { name: string; href: string; authRequired?: boolean };
 
@@ -77,11 +78,23 @@ export function Navigation() {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      setIsLoggedIn(false);
-      setUser(null);
+      const result = await logout();
+      if (result.success) {
+        toast({
+          title: "Logged Out",
+          description: `You have been logged out successfully.`,
+        });
+        setUser(null);
+        return;
+      }
+      toast({
+        title: "Logout Failed",
+        description: result.message,
+        variant: "error",
+      });
     } catch (error) {
       console.error("Logout failed:", error);
+      setUser(null);
     }
   };
 
@@ -90,7 +103,7 @@ export function Navigation() {
   return (
     <>
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200">
-        <div className="container mx-auto px-4">
+        <div className="wrapper">
           <div className="flex h-18 items-center justify-between">
             {/* Logo: Changed hardcoded gradients to use theme-aware primary color */}
             <Link
@@ -228,15 +241,6 @@ export function Navigation() {
                     <Link href="/dashboard" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       Dashboard
-                    </Link>
-                  </DropdownItem>
-                  <DropdownItem asChild>
-                    <Link
-                      href="/dashboard?tab=purchases"
-                      className="cursor-pointer"
-                    >
-                      <ShoppingBag className="mr-2 h-4 w-4" />
-                      My Purchases
                     </Link>
                   </DropdownItem>
                   <DropdownItem asChild>

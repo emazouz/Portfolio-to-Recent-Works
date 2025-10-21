@@ -1,3 +1,4 @@
+import { Role } from "@prisma/client";
 import { z } from "zod";
 
 // Register Schema
@@ -79,9 +80,23 @@ export const forgotPasswordSchema = z.object({
     .email("Please enter a valid email address"),
 });
 
+export const validateTokenSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+
+  token: z.string().min(1, "Token is required"),
+});
+
 // Reset Password Schema
 
 export const resetPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+
   token: z.string().min(1, "Token is required"),
   newPassword: z
     .string()
@@ -92,3 +107,55 @@ export const resetPasswordSchema = z.object({
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+export const updateProfileSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters long")
+    .max(50, "Name must not exceed 50 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces")
+    .optional(),
+
+  gender: z
+    .enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"], {
+      message: "Gender must be MALE, FEMALE, OTHER, or PREFER_NOT_TO_SAY",
+    })
+    .optional(),
+
+  birthDate: z
+    .string()
+    .or(z.date())
+    .refine(
+      (value) => {
+        const date = new Date(value);
+        return !isNaN(date.getTime());
+      },
+      { message: "Invalid date format" }
+    )
+    .refine(
+      (value) => {
+        const date = new Date(value);
+        const today = new Date();
+        return date <= today;
+      },
+      { message: "Birth date cannot be in the future" }
+    )
+    .refine(
+      (value) => {
+        const date = new Date(value);
+        const hundredYearsAgo = new Date();
+        hundredYearsAgo.setFullYear(hundredYearsAgo.getFullYear() - 120);
+        return date >= hundredYearsAgo;
+      },
+      { message: "Birth date seems unrealistic" }
+    )
+    .optional(),
+  subscribeNewsletter: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val === "boolean") return val;
+    if (typeof val === "string") {
+      return val === "true";
+    }
+    return false;
+  }, z.boolean().optional()),
+});

@@ -36,6 +36,7 @@ const upload = multer({
 // Export middleware to accept specific file fields
 const uploadMiddleware = upload.fields([
   { name: "gallery", maxCount: 1 },
+  { name: "avatar", maxCount: 1 },
   { name: "previewImages", maxCount: 5 },
   { name: "imageUrl", maxCount: 1 },
 ]);
@@ -44,6 +45,7 @@ export const getFiles = (files: any): MulterFiles => {
   if (!files) return {};
   return {
     gallery: files.gallery || [],
+    avatar: files.gallery || [],
     previewImages: files.previewImages || [],
     imageUrl: files.imageUrl || [],
   };

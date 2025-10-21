@@ -1,6 +1,28 @@
-import { PACKAGES } from "@/constants/services";
+"use client";
+
 import { Award, Check, X } from "lucide-react";
 import { useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PACKAGES } from "@/constants/services";
+import HeaderSection from "../HeaderSection";
+
+interface Package {
+  name: string;
+  tagline: string;
+  price: string;
+  color: string;
+  popular?: boolean;
+  features: Array<{ text: string; included: boolean }>;
+}
 
 interface AddOn {
   service: string;
@@ -8,85 +30,36 @@ interface AddOn {
 }
 
 const ADD_ONS: AddOn[] = [
-  { service: "Additional pages", price: "150 DH/page" },
-  { service: "Custom plugin development", price: "From 500 DH" },
-  { service: "Monthly maintenance", price: "500-1500 DH" },
-  { service: "Content creation", price: "From 300 DH" },
-  { service: "Logo design", price: "800 DH" },
-  { service: "Social media integration", price: "400 DH" },
+  { service: "Additional pages", price: "$15/page" },
+  { service: "Custom plugin development", price: "From $50" },
+  { service: "Monthly maintenance", price: "$50-$150" },
+  { service: "Content creation", price: "From $30" },
+  { service: "Logo design", price: "$80" },
+  { service: "Social media integration", price: "$40" },
 ];
 
-export const PackageCard = () => {
-  return (
-    <section className="wrapper space-y-12" id="package">
-      {/* Header Section */}
-      <div className="text-center">
-        <div className="inline-flex items-center gap-2 py-2.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 backdrop-blur-xl mb-8">
-          <Award className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 font-bold text-sm">
-            FLEXIBLE PRICING
-          </span>
-        </div>
-        <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-          Choose Your Package
-        </h2>
-        <p className="text-xl text-slate-400">
-          Transparent pricing for every business size
-        </p>
-      </div>
-
-      {/* Packages Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-7">
-        {PACKAGES.map((pkg, index) => (
-          <PackageItem key={index} pkg={pkg} />
-        ))}
-      </div>
-
-      {/* Add-ons Section */}
-      <AddOnsSection addOns={ADD_ONS} />
-    </section>
-  );
-};
-
-// Separate component for each package item
 interface PackageItemProps {
-  pkg: {
-    name: string;
-    tagline: string;
-    price: string;
-    color: string;
-    popular?: boolean;
-    features: Array<{ text: string; included: boolean }>;
-  };
+  pkg: Package;
 }
 
-const PackageItem = ({ pkg }: PackageItemProps) => {
+function PackageItem({ pkg }: PackageItemProps) {
   const cardClasses = useMemo(
     () =>
-      `relative rounded-2xl backdrop-blur-xl border overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+      `relative transition-all duration-300 hover:scale-105 overflow-hidden ${
         pkg.popular
-          ? "border-red-500/50 shadow-2xl shadow-red-500/20 lg:scale-105"
-          : "border-slate-700 hover:border-slate-600"
+          ? "border-destructive/50 shadow-2xl shadow-destructive/20 lg:scale-105"
+          : "hover:border-primary/50"
       }`,
     [pkg.popular]
   );
 
-  const buttonClasses = useMemo(
-    () =>
-      `w-full py-3 rounded-xl font-bold transition-all duration-300 hover:scale-105 shadow-lg ${
-        pkg.popular
-          ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white"
-          : `bg-gradient-to-r ${pkg.color} hover:opacity-90 text-white`
-      }`,
-    [pkg.popular, pkg.color]
-  );
-
   return (
-    <article className={cardClasses}>
+    <Card className={cardClasses}>
       {/* Popular Badge Top Border */}
       {pkg.popular && (
         <div
-          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-rose-500"
+          className="absolute top-0 left-0 right-0 h-1"
+          style={{ background: `var(--${pkg.color})` }}
           aria-hidden="true"
         />
       )}
@@ -94,37 +67,41 @@ const PackageItem = ({ pkg }: PackageItemProps) => {
       {/* Popular Badge */}
       {pkg.popular && (
         <div className="absolute top-4 right-4 z-10">
-          <span className="px-3 py-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs font-black rounded-full shadow-lg">
+          <Badge
+            className="text-white font-black shadow-lg"
+            style={{ background: `var(--${pkg.color})` }}
+          >
             MOST POPULAR
-          </span>
+          </Badge>
         </div>
       )}
 
-      <div className="p-6">
-        {/* Package Name */}
-        <h3
-          className={`text-2xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r ${pkg.color}`}
+      <CardHeader>
+        <CardTitle
+          className="text-2xl font-black text-transparent bg-clip-text"
+          style={{ backgroundImage: `var(--${pkg.color})` }}
         >
           {pkg.name}
-        </h3>
-
-        {/* Tagline */}
-        <p className="text-sm text-slate-400 mb-6 min-h-[40px]">
+        </CardTitle>
+        <CardDescription className="min-h-[40px]">
           {pkg.tagline}
-        </p>
+        </CardDescription>
+      </CardHeader>
 
+      <CardContent className="space-y-6">
         {/* Price */}
-        <div className="mb-6" aria-label={`Price: ${pkg.price} DH`}>
+        <div aria-label={`Price: $${pkg.price}`}>
           <span
-            className={`text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r ${pkg.color}`}
+            className="text-5xl font-black text-transparent bg-clip-text"
+            style={{ backgroundImage: `var(--${pkg.color})` }}
           >
-            {pkg.price}
+            ${pkg.price}
           </span>
-          <span className="text-slate-400 text-lg ml-2">DH</span>
+          <span className="text-muted-foreground text-lg ml-2">/month</span>
         </div>
 
         {/* Features List */}
-        <ul className="space-y-3 mb-6" role="list">
+        <ul className="space-y-3" role="list">
           {pkg.features.map((feature, idx) => (
             <li
               key={`${pkg.name}-feature-${idx}`}
@@ -132,18 +109,18 @@ const PackageItem = ({ pkg }: PackageItemProps) => {
             >
               {feature.included ? (
                 <Check
-                  className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0"
+                  className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0"
                   aria-label="Included"
                 />
               ) : (
                 <X
-                  className="w-4 h-4 text-slate-600 mt-0.5 flex-shrink-0"
+                  className="w-4 h-4 text-muted-foreground/50 mt-0.5 flex-shrink-0"
                   aria-label="Not included"
                 />
               )}
               <span
                 className={
-                  feature.included ? "text-slate-300" : "text-slate-600"
+                  feature.included ? "text-foreground" : "text-muted-foreground"
                 }
               >
                 {feature.text}
@@ -151,51 +128,84 @@ const PackageItem = ({ pkg }: PackageItemProps) => {
             </li>
           ))}
         </ul>
+      </CardContent>
 
-        {/* CTA Button */}
-        <button
-          className={buttonClasses}
+      <CardFooter>
+        <Button
+          size="lg"
+          className={`w-full font-bold transition-all duration-300 hover:scale-105 shadow-lg ${
+            pkg.popular
+              ? "bg-destructive hover:bg-destructive/90 text-white"
+              : "text-white"
+          }`}
+          style={!pkg.popular ? { background: `var(--${pkg.color})` } : {}}
           aria-label={`Get started with ${pkg.name} package`}
         >
           Get Started
-        </button>
-      </div>
-    </article>
+        </Button>
+      </CardFooter>
+    </Card>
   );
-};
-
-// Separate component for add-ons section
-interface AddOnsSectionProps {
-  addOns: AddOn[];
 }
 
-const AddOnsSection = ({ addOns }: AddOnsSectionProps) => {
-  return (
-    <section className="mt-12 p-8 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-xl border border-slate-700">
-      <h3 className="text-2xl font-black text-white mb-6 text-center">
-        Need Something Extra?
-      </h3>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {addOns.map((addon, idx) => (
-          <AddOnCard key={`addon-${idx}`} addon={addon} />
-        ))}
-      </div>
-    </section>
-  );
-};
-
-// Separate component for add-on cards
 interface AddOnCardProps {
   addon: AddOn;
 }
 
-const AddOnCard = ({ addon }: AddOnCardProps) => {
+function AddOnCard({ addon }: AddOnCardProps) {
   return (
-    <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 hover:border-indigo-500/50 transition-all duration-300 hover:scale-105">
-      <div className="font-semibold text-white mb-1">{addon.service}</div>
-      <div className="text-indigo-400 text-sm font-bold">{addon.price}</div>
-    </div>
+    <Card className="hover:border-primary/50 transition-all duration-300 hover:scale-105">
+      <CardContent className="p-4">
+        <div className="font-semibold text-foreground mb-1">
+          {addon.service}
+        </div>
+        <div className="text-primary text-sm font-bold">{addon.price}</div>
+      </CardContent>
+    </Card>
   );
-};
+}
 
-export default PackageCard;
+function AddOnsSection({ addOns }: { addOns: AddOn[] }) {
+  return (
+    <Card className="mt-12">
+      <CardHeader>
+        <CardTitle className="text-2xl text-center">
+          Need Something Extra?
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {addOns.map((addon, idx) => (
+            <AddOnCard key={`addon-${idx}`} addon={addon} />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function PackageCard() {
+  return (
+    <section id="package">
+      <div className="wrapper space-y-12">
+        <HeaderSection
+          icon={<Award className="animate-pulse" />}
+          badgeTitle="FLEXIBLE PRICING"
+          title="Choose Your Package"
+          description=" Transparent pricing for every business size"
+          hideCta={true}
+        />
+
+        {/* Packages Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-7">
+          {PACKAGES.map((pkg, index) => (
+            <PackageItem key={index} pkg={pkg} />
+          ))}
+        </div>
+
+        {/* Add-ons Section */}
+        <AddOnsSection addOns={ADD_ONS} />
+      </div>
+    </section>
+  );
+}

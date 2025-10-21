@@ -18,47 +18,46 @@
 
 /*
 |--------------------------------------------------------------------------
-| 3. CSS VARIABLES (DEFAULT: LIGHT MODE)
+| 3. CSS VARIABLES (DEFAULT: LIGHT MODE) - NAVY/SKY BLUE & GOLD THEME
 |--------------------------------------------------------------------------
 | Defining custom properties (CSS variables) for the default (light) theme.
-| These variables control the entire look and feel of the application.
 */
 :root {
   /* COLORS */
-  --background: linear-gradient(to bottom right, #fafafa, #f4f4f5, #fafafa);
-  --foreground: oklch(0.2 0.01 260);
-  --card: oklch(0.99 0.005 260);
-  --card-foreground: oklch(0.2 0 0);
+  /* Pure white background */
+  --background: linear-gradient(to bottom right, #ffffff, #f7f7f7, #ffffff);
+  --foreground: oklch(0.1 0.01 240); /* Very dark gray/black text */
+  --card: oklch(0.99 0 0); /* Pure white card */
+  --card-foreground: oklch(0.1 0 0);
   --popover: oklch(0.99 0 0);
-  --popover-foreground: oklch(0.2 0 0);
+  --popover-foreground: oklch(0.1 0 0);
 
-  --primary: #8b5cf6;
+  --primary: #1e3a8a; /* Deep Navy Blue 700 - Main color for backgrounds/text focus */
   --primary-foreground: oklch(1 0 0);
 
-  --secondary: #f59e0b;
+  --secondary: #ffb740; /* Muted Gold 400 - Accent color for highlights */
   --secondary-foreground: oklch(0.1 0 0);
 
-  --muted: oklch(0.94 0 0);
-  --muted-foreground: oklch(0.4 0 0);
+  --muted: oklch(0.92 0 0);
+  --muted-foreground: oklch(0.5 0 0);
   --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0.2 0 0);
+  --accent-foreground: oklch(0.1 0 0);
 
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.88 0 0);
-  --input: oklch(0.88 0 0);
-  --ring: oklch(0.6 0.15 260);
+  --border: oklch(0.85 0 0);
+  --input: oklch(0.85 0 0);
+  --ring: #1e3a8a; /* Navy Blue ring */
 
   /* CHART COLORS */
-  --chart-1: linear-gradient(to bottom right, #6366f1, #8b5cf6);
-  --chart-2: linear-gradient(to bottom right, #ec4899, #f43f5e);
-  /* ... (بقية ألوان المخططات) ... */
+  --chart-1: linear-gradient(to bottom right, #0ea5e9, #38bdf8); /* Sky Blue */
+  --chart-2: linear-gradient(to bottom right, #ffb740, #ffd700); /* Gold */
   --chart-3: linear-gradient(to bottom right, #3b82f6, #0ea5e9);
-  --chart-4: linear-gradient(to bottom right, #f59e0b, #f97316);
-  --chart-5: linear-gradient(to bottom right, #10b981, #34d399);
+  --chart-4: linear-gradient(to bottom right, #10b981, #34d399);
+  --chart-5: linear-gradient(to bottom right, #ef4444, #dc2626);
   --chart-6: linear-gradient(to bottom right, #a855f7, #9333ea);
-  --chart-7: linear-gradient(to bottom right, #f97316, #ef4444);
+  --chart-7: linear-gradient(to bottom right, #fb7185, #f43f5e);
   --chart-8: linear-gradient(to bottom right, #14b8a6, #22c55e);
   --chart-9: linear-gradient(to bottom right, #64748b, #475569);
   --chart-10: linear-gradient(to bottom right, #d946ef, #c026d3);
@@ -66,12 +65,12 @@
 
   /* SIDEBAR COLORS */
   --sidebar: oklch(0.98 0 0);
-  --sidebar-foreground: oklch(0.2 0 0);
-  --sidebar-primary: oklch(0.55 0.2 264);
+  --sidebar-foreground: oklch(0.1 0 0);
+  --sidebar-primary: oklch(0.2 0.05 240);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.94 0 0);
-  --sidebar-accent-foreground: oklch(0.2 0 0);
-  --sidebar-border: oklch(0.88 0 0);
+  --sidebar-accent-foreground: oklch(0.1 0 0);
+  --sidebar-border: oklch(0.85 0 0);
   --sidebar-ring: oklch(0.7 0 0);
 
   /* SIZES */
@@ -80,44 +79,44 @@
 
 /*
 |--------------------------------------------------------------------------
-| 4. CSS VARIABLES (DARK MODE)
+| 4. CSS VARIABLES (DARK MODE) - DEEP BLACK/SKY BLUE/GOLD THEME
 |--------------------------------------------------------------------------
 | Overriding default variables when the '.dark' class is present.
 */
 .dark {
   /* COLORS */
-  --background: linear-gradient(to bottom right, #0a0a0f, #0f172a, #0a0a0f);
-  --foreground: oklch(0.95 0.01 260);
-  --card: oklch(0.14 0.01 260);
-  --card-foreground: oklch(0.95 0 0);
+  /* Deep black background */
+  --background: linear-gradient(to bottom right, #000000, #0a0a0a, #000000);
+  --foreground: #ffffee; /* Off-white text for contrast */
+  --card: #0a0a0a; /* Deep gray card color */
+  --card-foreground: #ffffee;
   --popover: oklch(0.16 0 0);
-  --popover-foreground: oklch(0.95 0 0);
+  --popover-foreground: #ffffee;
 
-  --primary: #c084fc;
+  --primary: #38bdf8; /* Bright Sky Blue 400 - Main color */
   --primary-foreground: oklch(0.1 0 0);
 
-  --secondary: #fbbf24;
+  --secondary: #ffd700; /* Bright Gold - Accent color */
   --secondary-foreground: oklch(0.1 0 0);
 
-  --muted: oklch(0.24 0 0);
-  --muted-foreground: oklch(0.75 0 0);
-  --accent: oklch(0.28 0 0);
-  --accent-foreground: oklch(0.95 0 0);
+  --muted: #1a1a1a;
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: #333333;
+  --accent-foreground: #ffffee;
 
   --destructive: oklch(0.58 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
 
-  --border: oklch(0.3 0 0);
-  --input: oklch(0.3 0 0);
-  --ring: oklch(0.6 0.12 260);
+  --border: #333333;
+  --input: #1a1a1a;
+  --ring: #38bdf8; /* Bright Sky Blue ring */
 
   /* CHART COLORS (Dark Mode) */
-  --chart-1: linear-gradient(to bottom right, #818cf8, #c084fc);
-  --chart-2: linear-gradient(to bottom right, #f472b6, #fb7185);
-  /* ... (بقية ألوان المخططات) ... */
+  --chart-1: linear-gradient(to bottom right, #ffd700, #ffbf00); /* Gold */
+  --chart-2: linear-gradient(to bottom right, #38bdf8, #7dd3fc); /* Sky Blue */
   --chart-3: linear-gradient(to bottom right, #60a5fa, #22d3ee);
-  --chart-4: linear-gradient(to bottom right, #fbbf24, #fb923c);
-  --chart-5: linear-gradient(to bottom right, #34d399, #6ee7b7);
+  --chart-4: linear-gradient(to bottom right, #34d399, #6ee7b7);
+  --chart-5: linear-gradient(to bottom right, #818cf8, #a5b4fc);
   --chart-6: linear-gradient(to bottom right, #c084fc, #a78bfa);
   --chart-7: linear-gradient(to bottom right, #fb923c, #f87171);
   --chart-8: linear-gradient(to bottom right, #2dd4bf, #4ade80);
@@ -126,13 +125,13 @@
   --chart-11: linear-gradient(to bottom right, #a8a29e, #78716c);
 
   /* SIDEBAR COLORS (Dark Mode) */
-  --sidebar: oklch(0.18 0 0);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.6 0.2 264);
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffee;
+  --sidebar-primary: oklch(0.6 0.1 240);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.28 0 0);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.3 0 0);
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffee;
+  --sidebar-border: #333333;
   --sidebar-ring: oklch(0.5 0 0);
 }
 
@@ -145,13 +144,13 @@
 */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: linear-gradient(to bottom right, #0a0a0f, #0f172a, #0a0a0f);
-    --foreground: oklch(0.95 0.01 260);
-    --card: oklch(0.14 0.01 260);
-    --card-foreground: oklch(0.95 0 0);
-    --primary: #c084fc;
+    --background: linear-gradient(to bottom right, #000000, #0a0a0a, #000000);
+    --foreground: #ffffee;
+    --card: #0a0a0a;
+    --card-foreground: #ffffee;
+    --primary: #38bdf8;
     --primary-foreground: oklch(0.1 0 0);
-    --secondary: #fbbf24;
+    --secondary: #ffd700;
     --secondary-foreground: oklch(0.1 0 0);
   }
 }
@@ -249,7 +248,7 @@ body {
 
   /* Main Content Wrapper */
   .wrapper {
-    @apply max-w-7xl lg:mx-auto p-4 w-full;
+    @apply max-w-[1300px] px-4 lg:mx-auto w-full;
   }
 
   /* Flex Layout Utilities */
@@ -270,10 +269,12 @@ body {
     @apply font-bold text-2xl lg:text-3xl;
   }
 
+  /* Custom Typography (Headings) */
   .h2-bold {
     @apply font-bold text-2xl lg:text-3xl;
   }
 
+  /* Custom Typography (Headings) */
   .h3-bold {
     @apply font-bold text-xl lg:text-2xl;
   }
@@ -401,5 +402,3 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
-
-

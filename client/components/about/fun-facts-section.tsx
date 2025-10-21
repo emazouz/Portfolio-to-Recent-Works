@@ -89,7 +89,7 @@ export default function FunFactsSection() {
     <section
       id="fun-facts"
       ref={sectionRef}
-      className="relative py-28 overflow-hidden"
+      className="relative overflow-hidden"
     >
       {/* Header Section */}
       <HeaderSection

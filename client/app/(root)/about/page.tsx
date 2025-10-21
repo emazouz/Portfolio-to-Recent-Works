@@ -12,7 +12,7 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="wrapper space-y-20">
+    <div className="wrapper py-20">
       <main>
         <AboutHero />
         <ExperienceTimeline />

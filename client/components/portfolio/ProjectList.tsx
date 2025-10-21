@@ -1,16 +1,5 @@
 "use client";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ExternalLink,
   Github,
@@ -20,17 +9,20 @@ import {
   Sparkles,
   Filter,
 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { Project, projectStore } from "@/store/projectStore";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
-
-// Types
-interface LocalizedContent {
-  title: string;
-  description: string;
-}
+import { projectStore, Project } from "@/store/projectStore";
+import Link from "next/link";
 
 interface CategoryFilter {
   key: string;
@@ -39,82 +31,47 @@ interface CategoryFilter {
   gradient: string;
 }
 
-// Constants
 const CATEGORY_FILTERS: CategoryFilter[] = [
-  {
-    key: "all",
-    label: "All Projects",
-    gradient: "from-indigo-500 to-purple-500",
-  },
+  { key: "all", label: "All Projects", gradient: "chart-1" },
   {
     key: "web",
     label: "Web Development",
     value: "WEB_DEVELOPMENT",
-    gradient: "from-blue-500 to-cyan-500",
+    gradient: "chart-3",
   },
   {
     key: "mobile",
     label: "Mobile App",
     value: "MOBILE_APP",
-    gradient: "from-green-500 to-emerald-500",
+    gradient: "chart-5",
   },
   {
     key: "desktop",
     label: "Desktop App",
     value: "DESKTOP_APP",
-    gradient: "from-yellow-500 to-amber-500",
+    gradient: "chart-4",
   },
   {
     key: "api",
     label: "API Development",
     value: "API_DEVELOPMENT",
-    gradient: "from-orange-500 to-red-500",
+    gradient: "chart-7",
   },
   {
     key: "ui",
     label: "UI/UX Design",
     value: "UI_UX_DESIGN",
-    gradient: "from-pink-500 to-rose-500",
+    gradient: "chart-2",
   },
-  {
-    key: "other",
-    label: "Other",
-    value: "OTHER",
-    gradient: "from-purple-500 to-violet-500",
-  },
+  { key: "other", label: "Other", value: "OTHER", gradient: "chart-6" },
 ];
 
 const STATUS_VARIANTS = {
-  COMPLETED: {
-    variant: "default" as const,
-    gradient: "from-green-500 to-emerald-500",
-  },
-  IN_PROGRESS: {
-    variant: "secondary" as const,
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  PLANNING: {
-    variant: "outline" as const,
-    gradient: "from-yellow-500 to-amber-500",
-  },
-  ON_HOLD: {
-    variant: "destructive" as const,
-    gradient: "from-red-500 to-rose-500",
-  },
+  COMPLETED: { variant: "default" as const, gradient: "chart-5" },
+  IN_PROGRESS: { variant: "secondary" as const, gradient: "chart-3" },
+  PLANNING: { variant: "outline" as const, gradient: "chart-4" },
+  ON_HOLD: { variant: "destructive" as const, gradient: "chart-7" },
 };
-
-// Utility Functions
-const getLocalizedContent = (
-  project: Project,
-  language: string = "en"
-): LocalizedContent => ({
-  title:
-    language === "ar" && project.title_ar ? project.title_ar : project.title_en,
-  description:
-    language === "ar" && project.description_ar
-      ? project.description_ar
-      : project.description_en,
-});
 
 const STATUS_MAP = {
   COMPLETED: { en: "Completed", ar: "مكتمل" },
@@ -132,6 +89,15 @@ const CATEGORY_MAP = {
   OTHER: { en: "Other", ar: "أخرى" },
 };
 
+const getLocalizedContent = (project: Project, language: string = "en") => ({
+  title:
+    language === "ar" && project.title_ar ? project.title_ar : project.title_en,
+  description:
+    language === "ar" && project.description_ar
+      ? project.description_ar
+      : project.description_en,
+});
+
 const getStatusText = (status: string, language: string = "en"): string => {
   return (
     STATUS_MAP[status as keyof typeof STATUS_MAP]?.[language as "en" | "ar"] ||
@@ -147,177 +113,171 @@ const getCategoryText = (category: string, language: string = "en"): string => {
   );
 };
 
-// Project Card Components
 interface ProjectCardProps {
   project: Project;
   language: string;
   featured?: boolean;
 }
 
-const ProjectCardComponent = ({
+function ProjectCard({
   project,
   language,
   featured = false,
-}: ProjectCardProps) => {
+}: ProjectCardProps) {
   const localizedContent = getLocalizedContent(project, language);
   const statusConfig =
-    STATUS_VARIANTS[project.status as keyof typeof STATUS_VARIANTS] ||
-    STATUS_VARIANTS.IN_PROGRESS;
+    STATUS_VARIANTS[project.status] || STATUS_VARIANTS.IN_PROGRESS;
 
   return (
-    <Card className="group overflow-hidden bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-xl border border-slate-700 hover:border-slate-600 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
-      {/* Image Section */}
-      <div className="relative overflow-hidden">
-        <Image
-          src={project.imageUrl || "/placeholder.svg"}
-          alt={localizedContent.title}
-          width={featured ? 600 : 400}
-          height={featured ? 400 : 250}
-          className={`w-full ${
-            featured ? "h-64" : "h-48"
-          } object-cover group-hover:scale-110 transition-transform duration-700`}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = "/placeholder.svg";
+    <div className="group relative transition-all duration-700 hover:-translate-y-2">
+      <Card className="relative h-full overflow-hidden border-2 border-border hover:border-transparent transition-all duration-500">
+        {/* Animated Gradient Border */}
+        <div
+          className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"
+          style={{
+            background: `var(--${statusConfig.gradient})`,
+            filter: "blur(16px)",
           }}
+          aria-hidden="true"
         />
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-        {/* Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
-          <Badge
-            className={`bg-gradient-to-r ${statusConfig.gradient} text-white border-0`}
-          >
-            {getStatusText(project.status, language)}
-          </Badge>
-          {project.featured && (
-            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 animate-pulse">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Featured
-            </Badge>
-          )}
-        </div>
-      </div>
+        {/* Image Section */}
+        <div className="relative overflow-hidden">
+          <img
+            src={project.imageUrl}
+            alt={localizedContent.title}
+            className={`w-full ${
+              featured ? "h-64" : "h-48"
+            } object-cover group-hover:scale-110 transition-transform duration-700`}
+          />
 
-      {/* Content */}
-      <CardHeader className={featured ? "" : "pb-3"}>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle
-            className={`${
-              featured ? "text-xl" : "text-lg"
-            } line-clamp-2 text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-purple-400 transition-all`}
-          >
-            {localizedContent.title}
-          </CardTitle>
-          <Badge
-            variant="outline"
-            className="shrink-0 text-xs bg-slate-800/50 border-slate-700"
-          >
-            {getCategoryText(project.category, language)}
-          </Badge>
-        </div>
-        <CardDescription
-          className={`${
-            featured ? "text-base line-clamp-3" : "text-sm line-clamp-2"
-          } text-slate-400`}
-        >
-          {localizedContent.description}
-        </CardDescription>
-      </CardHeader>
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-      {/* Technologies */}
-      <CardContent className={featured ? "" : "pt-0"}>
-        <div className="flex flex-wrap gap-2">
-          {project.technologies?.slice(0, featured ? 6 : 3).map((tech) => (
+          {/* Badges */}
+          <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
             <Badge
-              key={tech}
-              className="text-xs bg-slate-800/80 border border-slate-700 hover:border-indigo-500/50 transition-all text-slate-300"
+              className="text-white border-0 shadow-lg"
+              style={{ background: `var(--${statusConfig.gradient})` }}
             >
-              {tech}
+              {getStatusText(project.status, language)}
             </Badge>
-          ))}
-          {project.technologies &&
-            project.technologies.length > (featured ? 6 : 3) && (
-              <Badge className="text-xs bg-slate-800/80 border border-slate-700 text-slate-300">
-                +{project.technologies.length - (featured ? 6 : 3)}
+            {project.featured && (
+              <Badge
+                className="text-white border-0 animate-pulse shadow-lg"
+                style={{ background: `var(--chart-4)` }}
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                Featured
               </Badge>
             )}
+          </div>
         </div>
-      </CardContent>
 
-      {/* Actions */}
-      <CardFooter className={`flex gap-2 ${featured ? "" : "pt-0"}`}>
-        <Button
-          size="sm"
-          className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-          asChild
-        >
-          <Link href={`/portfolio/view/${project.id}`}>
-            <Eye className="w-4 h-4 mr-2" />
-            View Details
-          </Link>
-        </Button>
-        {project.liveUrl && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-slate-700 hover:bg-slate-800"
-            asChild
-          >
-            <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              {featured ? "Live Demo" : "Demo"}
-            </a>
-          </Button>
-        )}
-        {project.githubUrl && featured && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-slate-700 hover:bg-slate-800"
-            asChild
-          >
-            <a
-              href={project.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+        {/* Content */}
+        <CardHeader className={featured ? "pb-4" : "pb-3"}>
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle
+              className={`${
+                featured ? "text-xl" : "text-lg"
+              } line-clamp-2 group-hover:text-transparent bg-clip-text transition-all`}
+              style={{ backgroundImage: `var(--chart-1)` }}
             >
-              <Github className="w-4 h-4 mr-2" />
-              Code
-            </a>
+              {localizedContent.title}
+            </CardTitle>
+            <Badge variant="outline" className="shrink-0 text-xs">
+              {getCategoryText(project.category, language)}
+            </Badge>
+          </div>
+          <CardDescription
+            className={`${
+              featured ? "text-base line-clamp-3" : "text-sm line-clamp-2"
+            }`}
+          >
+            {localizedContent.description}
+          </CardDescription>
+        </CardHeader>
+
+        {/* Technologies */}
+        <CardContent className={featured ? "pb-4" : "pt-0 pb-4"}>
+          <div className="flex flex-wrap gap-2">
+            {project.technologies?.slice(0, featured ? 6 : 3).map((tech) => (
+              <Badge
+                key={tech}
+                variant="secondary"
+                className="text-xs hover:border-primary/50 transition-all"
+              >
+                {tech}
+              </Badge>
+            ))}
+            {project.technologies &&
+              project.technologies.length > (featured ? 6 : 3) && (
+                <Badge variant="secondary" className="text-xs">
+                  +{project.technologies.length - (featured ? 6 : 3)}
+                </Badge>
+              )}
+          </div>
+        </CardContent>
+
+        {/* Actions */}
+        <CardFooter className={`flex gap-2 ${featured ? "pt-0" : "pt-0"}`}>
+          <Button size="sm" className="flex-1" asChild>
+            <Link href={`/portfolio/view/${project.id}`}>
+              <Eye className="w-4 h-4 mr-2" />
+              View Details
+            </Link>
           </Button>
-        )}
-      </CardFooter>
+          {project.liveUrl && (
+            <Button size="sm" variant="outline" asChild>
+              <Link
+                href={project.liveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Demo
+              </Link>
+            </Button>
+          )}
+          {project.githubUrl && featured && (
+            <Button size="sm" variant="outline" asChild>
+              <a
+                href={project.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github className="w-4 h-4 mr-2" />
+                Code
+              </a>
+            </Button>
+          )}
+        </CardFooter>
 
-      {/* Hover Glow Effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-indigo-500/10 group-hover:via-purple-500/10 group-hover:to-pink-500/10 transition-all duration-700 pointer-events-none rounded-lg" />
-    </Card>
+        {/* Bottom Accent */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
+          style={{ background: `var(--${statusConfig.gradient})` }}
+          aria-hidden="true"
+        />
+      </Card>
+    </div>
   );
-};
+}
 
-// Main Component
 export default function ProjectList() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [currentLanguage] = useState<string>("en");
   const [projects, setProjects] = useState<Project[]>([]);
-
-  const { getProjects } = projectStore();
+  const { getProjects, isLoading, error } = projectStore();
 
   const fetchProjects = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-
       const result = await getProjects(
         {},
         { sortBy: "sortOrder", sortOrder: "asc" }
       );
 
       if (!result.success) {
-        setError(result.message || "Failed to fetch projects");
         toast({
           title: "Error",
           description: result.message || "Failed to fetch projects",
@@ -331,14 +291,11 @@ export default function ProjectList() {
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
-      setError("An unexpected error occurred while fetching projects");
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching projects",
         variant: "error",
       });
-    } finally {
-      setIsLoading(false);
     }
   }, [getProjects]);
 
@@ -360,11 +317,13 @@ export default function ProjectList() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto text-indigo-400" />
-          <h2 className="text-2xl font-bold text-white">Loading Portfolio</h2>
-          <p className="text-slate-400">Fetching latest projects...</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <h2 className="text-2xl font-bold text-foreground">
+            Loading Portfolio
+          </h2>
+          <p className="text-muted-foreground">Fetching latest projects...</p>
         </div>
       </div>
     );
@@ -372,50 +331,49 @@ export default function ProjectList() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-md">
-          <AlertCircle className="h-12 w-12 mx-auto text-red-500" />
-          <h2 className="text-2xl font-bold text-white">
+          <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+          <h2 className="text-2xl font-bold text-foreground">
             Unable to Load Portfolio
           </h2>
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <Button
-            onClick={() => window.location.reload()}
-            className="bg-gradient-to-r from-indigo-500 to-purple-500"
-          >
-            Try Again
-          </Button>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-background py-20 px-4 sm:px-6 lg:px-12">
       {/* Hero Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-12">
-        <div className="container mx-auto max-w-7xl text-center">
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 backdrop-blur-xl mb-8 shadow-lg">
-            <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 font-bold text-sm">
-              PORTFOLIO SHOWCASE
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 text-white">
+      <section className="mb-16">
+        <div className="max-w-7xl mx-auto text-center">
+          <Badge variant="outline" className="mb-6 px-5 py-2.5">
+            <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+            PORTFOLIO SHOWCASE
+          </Badge>
+
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 text-foreground">
             My{" "}
-            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: "var(--chart-1)" }}
+            >
               Portfolio
             </span>
           </h1>
-          <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4">
             Explore my latest projects and development work. Each project
             represents a unique challenge and showcases different aspects of
             modern web development.
           </p>
+
           {projects.length > 0 && (
-            <p className="text-sm text-slate-500 mt-4">
+            <p className="text-sm text-muted-foreground">
               {projects.length} project{projects.length !== 1 ? "s" : ""} •{" "}
               {featuredProjects.length} featured
             </p>
@@ -425,11 +383,11 @@ export default function ProjectList() {
 
       {/* Filter Section */}
       {projects.length > 0 && (
-        <section className="py-8 px-4 sm:px-6 lg:px-12 border-b border-slate-800">
-          <div className="container mx-auto max-w-7xl">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Filter className="w-4 h-4 text-indigo-400" />
-              <span className="text-sm font-bold text-slate-400">
+        <section className="mb-16">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Filter className="w-4 h-4 text-primary" />
+              <span className="text-sm font-bold text-foreground">
                 Filter by Category
               </span>
             </div>
@@ -443,34 +401,34 @@ export default function ProjectList() {
                   size="sm"
                   className={`rounded-full transition-all ${
                     category.key === selectedCategory
-                      ? `bg-gradient-to-r ${category.gradient} border-0 hover:scale-105`
-                      : "border-slate-700 hover:bg-slate-800 hover:scale-105"
+                      ? "text-white border-0 hover:scale-105"
+                      : ""
                   }`}
+                  style={
+                    category.key === selectedCategory
+                      ? { background: `var(--${category.gradient})` }
+                      : {}
+                  }
                   onClick={() => setSelectedCategory(category.key)}
                 >
                   {category.label}
                 </Button>
               ))}
             </div>
-            {filteredProjects.length !== projects.length && (
-              <p className="text-center text-sm text-slate-500 mt-4">
-                Showing {filteredProjects.length} of {projects.length} projects
-              </p>
-            )}
           </div>
         </section>
       )}
 
       {/* Featured Projects */}
       {featuredProjects.length > 0 && (
-        <section className="py-16 px-4 sm:px-6 lg:px-12">
-          <div className="container mx-auto max-w-7xl">
-            <h2 className="text-3xl font-black text-white mb-8 text-center">
+        <section className="mb-16">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-black text-foreground mb-8 text-center">
               Featured Projects
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {featuredProjects.map((project) => (
-                <ProjectCardComponent
+                <ProjectCard
                   key={project.id}
                   project={project}
                   language={currentLanguage}
@@ -484,14 +442,14 @@ export default function ProjectList() {
 
       {/* All Projects */}
       {filteredProjects.length > 0 && (
-        <section className="py-16 px-4 sm:px-6 lg:px-12">
-          <div className="container mx-auto max-w-7xl">
-            <h2 className="text-3xl font-black text-white mb-8 text-center">
+        <section className="mb-16">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-black text-foreground mb-8 text-center">
               {featuredProjects.length > 0 ? "All Projects" : "Projects"}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProjects.map((project) => (
-                <ProjectCardComponent
+                <ProjectCard
                   key={project.id}
                   project={project}
                   language={currentLanguage}
@@ -504,19 +462,16 @@ export default function ProjectList() {
 
       {/* Empty State */}
       {filteredProjects.length === 0 && projects.length > 0 && (
-        <section className="py-16 px-4">
-          <div className="container mx-auto max-w-md text-center p-12 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-            <h3 className="text-2xl font-black text-white mb-4">
+        <section className="mb-16">
+          <div className="max-w-7xl mx-auto text-center p-12 rounded-2xl bg-card border border-border">
+            <h3 className="text-2xl font-black text-foreground mb-4">
               No Projects Found
             </h3>
-            <p className="text-slate-400 mb-6">
+            <p className="text-muted-foreground mb-6">
               No projects match the selected category. Try selecting a different
               filter.
             </p>
-            <Button
-              onClick={() => setSelectedCategory("all")}
-              className="bg-gradient-to-r from-indigo-500 to-purple-500"
-            >
+            <Button onClick={() => setSelectedCategory("all")}>
               View All Projects
             </Button>
           </div>
@@ -524,31 +479,22 @@ export default function ProjectList() {
       )}
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-12">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center p-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 backdrop-blur-xl">
-            <h2 className="text-3xl font-black text-white mb-4">
+      <section>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center p-12 rounded-2xl bg-primary/10 border border-primary/30 backdrop-blur-xl">
+            <h2 className="text-3xl font-black text-foreground mb-4">
               Interested in Working Together?
             </h2>
-            <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               I'm always open to discussing new projects and opportunities.
               Let's create something amazing together!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-                asChild
-              >
-                <Link href="/contact">Get In Touch</Link>
+              <Button size="lg" asChild>
+                <a href="/contact">Get In Touch</a>
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-slate-700 hover:bg-slate-800"
-                asChild
-              >
-                <Link href="/about">Learn More About Me</Link>
+              <Button size="lg" variant="outline" asChild>
+                <a href="/about">Learn More About Me</a>
               </Button>
             </div>
           </div>

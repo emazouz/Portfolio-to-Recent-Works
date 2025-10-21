@@ -174,7 +174,7 @@ const categoryColorMap: Record<string, string> = {
 
 export function FeaturedProjectsSection() {
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
-  const router = useRouter();
+
 
   const currentLanguage = "en";
 

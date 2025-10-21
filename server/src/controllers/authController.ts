@@ -20,10 +20,20 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
+  updateProfileSchema,
+  validateTokenSchema,
 } from "../validators/authValidate";
 import { sendResponse } from "../middleware/response";
 import { StatusCodes } from "http-status-codes";
 import { Role } from "@prisma/client";
+import {
+  BCRYPT_SALT_ROUNDS,
+  PASSWORD_HASH_ROUNDS,
+  RESET_TOKEN_EXPIRY_HOURS,
+} from "../constants/auth";
+import { FileRequest } from "../types/FileRequest";
+import { getFiles } from "../middleware/upload";
+import { uploadToCloudinary } from "../utils/cloudinary";
 
 // find user by email
 const findUserByEmail = async (email: string) => {
@@ -174,6 +184,25 @@ export const getUser = asyncHandler(
       // 2. Find user by id
       const user = await prisma.user.findUnique({
         where: { id: userId },
+        include: {
+          reviews: {
+            select: {
+              id: true,
+              rating: true,
+              comment: true,
+              createdAt: true,
+              updatedAt: true,
+              verified: true,
+              project: {
+                select: {
+                  id: true,
+                  title_en: true,
+                  title_ar: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       // This should not happen if the token is valid, but it's a good check.
@@ -211,7 +240,10 @@ export const register = asyncHandler(
       }
 
       // 3. hash password
-      const hashedPassword = await bcrypt.hash(validatedData.password, 12);
+      const hashedPassword = await bcrypt.hash(
+        validatedData.password,
+        PASSWORD_HASH_ROUNDS
+      );
 
       // 4. create user in database
       const user = await prisma.user.create({
@@ -429,7 +461,7 @@ export const logout = asyncHandler(
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
 
-      sendResponse(res, StatusCodes.OK, false, "Logout successful");
+      sendResponse(res, StatusCodes.OK, true, "Logout successful");
     } catch (error) {
       console.error("Error logging out:", error);
       sendResponse(
@@ -483,7 +515,10 @@ export const changePassword = asyncHandler(
       }
 
       // 4. Hash new password and update user password
-      const hashedPassword = await bcrypt.hash(validatedData.newPassword, 12);
+      const hashedPassword = await bcrypt.hash(
+        validatedData.newPassword,
+        PASSWORD_HASH_ROUNDS
+      );
       await prisma.user.update({
         where: { id: user.id },
         data: { password: hashedPassword },
@@ -507,164 +542,296 @@ export const changePassword = asyncHandler(
   }
 );
 
-// forgot password
+/**
+ * Generate password reset token and send email
+ * @route POST /api/auth/forgot-password
+ */
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+    const { email } = forgotPasswordSchema.parse(req.body);
+
+    // Find user by email
+    const user = await findUserByEmail(email);
+
+    // Always return success to prevent email enumeration
+    const successMessage =
+      "If an account exists with this email, a password reset link will be sent.";
+
+    if (!user) {
+      sendResponse(res, StatusCodes.OK, true, successMessage);
+      return;
+    }
+
     try {
-      if (!requireAuth(req, res)) {
-        sendResponse(
-          res,
-          StatusCodes.UNAUTHORIZED,
-          false,
-          "User not authenticated"
-        );
-      }
-      const validatedEmail = forgotPasswordSchema.parse(req.body);
+      // Generate unhashed token and expiration
+      const unhashedToken = uuidv4();
+      const expiresAt = new Date(
+        Date.now() + RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000
+      );
 
-      // 2. find user by email
-      const user = await findUserByEmail(validatedEmail.email);
-      if (!user) {
-        sendResponse(res, StatusCodes.NOT_FOUND, false, "User not found");
-        return;
-      }
+      // Hash token for database storage
+      const hashedToken = await bcrypt.hash(unhashedToken, BCRYPT_SALT_ROUNDS);
 
-      const newToken = uuidv4();
-      const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
-
-      // 3. update user with reset token
+      // Update user with hashed token
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          resetToken: newToken,
+          resetToken: hashedToken,
           resetTokenExpiresAt: expiresAt,
         },
       });
 
-      // 4. send reset email
-      const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${newToken}`;
-      try {
-        await sendResetEmail(
-          validatedEmail.email,
-          resetPasswordMessage(resetLink)
-        );
-        sendResponse(
-          res,
-          StatusCodes.OK,
-          true,
-          "If an account exists with this email, a password reset link will be sent."
-        );
-      } catch (emailError) {
-        // If email fails, clean up the reset token
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            resetToken: null,
-            resetTokenExpiresAt: null,
-          },
-        });
-        console.error("Error sending reset email:", emailError);
+      // Send reset email with unhashed token
+      const resetLink = `${
+        process.env.FRONTEND_URL
+      }/auth/reset-password?token=${unhashedToken}&email=${encodeURIComponent(
+        email
+      )}`;
 
-        sendResponse(
-          res,
-          StatusCodes.INTERNAL_SERVER_ERROR,
-          false,
-          "Failed to send reset email. Please try again later or contact support."
-        );
-      }
-    } catch (error) {
-      console.error("Error in forgot password:", error);
-      sendResponse(
-        res,
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        false,
-        "An unexpected error occurred. Please try again later."
-      );
-    }
-  }
-);
+      await sendResetEmail(email, resetPasswordMessage(resetLink));
 
-// reset password
-export const resetPassword = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      if (!requireAuth(req, res)) {
-        sendResponse(
-          res,
-          StatusCodes.UNAUTHORIZED,
-          false,
-          "User not authenticated"
-        );
-      }
-
-      const validatedData = resetPasswordSchema.parse(req.body);
-
-      // 1. find user by reset token
-      const user = await prisma.user.findFirst({
-        where: { resetToken: validatedData.token },
-      });
-
-      if (!user) {
-        sendResponse(res, StatusCodes.NOT_FOUND, false, "User not found");
-        return;
-      }
-
-      // 2. check if reset token is expired
-      if (user.resetTokenExpiresAt && user.resetTokenExpiresAt < new Date()) {
-        sendResponse(
-          res,
-          StatusCodes.BAD_REQUEST,
-          false,
-          "Reset token expired"
-        );
-        return;
-      }
-
-      // 3. hash new password and update user password
-      const hashedPassword = await bcrypt.hash(validatedData.newPassword, 12);
-      // 4. clear reset token and reset token expires at
+      sendResponse(res, StatusCodes.OK, true, successMessage);
+    } catch (emailError) {
+      // Clean up token if email fails
       await prisma.user.update({
         where: { id: user.id },
-        data: { password: hashedPassword },
+        data: {
+          resetToken: null,
+          resetTokenExpiresAt: null,
+        },
       });
 
-      sendResponse(res, StatusCodes.OK, true, "Password reset successfully");
-    } catch (error) {
-      console.error("Error resetting password:", error);
+      console.error("Failed to send reset email:", emailError);
       sendResponse(
         res,
         StatusCodes.INTERNAL_SERVER_ERROR,
         false,
-        "Internal server error"
+        "Failed to send reset email. Please try again later."
       );
     }
   }
 );
 
+/**
+ * Validate password reset token
+ * @route POST /api/auth/validate-token
+ */
+export const validateToken = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { token, email } = validateTokenSchema.parse(req.body);
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        resetToken: true,
+        resetTokenExpiresAt: true,
+      },
+    });
+
+    // Validate user exists and has a reset token
+    if (!user?.resetToken) {
+      sendResponse(
+        res,
+        StatusCodes.UNAUTHORIZED,
+        false,
+        "Invalid or expired reset token"
+      );
+      return;
+    }
+
+    // Check token expiration
+    if (user.resetTokenExpiresAt && user.resetTokenExpiresAt < new Date()) {
+      await cleanupExpiredToken(user.id);
+      sendResponse(
+        res,
+        StatusCodes.UNAUTHORIZED,
+        false,
+        "Reset token has expired"
+      );
+      return;
+    }
+
+    // Compare unhashed token with hashed token
+    const isTokenValid = await bcrypt.compare(token, user.resetToken);
+
+    if (!isTokenValid) {
+      sendResponse(res, StatusCodes.UNAUTHORIZED, false, "Invalid reset token");
+      return;
+    }
+
+    // Token is valid
+    sendResponse(res, StatusCodes.OK, true, "Token validated successfully", {
+      userId: user.id,
+    });
+  }
+);
+
+/**
+ * Reset user password with valid token
+ * @route POST /api/auth/reset-password
+ */
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { token, email, newPassword } = resetPasswordSchema.parse(req.body);
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        resetToken: true,
+        resetTokenExpiresAt: true,
+      },
+    });
+
+    // Validate user exists and has a reset token
+    if (!user?.resetToken) {
+      sendResponse(
+        res,
+        StatusCodes.UNAUTHORIZED,
+        false,
+        "Invalid or expired reset token"
+      );
+      return;
+    }
+
+    // Check token expiration
+    if (user.resetTokenExpiresAt && user.resetTokenExpiresAt < new Date()) {
+      await cleanupExpiredToken(user.id);
+      sendResponse(
+        res,
+        StatusCodes.UNAUTHORIZED,
+        false,
+        "Reset token has expired"
+      );
+      return;
+    }
+
+    // Verify token validity
+    const isTokenValid = await bcrypt.compare(token, user.resetToken);
+
+    if (!isTokenValid) {
+      sendResponse(res, StatusCodes.UNAUTHORIZED, false, "Invalid reset token");
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, PASSWORD_HASH_ROUNDS);
+
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiresAt: null,
+      },
+    });
+
+    sendResponse(
+      res,
+      StatusCodes.OK,
+      true,
+      "Password has been reset successfully"
+    );
+  }
+);
+
+/**
+ * Helper function to clean up expired tokens
+ */
+async function cleanupExpiredToken(userId: string): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      resetToken: null,
+      resetTokenExpiresAt: null,
+    },
+  });
+}
 interface VerifyEmailRequest extends AuthenticatedRequest {
   body: {
     code: string;
   };
 }
 
+interface EmailChangeRequest extends AuthenticatedRequest {
+  body: {
+    newEmail: string;
+    currentPassword: string;
+    code?: string;
+  };
+}
+
+// Constants
+const EMAIL_VERIFICATION_TYPES = {
+  EMAIL_VERIFICATION: "EMAIL_VERIFICATION",
+  CHANGE_EMAIL: "CHANGE_EMAIL",
+} as const;
+
+const CODE_LENGTH = 6;
+const CODE_EXPIRY_HOURS = 1;
+
+// Utility functions
+const generateVerificationCode = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const getExpiryDate = (hours: number = CODE_EXPIRY_HOURS): Date => {
+  return new Date(Date.now() + hours * 60 * 60 * 1000);
+};
+
+const validateCode = (code: string): boolean => {
+  return /^\d{6}$/.test(code);
+};
+
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Middleware to ensure authentication
+const ensureAuthenticated = (
+  req: AuthenticatedRequest,
+  res: Response
+): string | null => {
+  if (!requireAuth(req, res)) {
+    sendResponse(
+      res,
+      StatusCodes.UNAUTHORIZED,
+      false,
+      "User not authenticated"
+    );
+    return null;
+  }
+
+  const userId = req.user?.userId;
+  if (!userId) {
+    sendResponse(
+      res,
+      StatusCodes.UNAUTHORIZED,
+      false,
+      "User not authenticated"
+    );
+    return null;
+  }
+
+  return userId;
+};
+
 export const requestEmailVerified = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
+    const userId = ensureAuthenticated(req, res);
+    if (!userId) return;
+
     try {
-      if (!requireAuth(req, res)) {
-        sendResponse(
-          res,
-          StatusCodes.UNAUTHORIZED,
-          false,
-          "User not authenticated"
-        );
-      }
-
-      const userId = req.user?.userId;
-
       const user = await prisma.user.findUnique({
         where: { id: userId },
       });
 
-      if (!user || !userId) {
+      if (!user) {
         sendResponse(res, StatusCodes.NOT_FOUND, false, "User not found");
         return;
       }
@@ -679,22 +846,23 @@ export const requestEmailVerified = asyncHandler(
         return;
       }
 
+      // Clean up existing verification codes
       await prisma.emailVerification.deleteMany({
         where: {
           userId: userId,
-          type: "EMAIL_VERIFICATION",
+          type: EMAIL_VERIFICATION_TYPES.EMAIL_VERIFICATION,
         },
       });
 
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
+      const code = generateVerificationCode();
+      const expiresAt = getExpiryDate();
 
       await prisma.emailVerification.create({
         data: {
           userId: userId,
           code,
           expiresAt,
-          type: "EMAIL_VERIFICATION",
+          type: EMAIL_VERIFICATION_TYPES.EMAIL_VERIFICATION,
           email: user.email,
         },
       });
@@ -702,7 +870,10 @@ export const requestEmailVerified = asyncHandler(
       try {
         await sendResetEmail(
           user.email,
-          emailVerificationMessage(code, "EMAIL_VERIFICATION")
+          emailVerificationMessage(
+            code,
+            EMAIL_VERIFICATION_TYPES.EMAIL_VERIFICATION
+          )
         );
 
         sendResponse(
@@ -718,11 +889,12 @@ export const requestEmailVerified = asyncHandler(
       } catch (emailError) {
         console.error("Error sending email:", emailError);
 
+        // Clean up on email failure
         await prisma.emailVerification.deleteMany({
           where: {
             userId: userId,
             code: code,
-            type: "EMAIL_VERIFICATION",
+            type: EMAIL_VERIFICATION_TYPES.EMAIL_VERIFICATION,
           },
         });
 
@@ -745,45 +917,32 @@ export const requestEmailVerified = asyncHandler(
   }
 );
 
-//   start xxx
 export const verifyEmailVerified = asyncHandler(
   async (req: VerifyEmailRequest, res: Response) => {
+    const userId = ensureAuthenticated(req, res);
+    if (!userId) return;
+
+    const { code } = req.body;
+
+    if (!code) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Verification code is required"
+      );
+    }
+
+    if (!validateCode(code)) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Invalid verification code format"
+      );
+    }
+
     try {
-      if (!requireAuth(req, res)) {
-        sendResponse(
-          res,
-          StatusCodes.UNAUTHORIZED,
-          false,
-          "User not authenticated"
-        );
-      }
-
-      const userId = req.user?.userId;
-      const { code } = req.body;
-
-      if (!userId) {
-        return sendResponse(
-          res,
-          StatusCodes.UNAUTHORIZED,
-          false,
-          "User not authenticated"
-        );
-      }
-
-      if (!code) {
-        return res.status(400).json({
-          success: false,
-          message: "Verification code is required",
-        });
-      }
-
-      if (!/^\d{6}$/.test(code)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid verification code format",
-        });
-      }
-
       const user = await prisma.user.findUnique({
         where: { id: userId },
       });
@@ -794,25 +953,29 @@ export const verifyEmailVerified = asyncHandler(
       }
 
       if (user.emailVerified) {
-        return res.status(400).json({
-          success: false,
-          message: "Email is already verified",
-        });
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Email is already verified"
+        );
       }
 
       const emailConfirmation = await prisma.emailVerification.findFirst({
         where: {
           userId: userId,
           code: code,
-          type: "EMAIL_VERIFICATION",
+          type: EMAIL_VERIFICATION_TYPES.EMAIL_VERIFICATION,
         },
       });
 
       if (!emailConfirmation) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid or expired verification code",
-        });
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Invalid or expired verification code"
+        );
       }
 
       if (new Date() > emailConfirmation.expiresAt) {
@@ -820,17 +983,17 @@ export const verifyEmailVerified = asyncHandler(
           where: { id: emailConfirmation.id },
         });
 
-        return res.status(400).json({
-          success: false,
-          message: "Verification code has expired. Please request a new one.",
-        });
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Verification code has expired. Please request a new one."
+        );
       }
 
       const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data: {
-          emailVerified: true,
-        },
+        data: { emailVerified: true },
         select: {
           id: true,
           email: true,
@@ -840,211 +1003,438 @@ export const verifyEmailVerified = asyncHandler(
         },
       });
 
+      // Clean up verification codes
       await prisma.emailVerification.deleteMany({
         where: {
           userId: userId,
-          type: "EMAIL_VERIFICATION",
+          type: EMAIL_VERIFICATION_TYPES.EMAIL_VERIFICATION,
         },
       });
 
-      res.status(200).json({
-        success: true,
-        message: "Email verified successfully!",
-        data: {
-          user: updatedUser,
-        },
+      sendResponse(res, StatusCodes.OK, true, "Email verified successfully!", {
+        user: updatedUser,
       });
     } catch (error) {
       console.error("Error in verifyEmailVerified:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error. Please try again later.",
-      });
+      sendResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        false,
+        "Internal server error. Please try again later."
+      );
     }
   }
 );
 
-export const requestEmailChange = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  try {
-    const userId = req.user?.userId;
+export const requestEmailChange = asyncHandler(
+  async (req: EmailChangeRequest, res: Response) => {
+    const userId = ensureAuthenticated(req, res);
+    if (!userId) return;
 
-    if (!userId) {
-      return sendResponse(
-        res,
-        StatusCodes.UNAUTHORIZED,
-        false,
-        "User not authenticated"
-      );
-    }
     const { newEmail, currentPassword } = req.body;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
 
     if (!newEmail || !currentPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid request",
-      });
-    }
-    if (!newEmail.includes("@") || !newEmail.includes(".")) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email address",
-      });
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "New email and current password are required"
+      );
     }
 
-    if (!user) {
-      sendResponse(res, StatusCodes.NOT_FOUND, false, "User not found");
-      return;
+    if (!validateEmail(newEmail)) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Invalid email address"
+      );
     }
-
-    if (newEmail === user.email) {
-      return res.status(400).json({
-        success: false,
-        message: "New email cannot be the same as the current email",
-      });
-    }
-    // 1. check to existing email
-    const existingEmail = await prisma.user.findUnique({
-      where: { email: newEmail },
-    });
-
-    if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already in use",
-      });
-    }
-
-    // 3. check if password is valid
-    const isPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password
-    );
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid password",
-      });
-    }
-
-    await prisma.emailVerification.deleteMany({
-      where: { type: "CHANGE_EMAIL" },
-    });
-
-    // generate code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
-
-    await prisma.emailVerification.upsert({
-      where: { userId },
-      update: {
-        email: newEmail,
-        code,
-        expiresAt,
-        type: "CHANGE_EMAIL",
-      },
-      create: {
-        userId,
-        email: newEmail,
-        code,
-        expiresAt,
-        type: "CHANGE_EMAIL",
-      },
-    });
 
     try {
-      await sendResetEmail(
-        newEmail,
-        emailVerificationMessage(code, "CHANGE_EMAIL")
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        sendResponse(res, StatusCodes.NOT_FOUND, false, "User not found");
+        return;
+      }
+
+      if (newEmail === user.email) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "New email cannot be the same as current email"
+        );
+      }
+
+      // Check if email already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: newEmail },
+      });
+
+      if (existingUser) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Email already in use"
+        );
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password
       );
-      res.status(200).json({
-        success: true,
-        message: "A verification code has been sent to your new email address.",
-      });
-    } catch (err) {
-      console.error("Error sending email:", err);
-      res.status(500).json({
-        success: false,
-        message: "Failed to send email verification code",
-      });
-    }
-  } catch (err) {
-    console.error("Error requesting email change:", err);
-    res.status(500).json({
-      success: false,
-      message: "An unexpected error occurred",
-    });
-  }
-};
+      if (!isPasswordValid) {
+        return sendResponse(
+          res,
+          StatusCodes.UNAUTHORIZED,
+          false,
+          "Invalid password"
+        );
+      }
 
-// verify email change
-export const verifyEmailChange = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  try {
+      // Clean up existing change email verifications
+      await prisma.emailVerification.deleteMany({
+        where: {
+          userId: userId,
+          type: EMAIL_VERIFICATION_TYPES.CHANGE_EMAIL,
+        },
+      });
+
+      const code = generateVerificationCode();
+      const expiresAt = getExpiryDate();
+
+      await prisma.emailVerification.create({
+        data: {
+          userId,
+          email: newEmail,
+          code,
+          expiresAt,
+          type: EMAIL_VERIFICATION_TYPES.CHANGE_EMAIL,
+        },
+      });
+
+      try {
+        await sendResetEmail(
+          newEmail,
+          emailVerificationMessage(code, EMAIL_VERIFICATION_TYPES.CHANGE_EMAIL)
+        );
+
+        sendResponse(
+          res,
+          StatusCodes.OK,
+          true,
+          "A verification code has been sent to your new email address."
+        );
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+
+        // Clean up on email failure
+        await prisma.emailVerification.deleteMany({
+          where: {
+            userId: userId,
+            code: code,
+            type: EMAIL_VERIFICATION_TYPES.CHANGE_EMAIL,
+          },
+        });
+
+        sendResponse(
+          res,
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          false,
+          "Failed to send email verification code. Please try again."
+        );
+      }
+    } catch (error) {
+      console.error("Error requesting email change:", error);
+      sendResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        false,
+        "An unexpected error occurred"
+      );
+    }
+  }
+);
+
+export const verifyEmailChange = asyncHandler(
+  async (req: EmailChangeRequest, res: Response) => {
+    const userId = ensureAuthenticated(req, res);
+    if (!userId) return;
+
     const { code } = req.body;
+
     if (!code) {
-      return res.status(400).json({
-        success: false,
-        message: "Verification code is required",
-      });
-    }
-    const emailVerification = await prisma.emailVerification.findUnique({
-      where: { code },
-    });
-
-    if (!emailVerification) {
-      return res.status(404).json({
-        success: false,
-        message: "Invalid verification code",
-      });
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Verification code is required"
+      );
     }
 
-    if (emailVerification.expiresAt < new Date()) {
-      console.log("3. Verification code has expired.");
-      // Clean up expired token
-      await prisma.emailVerification.delete({
-        where: { id: emailVerification.id },
-      });
-      return res.status(400).json({
-        success: false,
-        message: "Verification code expired",
-      });
+    if (!validateCode(code)) {
+      return sendResponse(
+        res,
+        StatusCodes.BAD_REQUEST,
+        false,
+        "Invalid verification code format"
+      );
     }
 
-    // Use a transaction to update user and delete verification record
-    await prisma.$transaction(async (tx) => {
-      // 1. Update the user's email
-      await tx.user.update({
-        where: { id: emailVerification.userId },
-        data: { email: emailVerification.email },
+    try {
+      const emailVerification = await prisma.emailVerification.findFirst({
+        where: {
+          code,
+          type: EMAIL_VERIFICATION_TYPES.CHANGE_EMAIL,
+          userId: userId, // Ensure the code belongs to the authenticated user
+        },
       });
 
-      // 2. Delete the verification record
-      await tx.emailVerification.delete({
-        where: { id: emailVerification.id },
-      });
-    });
+      if (!emailVerification) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Invalid verification code"
+        );
+      }
 
-    console.log("6. Transaction completed. Sending success response.");
-    return res.status(200).json({
-      success: true,
-      message: "Email updated successfully",
-    });
-  } catch (err) {
-    console.error("7. Error verifying email change:", err);
-    res.status(500).json({
-      success: false,
-      message: "An unexpected error occurred",
-    });
+      if (new Date() > emailVerification.expiresAt) {
+        await prisma.emailVerification.delete({
+          where: { id: emailVerification.id },
+        });
+
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Verification code has expired"
+        );
+      }
+
+      // Check if email is still available
+      const existingUser = await prisma.user.findUnique({
+        where: { email: emailVerification.email },
+      });
+
+      if (existingUser) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Email is already in use"
+        );
+      }
+
+      // Use transaction for atomic operations
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: userId },
+          data: { email: emailVerification.email },
+        });
+
+        await tx.emailVerification.delete({
+          where: { id: emailVerification.id },
+        });
+      });
+
+      sendResponse(res, StatusCodes.OK, true, "Email updated successfully");
+    } catch (error) {
+      console.error("Error verifying email change:", error);
+      sendResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        false,
+        "An unexpected error occurred"
+      );
+    }
   }
-};
+);
+
+/**
+ * @desc    Update user profile and address
+ * @route   PUT /api/profile
+ * @access  Private
+ */
+
+export const updateProfile = asyncHandler(
+  async (req: FileRequest, res: Response) => {
+    if (!requireAuth(req, res)) return;
+
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return sendResponse(
+          res,
+          StatusCodes.UNAUTHORIZED,
+          false,
+          "User not authenticated"
+        );
+      }
+
+      // Parse FormData fields
+      const { name, gender, birthDate, subscribeNewsletter } = req.body;
+
+      console.log("Received data:", { name, gender, birthDate });
+
+      // ✅ Log avatar file properly
+      let avatarFile = null;
+      if (req.files && typeof req.files === "object") {
+        if ("avatar" in req.files && Array.isArray(req.files.avatar)) {
+          avatarFile = req.files.avatar[0];
+        }
+      }
+
+      // Validate the parsed data
+      const validateData = updateProfileSchema.safeParse({
+        name: name || undefined,
+        gender: gender || undefined,
+        birthDate: birthDate || undefined,
+        subscribeNewsletter: subscribeNewsletter || undefined,
+      });
+
+      if (!validateData.success) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Invalid data provided",
+          {
+            errors: validateData.error.issues.map((err) => ({
+              field: err.path.join("."),
+              message: err.message,
+            })),
+          }
+        );
+      }
+
+      const validatedData = validateData.data;
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!existingUser) {
+        return sendResponse(
+          res,
+          StatusCodes.NOT_FOUND,
+          false,
+          "User not found"
+        );
+      }
+
+      // Handle image upload
+      let imageUrl: string | undefined;
+
+      if (avatarFile) {
+        try {
+          console.log("Uploading avatar to Cloudinary...");
+          const uploadedImage = await uploadToCloudinary(
+            avatarFile,
+            "Profile/avatar"
+          );
+          imageUrl = uploadedImage.url;
+          console.log("Avatar uploaded successfully:", imageUrl);
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          return sendResponse(
+            res,
+            StatusCodes.BAD_REQUEST,
+            false,
+            "Failed to upload image. Please try again."
+          );
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      // Only include fields that are provided
+      if (validatedData.name !== undefined)
+        updateData.name = validatedData.name;
+      if (validatedData.gender !== undefined)
+        updateData.gender = validatedData.gender;
+      if (validatedData.birthDate !== undefined) {
+        updateData.birthDate = new Date(validatedData.birthDate);
+      }
+      if (imageUrl !== undefined) updateData.avatar = imageUrl;
+      if (validatedData.subscribeNewsletter !== undefined) {
+        updateData.subscribeNewsletter = validatedData.subscribeNewsletter;
+      }
+
+      // Update user profile
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          gender: true,
+          birthDate: true,
+          role: true,
+          emailVerified: true,
+          subscribeNewsletter: true,
+          termsAgreed: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Format birthDate for frontend
+      const formattedUser = {
+        ...updatedUser,
+        birthDate: updatedUser.birthDate
+          ? updatedUser.birthDate.toISOString().split("T")[0]
+          : null,
+      };
+
+      return sendResponse(
+        res,
+        StatusCodes.OK,
+        true,
+        "Profile updated successfully",
+        {
+          user: formattedUser,
+        }
+      );
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+
+      if (error.code === "P2002") {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "A user with this information already exists"
+        );
+      }
+
+      return sendResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        false,
+        "An error occurred while updating profile"
+      );
+    }
+  }
+);
+
+// -----------------------------------------------------------------------------------------
+// --------------------- ADMIN -------------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 
 // get all users
 

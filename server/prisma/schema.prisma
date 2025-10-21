@@ -22,6 +22,11 @@ model User {
   gender    Gender?
   birthDate DateTime?
 
+  subscribeNewsletter      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  termsAgreed   Boolean   @default(false)
+  lastLoginAt   DateTime?
+  reviews Review[]
   // Security & Authentication
   refreshToken           String?   @unique
   resetToken             String?   @unique
@@ -29,10 +34,6 @@ model User {
   emailVerificationToken String?   @unique
 
   // Account Status
-  subscribeNewsletter      Boolean   @default(true)
-  emailVerified Boolean   @default(false)
-  termsAgreed   Boolean   @default(false)
-  lastLoginAt   DateTime?
   // rememberToken String?
 
   rememberToken          Boolean?            @default(false)
@@ -44,7 +45,6 @@ model User {
 
   // Relations
   blogs   Blog[]
-  reviews Review[]
   emailVerifications     EmailVerification?
   @@map("users")
 }

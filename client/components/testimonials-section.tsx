@@ -141,7 +141,7 @@ const TestimonialCard = memo(
 
     return (
       <div
-        className="w-full flex-shrink-0 px-4"
+        className="w-full flex-shrink-0"
         role="article"
         aria-labelledby={`testimonial-${index}-name`}
       >
@@ -258,7 +258,7 @@ const TestimonialsSection = () => {
   }, [handleNext, isPaused]);
 
   return (
-    <section className="py-20 wrapper">
+    <section className="wrapper">
       <HeaderSection
         icon={<Quote className="animate-pulse" />}
         badgeTitle="Portfolio"
@@ -286,7 +286,7 @@ const TestimonialsSection = () => {
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex items-center justify-center gap-4 mt-8">
+        <div className="flex items-center justify-center gap-4 mt-2">
           <Button
             size="icon"
             variant="outline"
@@ -323,19 +323,6 @@ const TestimonialsSection = () => {
           >
             <ChevronRight className="w-5 h-5" />
           </Button>
-        </div>
-
-        {/* Progress Bar: FIX - Use theme-aware gradient */}
-        <div className="mt-6 h-1 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full"
-            style={{
-              // FIX: Use theme-aware gradient (e.g., chart-1)
-              backgroundImage: "var(--chart-1)",
-              width: `${((activeIndex + 1) / testimonials.length) * 100}%`,
-              transition: "width 0.3s ease-out", // Added transition for smooth progress change
-            }}
-          />
         </div>
       </div>
     </section>

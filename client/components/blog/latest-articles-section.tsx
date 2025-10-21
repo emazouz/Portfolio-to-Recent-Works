@@ -250,11 +250,8 @@ export function LatestArticlesSection() {
   };
 
   return (
-    <section
-      // FIX: Use theme-aware background color (bg-background/95)
-      className="py-20 bg-background/95 backdrop-blur-sm"
-    >
-      <div className="container mx-auto px-4">
+    <section className="">
+      <div className="wrapper">
         <HeaderSection
           icon={<Rss className="animate-pulse" />}
           badgeTitle="Blogs"

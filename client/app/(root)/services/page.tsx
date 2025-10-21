@@ -1,8 +1,13 @@
-import { MainContentServices } from "@/components/services/MainServices";
+import FinalCTA from "@/components/services/FinalCTA";
+import PackageCard from "@/components/services/PackageCard";
+import ProcessTimeline from "@/components/services/ProcessTimeline";
+import ServiceCard from "@/components/services/ServiceCard";
+import ServicesHeroSection from "@/components/services/ServicesHeroSection";
+import WhyWorkWithMe from "@/components/services/WhyWorkWithMe";
 
 export default function ServicesPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen py-20">
       {/* Hero Banner */}
       <div className="w-full h-96 bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-10" />
@@ -18,7 +23,14 @@ export default function ServicesPage() {
 
       {/* Main Content Area */}
       <div className="relative">
-        <MainContentServices />
+        <ServicesHeroSection />
+        {/* Services */}
+        <ServiceCard />
+        {/* Packages */}
+        <PackageCard />
+        <WhyWorkWithMe />
+        <ProcessTimeline />
+        <FinalCTA />
       </div>
     </div>
   );

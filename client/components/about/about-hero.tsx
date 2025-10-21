@@ -52,7 +52,7 @@ const SOCIAL_LINKS = [
 export function AboutHero() {
 
   return (
-    <section className="py-20">
+    <section>
       <div className="flex flex-col lg:flex-row gap-16 items-start">
         {/* Left Sidebar - Profile & Navigation */}
         <div className="lg:w-1/3 lg:sticky lg:top-24">

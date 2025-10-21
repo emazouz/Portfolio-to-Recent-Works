@@ -1,57 +1,50 @@
 import Link from "next/link";
-import {
-  Github,
-  Linkedin,
-  Twitter,
-  Mail,
-  Award,
-  Phone,
-  Code2,
-} from "lucide-react";
+import { Mail, Award, Phone, Code2 } from "lucide-react";
 import { APP_NAME } from "@/constants";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
   return (
-    // FIX: Footer background uses muted/border colors
-    <footer className="bg-muted border-t border-border" id="footer">
-      <div className="max-w-7xl mx-auto">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
+    <footer className="bg-muted border-t border-border">
+      <div className="wrapper">
+        <div className="container py-8 sm:py-10 lg:py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-6 lg:gap-8 mb-8 sm:mb-10 lg:mb-12">
             {/* Company Info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                {/* FIX: Logo container uses primary theme background */}
-                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                  {/* FIX: Icon text uses primary-foreground */}
-                  <Code2 className="w-6 h-6 text-primary-foreground" />
+            <div className="space-y-4 text-center sm:text-left">
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                  <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
                 </div>
-                {/* FIX: App Name uses foreground color */}
-                <span className="text-xl font-black text-foreground">
+                <span className="text-lg sm:text-xl font-black text-foreground">
                   {APP_NAME}
                 </span>
               </div>
-              {/* FIX: Description uses muted-foreground */}
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
                 Professional web development services that transform your
                 business vision into reality.
               </p>
-              <div className="flex gap-3">
-                {/* FIX: Social/Contact buttons use accent/muted/foreground colors */}
-                <button className="w-10 h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors">
-                  <Mail className="w-5 h-5" />
+              <div className="flex gap-3 justify-center sm:justify-start">
+                <button
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors"
+                  aria-label="Email us"
+                >
+                  <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-                <button className="w-10 h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors">
-                  <Phone className="w-5 h-5" />
+                <button
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors"
+                  aria-label="Call us"
+                >
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
 
             {/* Services Links */}
-            <div>
-              {/* FIX: Heading uses foreground color */}
-              <h4 className="font-bold text-foreground mb-4">Services</h4>
-              <ul className="space-y-2 text-sm">
+            <div className="text-center sm:text-left">
+              <h4 className="font-bold text-foreground mb-3 sm:mb-4 text-base sm:text-lg">
+                Services
+              </h4>
+              <ul className="space-y-2 text-sm sm:text-base">
                 {[
                   "Full-Stack Development",
                   "UI/UX Design",
@@ -60,33 +53,32 @@ export function Footer() {
                   "SEO Services",
                 ].map((service) => (
                   <li key={service}>
-                    <a
+                    <Link
                       href="#"
-                      // FIX: Links use muted-foreground and foreground hover
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-muted-foreground hover:text-foreground transition-colors inline-block"
                     >
                       {service}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Company Links */}
-            <div>
-              {/* FIX: Heading uses foreground color */}
-              <h4 className="font-bold text-foreground mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
+            <div className="text-center sm:text-left">
+              <h4 className="font-bold text-foreground mb-3 sm:mb-4 text-base sm:text-lg">
+                Company
+              </h4>
+              <ul className="space-y-2 text-sm sm:text-base">
                 {["About Us", "Portfolio", "Blog", "Contact", "Careers"].map(
                   (item) => (
                     <li key={item}>
-                      <a
+                      <Link
                         href="#"
-                        // FIX: Links use muted-foreground and foreground hover
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-muted-foreground hover:text-foreground transition-colors inline-block"
                       >
                         {item}
-                      </a>
+                      </Link>
                     </li>
                   )
                 )}
@@ -94,21 +86,25 @@ export function Footer() {
             </div>
 
             {/* Contact Info */}
-            <div>
-              {/* FIX: Heading uses foreground color */}
-              <h4 className="font-bold text-foreground mb-4">Get in Touch</h4>
-              {/* FIX: Contact text uses muted-foreground */}
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>+212-9214-43301</span>
+            <div className="text-center sm:text-left">
+              <h4 className="font-bold text-foreground mb-3 sm:mb-4 text-base sm:text-lg">
+                Get in Touch
+              </h4>
+              <div className="space-y-3 text-sm sm:text-base text-muted-foreground">
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <Phone className="w-4 h-4 flex-shrink-0" />
+                  <span className="break-all sm:break-normal">
+                    +212-9214-43301
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span>contact@emazouz.com</span>
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <Mail className="w-4 h-4 flex-shrink-0" />
+                  <span className="break-all sm:break-normal">
+                    contact@emazouz.com
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4" />
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <Award className="w-4 h-4 flex-shrink-0" />
                   <span>Rabat, Morocco</span>
                 </div>
               </div>
@@ -117,30 +113,33 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar & Copyright */}
-        <div className="border-t border-border pt-8 pb-12 text-center">
-          <p className="text-muted-foreground">
-            &copy; {currentYear} {APP_NAME}. All rights reserved.
-          </p>
-          <div className="flex justify-center gap-6 mt-4">
-            {/* FIX: Policy links use muted-foreground and primary hover */}
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Terms of Service
-            </a>
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Cookie Policy
-            </a>
+        <div className="border-t border-border pt-6 sm:pt-8 pb-8 sm:pb-10 lg:pb-12 px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              &copy; {currentYear} {APP_NAME}. All rights reserved.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
+              <Link
+                href="#"
+                className="text-sm sm:text-base text-muted-foreground hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+              <Link
+                href="#"
+                className="text-sm sm:text-base text-muted-foreground hover:text-primary transition-colors"
+              >
+                Terms of Service
+              </Link>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+              <Link
+                href="#"
+                className="text-sm sm:text-base text-muted-foreground hover:text-primary transition-colors"
+              >
+                Cookie Policy
+              </Link>
+            </div>
           </div>
         </div>
       </div>

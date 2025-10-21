@@ -18,7 +18,7 @@ function TopNavBar() {
   // Define contact information data
   const contact = [
     // Uses the primary color for interactive elements (tel)
-    { icon: Phone, text: "+212-9214-43301", href: "tel:+212621443301" },
+    { icon: Phone, text: "+212-6214-43301", href: "tel:+212621443301" },
     {
       icon: Mail,
       text: "contact@emazouz.com",
@@ -62,7 +62,7 @@ function TopNavBar() {
       <div className="absolute top-0 right-0 h-full w-2/3 md:w-2/5 bg-primary origin-top-right -skew-x-12 transform translate-x-20" />
 
       {/* Content Container: Relative to place content above the shapes */}
-      <div className="relative container mx-auto h-full flex items-center justify-between px-4 text-sm">
+      <div className="h-full relative wrapper flex items-center justify-between text-sm">
         {/* Contact Information */}
         {/* Text color is set to the background's foreground color (text-secondary-foreground) */}
         <ul className="flex items-center gap-6 text-secondary-foreground">
@@ -107,6 +107,7 @@ function TopNavBar() {
             </a>
           ))}
         </div>
+
       </div>
     </div>
   );

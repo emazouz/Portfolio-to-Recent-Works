@@ -21,11 +21,25 @@ import { Project, projectStore } from "@/store/projectStore";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import NotFound from "../ui/NotFound";
 import { toast } from "@/hooks/use-toast";
-import Loader from "@/components/ui/Loader";
 import { MarkdownContent } from "@/components/markdown/markdown-content";
 import { ProjectReviews } from "./ProjectReviews";
 
-// Types
+// --- Theme Mapping ---
+// Helper function to map chart key to CSS variable string
+const getChartGradientVar = (gradientKey: string) => {
+  return `var(--${gradientKey})`;
+};
+
+interface ProjectContentProps {
+  localizedContent: LocalizedContent;
+  project: Project;
+  currentLanguage: string;
+}
+
+const CHART_GRADIENT_PRIMARY = getChartGradientVar("chart-1");
+const CHART_GRADIENT_SECONDARY = getChartGradientVar("chart-4"); // Amber/Orange for featured
+
+// Types & Utility Functions (UNCHANGED)
 interface LocalizedContent {
   title: string;
   description: string;
@@ -34,7 +48,6 @@ interface LocalizedContent {
   slug: string;
 }
 
-// Helper functions
 const getLocalizedContent = (
   project: Project,
   language: string
@@ -48,14 +61,30 @@ const getLocalizedContent = (
 });
 
 const STATUS_MAP = {
-  COMPLETED: { en: "Completed", ar: "مكتمل", variant: "default" as const },
+  COMPLETED: {
+    en: "Completed",
+    ar: "مكتمل",
+    variant: "default" as const,
+    gradient: "chart-5",
+  },
   IN_PROGRESS: {
     en: "In Progress",
     ar: "قيد التطوير",
     variant: "secondary" as const,
+    gradient: "chart-3",
   },
-  PLANNING: { en: "Planning", ar: "في التخطيط", variant: "outline" as const },
-  ON_HOLD: { en: "On Hold", ar: "متوقف", variant: "outline" as const },
+  PLANNING: {
+    en: "Planning",
+    ar: "في التخطيط",
+    variant: "outline" as const,
+    gradient: "chart-4",
+  },
+  ON_HOLD: {
+    en: "On Hold",
+    ar: "متوقف",
+    variant: "outline" as const,
+    gradient: "chart-7",
+  },
 };
 
 const CATEGORY_MAP = {
@@ -105,29 +134,22 @@ const formatDate = (dateString: string): string => {
   }
 };
 
+// --- Main Component ---
 export default function ProjectDetails({ id }: { id: number }) {
-  const { getProjectById } = projectStore();
+  const { getProjectById, isLoading, error } = projectStore();
   const [project, setProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const currentLanguage = "en"; // Get from context if needed
 
   const fetchProject = useCallback(async () => {
     if (!id) {
-      setError("Invalid project ID");
-      setIsLoading(false);
       return;
     }
 
     try {
-      setIsLoading(true);
-      setError(null);
-
       const result = await getProjectById(id);
 
       if (!result.success || !result.data) {
         const errorMsg = result.message || "Project not found";
-        setError(errorMsg);
         toast({
           title: "Error",
           description: errorMsg,
@@ -141,14 +163,11 @@ export default function ProjectDetails({ id }: { id: number }) {
       console.error("Error fetching project:", error);
       const errorMessage =
         "An unexpected error occurred while fetching the project";
-      setError(errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
         variant: "error",
       });
-    } finally {
-      setIsLoading(false);
     }
   }, [id, getProjectById]);
 
@@ -174,14 +193,19 @@ export default function ProjectDetails({ id }: { id: number }) {
     [project]
   );
 
-  if (isLoading) return <Loader />;
   if (error || !project || !localizedContent) return <NotFound error={error} />;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    // FIX: Use theme-aware background
+    <div className="min-h-screen">
       {/* Navigation */}
       <nav className="container py-6">
-        <Button variant="ghost" asChild className="hover:bg-slate-800">
+        {/* FIX: Use theme-aware ghost button hover */}
+        <Button
+          variant="ghost"
+          asChild
+          className="hover:bg-muted text-foreground"
+        >
           <Link href="/portfolio">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Portfolio
@@ -190,7 +214,7 @@ export default function ProjectDetails({ id }: { id: number }) {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-8 space-y-4">
+      <section className="py-8 space-y-4 container">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           {/* Project Info */}
           <div className="space-y-6">
@@ -223,7 +247,8 @@ export default function ProjectDetails({ id }: { id: number }) {
         </div>
       </section>
 
-      <Separator className="my-12 bg-slate-800" />
+      {/* FIX: Separator uses theme-aware color */}
+      <Separator className="my-12 bg-border" />
 
       {/* Detailed Content */}
       <ProjectContent
@@ -232,7 +257,7 @@ export default function ProjectDetails({ id }: { id: number }) {
         currentLanguage={currentLanguage}
       />
 
-      <Separator className="my-12 bg-slate-800" />
+      <Separator className="my-12 bg-border" />
 
       {/* Related Projects */}
       <RelatedProjects
@@ -246,7 +271,8 @@ export default function ProjectDetails({ id }: { id: number }) {
   );
 }
 
-// Sub-components
+// --- Sub-components ---
+
 interface ProjectHeaderProps {
   project: Project;
   localizedContent: LocalizedContent;
@@ -259,35 +285,53 @@ const ProjectHeader = ({
   localizedContent,
   currentLanguage,
   statusVariant,
-}: ProjectHeaderProps) => (
-  <div className="space-y-4">
-    <div className="flex flex-wrap gap-2">
-      <Badge variant="outline" className="bg-slate-800/50 border-slate-700">
-        {getCategoryText(project.category, currentLanguage)}
-      </Badge>
-      <Badge
-        variant={statusVariant}
-        className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-indigo-500/50"
-      >
-        {getStatusText(project.status, currentLanguage)}
-      </Badge>
-      {project.featured && (
-        <Badge className="bg-gradient-to-r from-amber-500 to-orange-500">
-          <Sparkles className="w-3 h-3 mr-1" />
-          Featured
+}: ProjectHeaderProps) => {
+  // Get the gradient variable for the status badge
+  const statusGradientKey =
+    STATUS_MAP[project.status as keyof typeof STATUS_MAP]?.gradient;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {/* Category Badge: FIX - Use theme-aware muted/border */}
+        <Badge
+          variant="outline"
+          className="bg-muted/50 border-border text-muted-foreground"
+        >
+          {getCategoryText(project.category, currentLanguage)}
         </Badge>
-      )}
-    </div>
+        {/* Status Badge: FIX - Use inline style for gradient color */}
+        <Badge
+          variant={statusVariant}
+          className="text-primary-foreground border-0"
+          style={{ backgroundImage: getChartGradientVar(statusGradientKey) }}
+        >
+          {getStatusText(project.status, currentLanguage)}
+        </Badge>
+        {project.featured && (
+          // Featured Badge: FIX - Use inline style for gradient color
+          <Badge
+            className="text-primary-foreground border-0 animate-pulse"
+            style={{ backgroundImage: CHART_GRADIENT_SECONDARY }}
+          >
+            <Sparkles className="w-3 h-3 mr-1" />
+            Featured
+          </Badge>
+        )}
+      </div>
 
-    <h1 className="text-4xl md:text-5xl font-black text-white leading-tight">
-      {localizedContent.title}
-    </h1>
+      {/* Title: FIX - Use foreground color */}
+      <h1 className="text-4xl md:text-5xl font-black text-foreground leading-tight">
+        {localizedContent.title}
+      </h1>
 
-    <div className="text-xl text-slate-400 prose prose-lg dark:prose-invert max-w-none">
-      <MarkdownContent content={localizedContent.description} />
+      {/* Description: FIX - Use muted-foreground */}
+      <div className="text-xl text-muted-foreground prose prose-lg dark:prose-invert max-w-none">
+        <MarkdownContent content={localizedContent.description} />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface ProjectActionsProps {
   project: Project;
@@ -299,7 +343,8 @@ const ProjectActions = ({ project, localizedContent }: ProjectActionsProps) => (
     {project.liveUrl && (
       <Button
         size="lg"
-        className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+        // FIX: Primary button uses theme primary colors
+        className="bg-primary hover:bg-primary/90 text-primary-foreground"
         asChild
       >
         <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
@@ -313,7 +358,8 @@ const ProjectActions = ({ project, localizedContent }: ProjectActionsProps) => (
       <Button
         size="lg"
         variant="outline"
-        className="border-slate-700 hover:bg-slate-800"
+        // FIX: Outline button uses theme border/muted hover
+        className="border-border hover:bg-muted text-foreground"
         asChild
       >
         <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
@@ -334,14 +380,17 @@ const ProjectTechnologies = ({ technologies }: { technologies?: string[] }) => {
   if (!technologies || technologies.length === 0) return null;
 
   return (
-    <div className="space-y-3 p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-      <h3 className="text-lg font-black text-white">Technologies Used</h3>
+    // FIX: Use theme-aware card/border styles
+    <div className="space-y-3 p-6 rounded-2xl bg-card border border-border">
+      {/* FIX: Title uses foreground color */}
+      <h3 className="text-lg font-black text-foreground">Technologies Used</h3>
       <div className="flex flex-wrap gap-2">
         {technologies.map((tech, index) => (
+          // FIX: Tech badges use muted/border/foreground colors
           <Badge
             key={`${tech}-${index}`}
             variant="secondary"
-            className="bg-slate-800/80 border border-slate-700 hover:border-indigo-500/50 transition-all"
+            className="bg-muted/50 border border-border hover:border-primary/50 transition-all text-muted-foreground"
           >
             {tech}
           </Badge>
@@ -356,13 +405,17 @@ const ProjectProgress = ({
 }: {
   progressPercentage: number;
 }) => (
-  <div className="space-y-3 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
+  // FIX: Use theme-aware card/border styles
+  <div className="space-y-3 p-6 rounded-2xl bg-card border border-border">
     <div className="flex items-center justify-between">
-      <h3 className="text-lg font-black text-white">Project Progress</h3>
-      <span className="text-sm font-bold text-indigo-400">
+      {/* FIX: Title uses foreground color */}
+      <h3 className="text-lg font-black text-foreground">Project Progress</h3>
+      {/* FIX: Progress text uses primary color */}
+      <span className="text-sm font-bold text-primary">
         {progressPercentage}%
       </span>
     </div>
+    {/* Progress bar relies on shadcn-ui's theme handling for coloring */}
     <Progress value={progressPercentage} className="w-full h-2" />
   </div>
 );
@@ -373,14 +426,18 @@ interface ProjectMetaProps {
 }
 
 const ProjectMeta = ({ project }: ProjectMetaProps) => (
-  <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-    <div className="flex items-center gap-6 text-sm text-slate-400 flex-wrap">
+  // FIX: Use theme-aware card/border styles
+  <div className="space-y-4 p-6 rounded-2xl bg-card border border-border">
+    {/* Meta text uses muted-foreground */}
+    <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
       <div className="flex items-center gap-2">
-        <Calendar className="w-4 h-4 text-indigo-400" />
+        {/* FIX: Icon uses primary color */}
+        <Calendar className="w-4 h-4 text-primary" />
         <span>Created: {formatDate(project.createdAt)}</span>
       </div>
       <div className="flex items-center gap-2">
-        <Clock className="w-4 h-4 text-purple-400" />
+        {/* FIX: Icon uses primary color (Clock uses the same theme color as Calendar) */}
+        <Clock className="w-4 h-4 text-primary" />
         <span>Updated: {formatDate(project.updatedAt)}</span>
       </div>
     </div>
@@ -392,14 +449,15 @@ const ProjectMeta = ({ project }: ProjectMetaProps) => (
             <Star
               key={index}
               className={`w-5 h-5 ${
+                // FIX: Star rating uses secondary color
                 index < project.rating
-                  ? "text-yellow-500 fill-yellow-500"
-                  : "text-slate-600"
+                  ? "text-secondary fill-secondary"
+                  : "text-muted-foreground/50"
               }`}
             />
           ))}
         </div>
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-muted-foreground">
           {project.rating.toFixed(1)}
           {project.ratingsCount && ` (${project.ratingsCount} reviews)`}
         </span>
@@ -416,7 +474,8 @@ const ProjectImage = ({
   title: string;
 }) => (
   <div className="relative">
-    <div className="relative overflow-hidden rounded-2xl shadow-2xl group border border-slate-700">
+    {/* FIX: Image container uses theme-aware border */}
+    <div className="relative overflow-hidden rounded-2xl shadow-2xl group border border-border">
       <Image
         src={imageUrl || "/placeholder.svg"}
         alt={title}
@@ -425,40 +484,36 @@ const ProjectImage = ({
         className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
         priority
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {/* Overlay: FIX - Uses background color for fade effect */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </div>
   </div>
 );
-
-interface ProjectContentProps {
-  localizedContent: LocalizedContent;
-  project: Project;
-  currentLanguage: string;
-}
 
 const ProjectContent = ({
   localizedContent,
   project,
   currentLanguage,
 }: ProjectContentProps) => (
-  <section>
+  <section className="container">
+    {/* FIX: Use theme-aware styles for content container */}
     <div className="prose prose-lg prose-invert max-w-none space-y-8">
       {/* Project Overview */}
-      <div className="p-8 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-        <h2 className="text-3xl font-black text-white mb-4">
+      <div className="p-8 rounded-2xl bg-card border border-border">
+        <h2 className="text-3xl font-black text-foreground mb-4">
           Project Overview
         </h2>
-        <div className="text-lg leading-relaxed text-slate-300">
+        <div className="text-lg leading-relaxed text-muted-foreground">
           <MarkdownContent content={localizedContent.description} />
         </div>
       </div>
 
       {localizedContent.metaDesc && (
-        <div className="p-8 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-          <h2 className="text-3xl font-black text-white mb-4">
+        <div className="p-8 rounded-2xl bg-card border border-border">
+          <h2 className="text-3xl font-black text-foreground mb-4">
             Detailed Information
           </h2>
-          <div className="text-slate-300">
+          <div className="text-muted-foreground">
             <MarkdownContent content={localizedContent.metaDesc} />
           </div>
         </div>
@@ -466,13 +521,15 @@ const ProjectContent = ({
 
       {/* Project Links */}
       {(project.liveUrl || project.githubUrl) && (
-        <div className="p-8 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-          <h2 className="text-3xl font-black text-white mb-4">Project Links</h2>
+        <div className="p-8 rounded-2xl bg-card border border-border">
+          <h2 className="text-3xl font-black text-foreground mb-4">
+            Project Links
+          </h2>
           <div className="flex flex-wrap gap-3">
             {project.liveUrl && (
               <Button
                 variant="outline"
-                className="border-slate-700 hover:bg-slate-800"
+                className="border-border hover:bg-muted text-foreground"
                 asChild
               >
                 <a
@@ -488,7 +545,7 @@ const ProjectContent = ({
             {project.githubUrl && (
               <Button
                 variant="outline"
-                className="border-slate-700 hover:bg-slate-800"
+                className="border-border hover:bg-muted text-foreground"
                 asChild
               >
                 <a
@@ -506,8 +563,10 @@ const ProjectContent = ({
       )}
 
       {/* Project Reviews */}
-      <div className="p-8 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700">
-        <h2 className="text-3xl font-black text-white mb-6">Project Reviews</h2>
+      <div className="p-8 rounded-2xl bg-card border border-border">
+        <h2 className="text-3xl font-black text-foreground mb-6">
+          Project Reviews
+        </h2>
         <ProjectReviews projectId={project.id} />
       </div>
     </div>
@@ -515,20 +574,21 @@ const ProjectContent = ({
 );
 
 const CTASection = () => (
-  <section>
-    <div className="container mx-auto max-w-4xl">
-      <div className="text-center p-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 backdrop-blur-xl">
-        <h2 className="text-3xl font-black text-white mb-4">
+  <section className="container">
+    <div className="wrapper">
+      {/* FIX: Use theme-aware primary/border styles */}
+      <div className="text-center p-12 rounded-2xl bg-primary/10 border border-primary/30 backdrop-blur-xl">
+        <h2 className="text-3xl font-black text-foreground mb-4">
           Interested in Similar Work?
         </h2>
-        <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
           I'd love to discuss how I can help bring your project ideas to life
           with the same attention to detail and quality.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button
             size="lg"
-            className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
             asChild
           >
             <Link href="/contact">Start a Project</Link>
@@ -536,7 +596,7 @@ const CTASection = () => (
           <Button
             size="lg"
             variant="outline"
-            className="border-slate-700 hover:bg-slate-800"
+            className="border-border hover:bg-muted text-foreground"
             asChild
           >
             <Link href="/portfolio">View More Projects</Link>

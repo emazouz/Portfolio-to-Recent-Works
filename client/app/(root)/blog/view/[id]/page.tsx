@@ -25,5 +25,9 @@ export default async function ViewBlogPage({ params }: ViewBlogPageProps) {
     );
   }
 
-  return <BlogDetails blogId={blogId} />;
+  return (
+    <main className="wrapper py-20">
+      <BlogDetails blogId={blogId} />
+    </main>
+  );
 }

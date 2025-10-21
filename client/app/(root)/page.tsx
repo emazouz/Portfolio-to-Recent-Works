@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className=" space-x-20">
+    <div>
       <main>
         <HeroSection />
         <ServicesSection />

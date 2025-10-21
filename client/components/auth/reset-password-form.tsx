@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -16,12 +16,25 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, CheckCircle, XCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { authStore } from "@/store/authStore";
+import { toast } from "@/hooks/use-toast";
+import {
+  FormData,
+  TokenValidationState,
+  ValidationError,
+} from "@/types/authType";
+import {
+} from "@/constants/auth";
+import { validatePasswordForm } from "@/validators/authValidated";
+import PasswordRequirements from "./password-requirements";
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const email = searchParams.get("email");
 
-  const [formData, setFormData] = useState({
+  // State
+  const [formData, setFormData] = useState<FormData>({
     password: "",
     confirmPassword: "",
   });
@@ -29,101 +42,157 @@ export function ResetPasswordForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [errors, setErrors] = useState<ValidationError[]>([]);
+  const [tokenState, setTokenState] = useState<TokenValidationState>(
+    TokenValidationState.LOADING
+  );
 
-  // Validate token on component mount
+  // Store
+  const {
+    resetPassword,
+    validatedToken: validateTokenAPI,
+    error: authError,
+  } = authStore();
+
+  /**
+   * Validate token with backend
+   */
+  const validateResetToken = useCallback(async () => {
+    if (!token || !email) {
+      setTokenState(TokenValidationState.INVALID);
+      return;
+    }
+
+    try {
+      const result = await validateTokenAPI(token, email);
+      setTokenState(
+        result.success
+          ? TokenValidationState.VALID
+          : TokenValidationState.INVALID
+      );
+    } catch (error) {
+      console.error("Token validation failed:", error);
+      setTokenState(TokenValidationState.INVALID);
+    }
+  }, [token, email, validateTokenAPI]);
+
+  /**
+   * Validate token on mount
+   */
   useEffect(() => {
-    const validateToken = async () => {
-      if (!token) {
-        setTokenValid(false);
-        return;
-      }
+    validateResetToken();
+  }, [validateResetToken]);
 
-      try {
-        // Simulate token validation API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // For demo purposes, consider token valid if it exists
-        setTokenValid(true);
-      } catch (error) {
-        console.error("Token validation error:", error);
-        setTokenValid(false);
-      }
-    };
-
-    validateToken();
-  }, [token]);
-
-  const validatePassword = (password: string): string[] => {
-    const errors: string[] = [];
-
-    if (password.length < 8) {
-      errors.push("Password must contain at least 8 characters");
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      errors.push("Password must contain at least one capital letter");
-    }
-
-    return errors;
-  };
-
+  /**
+   * Handle form submission
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrors([]);
 
-    // Validate password
-    const passwordErrors = validatePassword(formData.password);
+    // Validate password and confirmation
+    const validationErrors = validatePasswordForm(
+      formData.password,
+      formData.confirmPassword
+    );
 
-    // Check if passwords match
-    if (formData.password !== formData.confirmPassword) {
-      passwordErrors.push("Password and confirmation do not match");
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setIsLoading(false);
+      return;
     }
 
-    if (passwordErrors.length > 0) {
-      setErrors(passwordErrors);
+    if (!token || !email) {
+      setErrors([{ message: "Missing required token or email" }]);
       setIsLoading(false);
       return;
     }
 
     try {
-      // Simulate API call to reset password
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const success = await resetPassword(token, email, formData.password);
 
-      console.log("Password reset successful for token:", token);
-      setIsSuccess(true);
+      if (success) {
+        toast({
+          title: "Password Reset Successfully",
+          description: `Your password has been reset successfully.`,
+        });
+        setIsSuccess(true);
+      } else {
+        toast({
+          title: "Reset Failed",
+          description:
+            authError || "Failed to reset password. Please try again.",
+          variant: "error",
+        });
+        setErrors([
+          {
+            message: authError || "Failed to reset password. Please try again.",
+          },
+        ]);
+      }
     } catch (error) {
       console.error("Password reset error:", error);
-      setErrors([
-        "An error occurred while resetting your password. Please try again.",
-      ]);
+
+      const errorMessage =
+        authError ||
+        "Failed to reset password. Please try again or request a new reset link.";
+
+      setErrors([{ message: errorMessage }]);
+
+      toast({
+        title: "Reset Failed",
+        description: errorMessage,
+        variant: "error",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Handle input change with validation
+   */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
 
-    // Clear errors when user starts typing
-    if (errors.length > 0) {
-      setErrors([]);
+    // Clear errors for the field being edited
+    setErrors((prev) => prev.filter((error) => error.field !== name));
+  };
+
+  /**
+   * Toggle password visibility
+   */
+  const togglePasswordVisibility = (field: "password" | "confirmPassword") => {
+    if (field === "password") {
+      setShowPassword((prev) => !prev);
+    } else {
+      setShowConfirmPassword((prev) => !prev);
     }
   };
 
-  // Loading state while validating token
-  if (tokenValid === null) {
+  /**
+   * Check if password has errors
+   */
+  const hasPasswordError = errors.some((error) => error.field === "password");
+  const hasConfirmPasswordError = errors.some(
+    (error) => error.field === "confirmPassword"
+  );
+  /**
+   * Render loading state
+   */
+  if (tokenState === TokenValidationState.LOADING) {
     return (
       <div className="container mx-auto px-4 max-w-md">
         <Card className="shadow-lg">
           <CardContent className="py-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4" />
               <p className="text-muted-foreground">Validating reset link...</p>
             </div>
           </CardContent>
@@ -132,8 +201,10 @@ export function ResetPasswordForm() {
     );
   }
 
-  // Invalid token state
-  if (!tokenValid) {
+  /**
+   * Render invalid token state
+   */
+  if (tokenState === TokenValidationState.INVALID) {
     return (
       <div className="container mx-auto px-4 max-w-md">
         <Card className="shadow-lg">
@@ -143,13 +214,14 @@ export function ResetPasswordForm() {
             </div>
             <CardTitle className="text-2xl">Invalid Reset Link</CardTitle>
             <CardDescription>
-              The link has expired or is invalid.
+              This reset link has expired or is invalid.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert variant="destructive">
               <AlertDescription>
-                Try re-requesting a new link from the Forgot Password page.
+                Password reset links expire after 1 hour. Please request a new
+                reset link.
               </AlertDescription>
             </Alert>
 
@@ -161,7 +233,7 @@ export function ResetPasswordForm() {
               </Link>
 
               <Link href="/auth/login">
-                <Button variant="outline" className="w-full bg-transparent">
+                <Button variant="outline" className="w-full">
                   Back to Login
                 </Button>
               </Link>
@@ -172,7 +244,9 @@ export function ResetPasswordForm() {
     );
   }
 
-  // Success state
+  /**
+   * Render success state
+   */
   if (isSuccess) {
     return (
       <div className="container mx-auto px-4 max-w-md">
@@ -185,13 +259,14 @@ export function ResetPasswordForm() {
               Password Reset Successful
             </CardTitle>
             <CardDescription>
-              Password changed successfully, you can now log in.
+              Your password has been successfully reset. You can now log in with
+              your new password.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/auth/login">
               <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                Go to Login Page
+                Go to Login
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -201,13 +276,17 @@ export function ResetPasswordForm() {
     );
   }
 
-  // Reset password form
+  /**
+   * Render reset password form
+   */
   return (
-    <div className="container mx-auto px-4 max-w-md">
+    <div className="container mx-auto px-4 max-w-md md:max-w-2xl">
       <Card className="shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Reset Password</CardTitle>
-          <CardDescription>Enter your new password below.</CardDescription>
+          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
+          <CardDescription>
+            Enter a new password for your account.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {errors.length > 0 && (
@@ -215,7 +294,7 @@ export function ResetPasswordForm() {
               <AlertDescription>
                 <ul className="list-disc list-inside space-y-1">
                   {errors.map((error, index) => (
-                    <li key={index}>{error}</li>
+                    <li key={index}>{error.message}</li>
                   ))}
                 </ul>
               </AlertDescription>
@@ -223,6 +302,7 @@ export function ResetPasswordForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Password Field */}
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <div className="relative">
@@ -234,13 +314,19 @@ export function ResetPasswordForm() {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading}
+                  aria-describedby="password-requirements"
+                  aria-invalid={hasPasswordError}
+                  className={hasPasswordError ? "border-red-500" : ""}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => togglePasswordVisibility("password")}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -251,6 +337,7 @@ export function ResetPasswordForm() {
               </div>
             </div>
 
+            {/* Confirm Password Field */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
@@ -262,13 +349,22 @@ export function ResetPasswordForm() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading}
+                  aria-invalid={hasConfirmPasswordError}
+                  className={hasConfirmPasswordError ? "border-red-500" : ""}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => togglePasswordVisibility("confirmPassword")}
+                  tabIndex={-1}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -279,25 +375,31 @@ export function ResetPasswordForm() {
               </div>
             </div>
 
-            <div className="text-sm text-muted-foreground">
-              <p>
-                Password must contain at least 8 characters and capital letters.
-              </p>
-            </div>
-
+            {/* Password Requirements */}
+            {formData.password &&
+              PasswordRequirements(String(formData.password))}
+            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full bg-purple-600 hover:bg-purple-700"
               disabled={isLoading}
             >
-              {isLoading ? "Resetting Password..." : "Reset Password"}
+              {isLoading ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Resetting Password...
+                </>
+              ) : (
+                "Reset Password"
+              )}
             </Button>
           </form>
 
+          {/* Back to Login */}
           <div className="text-center">
             <Link
               href="/auth/login"
-              className="text-sm text-purple-600 hover:underline"
+              className="text-sm text-purple-600 hover:underline dark:text-purple-400"
             >
               Back to Login
             </Link>

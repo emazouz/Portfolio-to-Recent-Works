@@ -1,12 +1,15 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { Award, ExternalLink, TrendingUp, Users, BookOpen } from "lucide-react";
 import {
-  Award,
-  ExternalLink,
-  TrendingUp,
-  Users,
-  BookOpen,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import HeaderSection from "../HeaderSection";
 
 interface Certification {
@@ -92,22 +95,17 @@ function CertificationCard({
   index: number;
   isVisible: boolean;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <div
       className={`group relative transition-all duration-700 ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       }`}
       style={{ transitionDelay: `${index * 100}ms` }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Card Container */}
-      <div className="relative h-full p-6 rounded-2xl bg-card border-2 border-border hover:border-transparent transition-all duration-500 overflow-hidden">
+      <Card className="relative h-full border-2 hover:border-transparent transition-all duration-500 overflow-hidden">
         {/* Animated Gradient Border */}
         <div
-          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"
+          className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"
           style={{
             background: `var(--${cert.color})`,
             filter: "blur(12px)",
@@ -115,68 +113,72 @@ function CertificationCard({
           aria-hidden="true"
         />
 
-        {/* Status Badge - Top Right */}
-        <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-          <div
-            className="w-2 h-2 rounded-full bg-green-500 animate-pulse"
-            aria-hidden="true"
-          />
-          <span className="text-xs font-bold text-green-600 dark:text-green-400">
-            {cert.status}
-          </span>
-        </div>
+        <CardHeader className="relative pb-3">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            {/* Certificate Icon */}
+            <div
+              className="inline-flex items-center justify-center w-12 h-12 rounded-xl shadow-lg transform group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 flex-shrink-0"
+              style={{ background: `var(--${cert.color})` }}
+              aria-hidden="true"
+            >
+              <Award className="w-6 h-6 text-white" />
+            </div>
 
-        {/* Certificate Icon */}
-        <div
-          className="inline-flex items-center justify-center w-12 h-12 rounded-xl shadow-lg mb-4 transform group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500"
-          style={{ background: `var(--${cert.color})` }}
-          aria-hidden="true"
-        >
-          <Award className="w-6 h-6 text-white" />
-        </div>
-
-        {/* Title */}
-        <h3 className="text-xl font-black text-foreground mb-2 leading-tight pr-16">
-          {cert.title}
-        </h3>
-
-        {/* Issuer */}
-        <p
-          className="text-sm font-bold mb-4"
-          style={{ color: `var(--${cert.color})` }}
-        >
-          {cert.issuer}
-        </p>
-
-        {/* Description */}
-        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-          {cert.description}
-        </p>
-
-        {/* Metadata */}
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-foreground">Issued:</span>
-            <span className="text-muted-foreground">{cert.date}</span>
+            {/* Status Badge */}
+            <Badge
+              variant="outline"
+              className="bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+            >
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-1.5" />
+              {cert.status}
+            </Badge>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-foreground">
-              Credential ID:
-            </span>
-            <span className="text-muted-foreground font-mono">
-              {cert.credentialId}
-            </span>
-          </div>
-        </div>
 
-        {/* Verify Link */}
-        <button
-          className="flex items-center gap-2 text-sm font-bold transition-all duration-300 group/link"
-          style={{ color: `var(--${cert.color})` }}
-        >
-          <span>Verify Certificate</span>
-          <ExternalLink className="w-4 h-4 transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-        </button>
+          <CardTitle className="text-xl leading-tight mb-2">
+            {cert.title}
+          </CardTitle>
+
+          <CardDescription
+            className="font-bold text-base"
+            style={{ color: `var(--${cert.color})` }}
+          >
+            {cert.issuer}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Description */}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {cert.description}
+          </p>
+
+          {/* Metadata */}
+          <div className="space-y-2 pt-2 border-t">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-foreground">Issued:</span>
+              <span className="text-muted-foreground">{cert.date}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-foreground">
+                Credential ID:
+              </span>
+              <span className="text-muted-foreground font-mono">
+                {cert.credentialId}
+              </span>
+            </div>
+          </div>
+
+          {/* Verify Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full group/link mt-2"
+            style={{ color: `var(--${cert.color})` }}
+          >
+            <span>Verify Certificate</span>
+            <ExternalLink className="w-4 h-4 ml-2 transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+          </Button>
+        </CardContent>
 
         {/* Bottom Accent */}
         <div
@@ -184,7 +186,7 @@ function CertificationCard({
           style={{ background: `var(--${cert.color})` }}
           aria-hidden="true"
         />
-      </div>
+      </Card>
     </div>
   );
 }
@@ -218,40 +220,41 @@ function AchievementCard({
       }`}
       style={{ transitionDelay: `${(index + 3) * 100}ms` }}
     >
-      {/* Card Container */}
-      <div className="relative h-full p-8 rounded-2xl bg-card border-2 border-border hover:border-primary/50 transition-all duration-300 text-center overflow-hidden">
-        {/* Icon Container */}
-        <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6 transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
-          <div className="text-primary">{getIcon()}</div>
+      <Card className="relative h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden">
+        <CardContent className="p-8 text-center">
+          {/* Icon Container */}
+          <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6 transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
+            <div className="text-primary">{getIcon()}</div>
 
-          {/* Icon Glow */}
+            {/* Icon Glow */}
+            <div
+              className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              aria-hidden="true"
+            />
+          </div>
+
+          {/* Title */}
+          <h4 className="text-xl font-black text-foreground mb-2">
+            {achievement.title}
+          </h4>
+
+          {/* Platform Badge */}
+          <Badge variant="secondary" className="mb-4">
+            {achievement.platform}
+          </Badge>
+
+          {/* Description */}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {achievement.description}
+          </p>
+
+          {/* Hover Effect Background */}
           <div
-            className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
             aria-hidden="true"
           />
-        </div>
-
-        {/* Title */}
-        <h4 className="text-xl font-black text-foreground mb-2">
-          {achievement.title}
-        </h4>
-
-        {/* Platform */}
-        <p className="text-sm font-bold text-primary mb-4">
-          {achievement.platform}
-        </p>
-
-        {/* Description */}
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {achievement.description}
-        </p>
-
-        {/* Hover Effect Background */}
-        <div
-          className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-          aria-hidden="true"
-        />
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -283,18 +286,20 @@ export default function CertificationsSection() {
   }, []);
 
   return (
-    <section ref={sectionRef}>
-      <HeaderSection
-        icon={<Award className="animate-pulse" />}
-        badgeTitle="Certifications"
-        title="Certifications & Achievements"
-        description="Continuous learning and professional development through industry-recognized certifications"
-        hideCta={true}
-      />
-
-      <div className="max-w-6xl mx-auto space-y-16">
+    <section
+      ref={sectionRef}
+    >
+      <div className="space-y-16">
         {/* Certifications Grid */}
         <div>
+          <HeaderSection
+            icon={<Award className="animate-pulse" />}
+            badgeTitle="Certifications"
+            title="Professional Certifications"
+            description="Continuous learning and professional development through industry-recognized certifications"
+            hideCta={true}
+          />
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {certifications.map((cert, index) => (
               <CertificationCard
@@ -309,7 +314,13 @@ export default function CertificationsSection() {
 
         {/* Achievements Grid */}
         <div>
-
+          <HeaderSection
+            icon={<TrendingUp className="animate-pulse" />}
+            badgeTitle="Community"
+            title="Community & Recognition"
+            description="Continuous learning and professional development through industry-recognized certifications"
+            hideCta={true}
+          />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {achievements.map((achievement, index) => (
               <AchievementCard

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useMemo } from "react";
 import {
   Search,
@@ -8,6 +10,7 @@ import {
   Wrench,
   Clock,
 } from "lucide-react";
+import HeaderSection from "../HeaderSection";
 
 interface TimelineStep {
   icon: React.ComponentType<{ className?: string }>;
@@ -18,11 +21,11 @@ interface TimelineStep {
 }
 
 const TIMELINE_STEPS: TimelineStep[] = [
+  // ... (Data structure unchanged)
   {
     icon: Search,
     title: "Discovery & Strategy",
-    description:
-      "Deep dive into your business goals, target audience, and competitive landscape. We define success metrics and create a strategic roadmap.",
+    description: "Deep dive into your business goals, target audience...",
     duration: "3-5 days",
     deliverables: [
       "Requirements document",
@@ -33,8 +36,7 @@ const TIMELINE_STEPS: TimelineStep[] = [
   {
     icon: Palette,
     title: "Design & Prototyping",
-    description:
-      "Transform ideas into beautiful, user-centered designs. Interactive prototypes let you experience the final product before a single line of code is written.",
+    description: "Transform ideas into beautiful, user-centered designs...",
     duration: "1-2 weeks",
     deliverables: [
       "Wireframes",
@@ -45,24 +47,21 @@ const TIMELINE_STEPS: TimelineStep[] = [
   {
     icon: Code,
     title: "Development",
-    description:
-      "Building your solution with clean, maintainable code using modern technologies. Regular updates keep you informed every step of the way.",
+    description: "Building your solution with clean, maintainable code...",
     duration: "3-6 weeks",
     deliverables: ["Core functionality", "Admin dashboard", "API integration"],
   },
   {
     icon: TestTube,
     title: "Testing & QA",
-    description:
-      "Rigorous testing across devices, browsers, and scenarios. Performance optimization, security audits, and accessibility compliance ensure excellence.",
+    description: "Rigorous testing across devices, browsers, and scenarios...",
     duration: "1 week",
     deliverables: ["Test reports", "Bug fixes", "Performance optimization"],
   },
   {
     icon: Rocket,
     title: "Launch & Deployment",
-    description:
-      "Smooth deployment to production with zero downtime. DNS configuration, SSL certificates, and monitoring systems ensure a successful launch.",
+    description: "Smooth deployment to production with zero downtime...",
     duration: "2-3 days",
     deliverables: [
       "Production deployment",
@@ -73,8 +72,7 @@ const TIMELINE_STEPS: TimelineStep[] = [
   {
     icon: Wrench,
     title: "Support & Optimization",
-    description:
-      "Continuous monitoring, updates, and optimization. Monthly performance reports and proactive maintenance keep your platform running flawlessly.",
+    description: "Continuous monitoring, updates, and optimization...",
     duration: "Ongoing",
     deliverables: [
       "Monthly reports",
@@ -84,30 +82,37 @@ const TIMELINE_STEPS: TimelineStep[] = [
   },
 ];
 
+// --- Theme Mapping ---
+const CHART_KEYS = [
+  "chart-1", // Index 0: Primary/Indigo
+  "chart-2", // Index 1: Pink/Rose
+  "chart-3", // Index 2: Blue/Cyan
+  "chart-4", // Index 3: Yellow/Amber
+  "chart-5", // Index 4: Green/Emerald
+  "chart-6", // Index 5: Purple/Violet
+];
+const getChartGradientVar = (chartKey: string) => `var(--${chartKey})`;
+// ----------------------
+
 export default function ProcessTimeline() {
   return (
-    <section id="processTimeline">
-      {/* Header */}
-      <div className="mb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/30 backdrop-blur-xl mb-6">
-          <Clock className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300 font-bold text-sm">
-            PROVEN WORKFLOW
-          </span>
-        </div>
-        <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-          My Development Process
-        </h2>
-        <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-          A streamlined 6-step workflow that delivers exceptional results on
-          time, every time
-        </p>
-      </div>
+    <section id="processTimeline" className="wrapper">
+      <HeaderSection
+        icon={<Clock className="animate-pulse" />}
+        badgeTitle="PROVEN WORKFLOW"
+        title="My Development Process"
+        description="A streamlined 6-step workflow that delivers exceptional results on
+          time, every time"
+        hideCta={true}
+      />
 
       {/* Timeline */}
       <div className="relative">
-        {/* Vertical gradient line - hidden on mobile */}
-        <div className="absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 md:block rounded-full shadow-lg shadow-purple-500/30" />
+        {/* Vertical gradient line - FIX: Use inline style with chart-1 */}
+        <div
+          className="absolute left-1/2 top-0 hidden h-full w-[3px] -translate-x-1/2 md:block rounded-full shadow-lg shadow-primary/30"
+          style={{ backgroundImage: getChartGradientVar("chart-1") }}
+        />
 
         {/* Timeline Steps */}
         <div className="space-y-12">
@@ -123,14 +128,21 @@ export default function ProcessTimeline() {
       </div>
 
       {/* Total Timeline Summary */}
-      <div className="mt-16 p-8 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-xl border border-slate-700 text-center">
-        <h3 className="text-2xl font-black text-white mb-2">
+      <div
+        // FIX: Use theme-aware card/border styles
+        className="mt-16 p-8 rounded-2xl bg-card border border-border text-center"
+      >
+        <h3 className="text-2xl font-black text-foreground mb-2">
           Total Project Timeline
         </h3>
-        <p className="text-slate-400 mb-4">
+        <p className="text-muted-foreground mb-4">
           From concept to launch in as little as
         </p>
-        <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+        <div
+          // FIX: Use inline style with primary chart gradient
+          className="text-5xl font-black bg-clip-text text-transparent"
+          style={{ backgroundImage: getChartGradientVar("chart-1") }}
+        >
           6-10 Weeks
         </div>
       </div>
@@ -148,16 +160,10 @@ const TimelineItem = ({ step, index, isLast }: TimelineItemProps) => {
   const Icon = step.icon;
   const isEven = index % 2 === 0;
 
-  const gradientColors = useMemo(() => {
-    const gradients = [
-      "from-indigo-500 to-purple-500",
-      "from-pink-500 to-rose-500",
-      "from-blue-500 to-cyan-500",
-      "from-yellow-500 to-amber-500",
-      "from-green-500 to-emerald-500",
-      "from-purple-500 to-violet-500",
-    ];
-    return gradients[index % gradients.length];
+  const gradientVar = useMemo(() => {
+    // Dynamically select a chart gradient key based on index
+    const chartKey = CHART_KEYS[index % CHART_KEYS.length];
+    return getChartGradientVar(chartKey);
   }, [index]);
 
   return (
@@ -168,27 +174,36 @@ const TimelineItem = ({ step, index, isLast }: TimelineItemProps) => {
     >
       {/* Content Card */}
       <div className={`flex-1 ${isEven ? "md:text-right" : "md:text-left"}`}>
-        <div className="group rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-xl p-6 shadow-xl hover:shadow-2xl hover:border-slate-600 transition-all duration-300 hover:scale-[1.02]">
+        <div
+          // FIX: Use theme-aware card/border styles
+          className="group rounded-2xl border border-border bg-card p-6 shadow-xl hover:shadow-2xl hover:border-primary/50 transition-all duration-300 hover:scale-[1.02]"
+        >
           {/* Header with Icon */}
           <div
             className={`mb-4 flex items-center gap-3 ${
               isEven ? "md:justify-end" : "md:justify-start"
             }`}
           >
+            {/* Icon Circle */}
             <div
-              className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradientColors} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-xl text-primary-foreground shadow-lg group-hover:scale-110 transition-transform duration-300"
+              // FIX: Use inline style for gradient background
+              style={{ backgroundImage: gradientVar }}
             >
               <Icon className="h-6 w-6" aria-hidden="true" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xl md:text-2xl font-black text-white">
+                <h3 className="text-xl md:text-2xl font-black text-foreground">
                   {step.title}
                 </h3>
               </div>
+              {/* Duration Text */}
               {step.duration && (
                 <p
-                  className={`text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r ${gradientColors}`}
+                  // FIX: Use inline style for gradient text clip
+                  className={`text-sm font-semibold bg-clip-text text-transparent`}
+                  style={{ backgroundImage: gradientVar }}
                 >
                   {step.duration}
                 </p>
@@ -197,14 +212,14 @@ const TimelineItem = ({ step, index, isLast }: TimelineItemProps) => {
           </div>
 
           {/* Description */}
-          <p className="text-slate-300 mb-4 leading-relaxed">
+          <p className="text-muted-foreground mb-4 leading-relaxed">
             {step.description}
           </p>
 
           {/* Deliverables */}
           {step.deliverables && step.deliverables.length > 0 && (
             <div className={`${isEven ? "md:text-right" : "md:text-left"}`}>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                 Deliverables
               </h4>
               <div
@@ -215,7 +230,8 @@ const TimelineItem = ({ step, index, isLast }: TimelineItemProps) => {
                 {step.deliverables.map((deliverable) => (
                   <span
                     key={deliverable}
-                    className="px-3 py-1 bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-semibold rounded-full hover:border-indigo-500/50 transition-all"
+                    // FIX: Use theme-aware muted/border styles
+                    className="px-3 py-1 bg-muted/50 border border-border text-muted-foreground text-xs font-semibold rounded-full hover:border-primary/50 transition-all"
                   >
                     {deliverable}
                   </span>
@@ -228,20 +244,26 @@ const TimelineItem = ({ step, index, isLast }: TimelineItemProps) => {
         {/* Step Number Badge - Mobile Only */}
         <div className="md:hidden mt-4 flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradientColors} flex items-center justify-center text-white font-black text-lg shadow-lg`}
+            className="w-10 h-10 rounded-full text-primary-foreground font-black text-lg shadow-lg"
+            // FIX: Use inline style for gradient background
+            style={{ backgroundImage: gradientVar }}
           >
             {index + 1}
           </div>
-          <div className="h-[2px] flex-1 bg-gradient-to-r from-slate-700 to-transparent" />
+          {/* FIX: Use theme-aware border for mobile line */}
+          <div className="h-[2px] flex-1 bg-gradient-to-r from-border to-transparent" />
         </div>
       </div>
 
       {/* Center Dot with Step Number - Desktop Only */}
       <div className="absolute left-1/2 hidden -translate-x-1/2 md:block z-10">
         <div
-          className={`relative h-14 w-14 rounded-full bg-gradient-to-br ${gradientColors} flex items-center justify-center text-white font-black text-xl shadow-xl border-4 border-slate-950 group-hover:scale-125 transition-transform duration-300`}
+          // FIX: Use primary-foreground/border for theme colors
+          className={`relative flex-center h-14 w-14 rounded-full text-primary-foreground font-black text-xl shadow-xl border-4 border-background group-hover:scale-125 transition-transform duration-300`}
+          // FIX: Use inline style for gradient background
+          style={{ backgroundImage: gradientVar }}
         >
-          {index + 1}
+          <span>{index + 1}</span>
         </div>
       </div>
 
@@ -250,5 +272,3 @@ const TimelineItem = ({ step, index, isLast }: TimelineItemProps) => {
     </div>
   );
 };
-
-export { ProcessTimeline };

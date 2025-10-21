@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/shared/theme-provider";
 import { TranslationProvider } from "@/components/TranslationProvider";
 import { APP_NAME, APP_DESCRIPTION, SERVER_URL } from "@/constants";
 import { BackToTop } from "@/components/back-to-top";
+import { Geist  } from "next/font/google";
 
 export const metadata: Metadata = {
   title: {
@@ -39,6 +40,10 @@ export const metadata: Metadata = {
   },
 };
 
+const font = Geist({
+  subsets: ['latin'],
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -47,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable}`}
+        className={`${font.className}`}
       >
         <ThemeProvider
           attribute="class"

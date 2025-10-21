@@ -8,7 +8,7 @@ export interface FileRequest extends AuthenticatedRequest {
 
 export type MulterFiles = {
   gallery?: Express.Multer.File[];
+  avatar?: Express.Multer.File[];
   previewImages?: Express.Multer.File[];
   imageUrl?: Express.Multer.File[];
-  zipFile?: Express.Multer.File[];
 };

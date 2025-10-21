@@ -4,9 +4,8 @@ import { Award, Sparkles, Star, Users } from "lucide-react";
 import FinalCTA from "./FinalCTA";
 import ProcessTimeline from "./ProcessTimeline";
 import WhyWorkWithMe from "./WhyWorkWithMe";
-import { ServiceCard } from "./ServiceCard";
-import { PackageCard } from "./PackageCard";
-import ScrollProgressIndicator from "../ScrollProgress";
+import ServiceCard from "./ServiceCard";
+import PackageCard from "./PackageCard";
 import ServicesHeroSection from "./ServicesHeroSection";
 
 export const MainContentServices = () => {
@@ -22,7 +21,6 @@ export const MainContentServices = () => {
         <ProcessTimeline />
         <FinalCTA />
       </div>
-      {(ScrollProgressIndicator as unknown as any)(SECTIONS_ALTERNATIVE)}
     </>
   );
 };

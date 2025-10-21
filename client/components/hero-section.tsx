@@ -252,7 +252,7 @@ const HeroSection = () => {
         <div className="max-w-5xl">
           {/* Tagline: Uses primary color for accent */}
           <p
-            className={`text-secondary font-semibold tracking-wide mb-4 ${
+            className={`text-secondary h3-bold tracking-wide my-4 ${
               isArabic ? "text-right" : ""
             }`}
           >
@@ -344,7 +344,7 @@ const HeroSection = () => {
               return (
                 <li
                   key={index}
-                  className="flex items-center gap-2 bg-accent text-accent-foreground/90 px-3 py-1 backdrop-blur rounded-full"
+                  className="w-fit flex items-center gap-2 bg-accent text-accent-foreground/90 px-3 py-1 backdrop-blur rounded-full"
                 >
                   <Icon className="h-5 w-5 text-primary" />
                   {t(bullet.text, translationKey)}

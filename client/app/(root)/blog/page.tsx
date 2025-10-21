@@ -1,4 +1,4 @@
-import { BlogList } from "@/components/blog/blog-list";
+import  BlogList  from "@/components/blog/blog-list";
 
 export const metadata = {
   title: "Blog - Developer Portfolio",
@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function BlogPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="wrapper py-20">
       <main>
         <BlogList />
       </main>

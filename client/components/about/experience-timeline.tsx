@@ -76,7 +76,7 @@ export function ExperienceTimeline() {
           }
         });
       },
-      { threshold: 0.3 }
+      { threshold: 0.1 }
     );
 
     itemRefs.current.forEach((ref) => {
@@ -87,21 +87,21 @@ export function ExperienceTimeline() {
   }, [visibleItems]);
 
   return (
-    <section id="experience" ref={sectionRef} className="py-20">
+    <section id="experience" ref={sectionRef} className="py-12 sm:py-16 lg:py-20">
       <HeaderSection
         icon={<Sparkles className="animate-pulse" />}
         badgeTitle="PROFESSIONAL JOURNEY"
         title="Work Experience"
-        description="Building exceptional digital experiences across leading tech
-                 companies"
-        ctaText={`View Full Résumé`}
+        description="Building exceptional digital experiences across leading tech companies"
+        ctaText="View Full Résumé"
         ctaHref="/resume.pdf"
       />
 
       <div className="relative">
-        <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-600 via-purple-400 to-amber-500 opacity-30" />
+        {/* Timeline Line - Hidden on very small mobile, visible on sm+ */}
+        <div className="hidden sm:block absolute left-4 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-600 via-purple-400 to-amber-500 opacity-30" />
         <div
-          className="absolute left-8 top-0 w-0.5 bg-gradient-to-b from-purple-600 via-purple-400 to-amber-500 transition-all duration-2000 ease-out"
+          className="hidden sm:block absolute left-4 sm:left-8 top-0 w-0.5 bg-gradient-to-b from-purple-600 via-purple-400 to-amber-500 transition-all duration-2000 ease-out"
           style={{
             height:
               visibleItems.length > 0
@@ -110,7 +110,7 @@ export function ExperienceTimeline() {
           }}
         />
 
-        <div className="space-y-12">
+        <div className="space-y-8 sm:space-y-12">
           {experiences.map((experience, index) => {
             const isVisible = visibleItems.includes(index);
             const isEven = index % 2 === 0;
@@ -125,49 +125,50 @@ export function ExperienceTimeline() {
                   isVisible
                     ? "translate-x-0 opacity-100"
                     : `${
-                        isEven ? "-translate-x-20" : "translate-x-20"
+                        isEven ? "-translate-x-10 sm:-translate-x-20" : "translate-x-10 sm:translate-x-20"
                       } opacity-0`
                 }`}
                 style={{ transitionDelay: `${index * 200}ms` }}
               >
-                <div className="absolute left-6 top-8 w-4 h-4 bg-gradient-to-r from-purple-600 to-amber-500 rounded-full border-4 border-background shadow-lg">
+                {/* Timeline Dot - Hidden on very small mobile, visible on sm+ */}
+                <div className="hidden sm:block absolute left-2.5 sm:left-6 top-6 sm:top-8 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-purple-600 to-amber-500 rounded-full border-2 sm:border-4 border-background shadow-lg">
                   {isVisible && (
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-amber-500 rounded-full animate-ping" />
                   )}
                 </div>
 
-                <div className="ml-20">
-                  <Card className="hover:shadow-xl transition-all duration-500 group hover:scale-[1.02]">
-                    <CardHeader>
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="sm:ml-12 lg:ml-20">
+                  <Card className="hover:shadow-xl transition-all duration-500 group hover:scale-[1.01] sm:hover:scale-[1.02]">
+                    <CardHeader className="p-4 sm:p-6">
+                      <div className="flex flex-col gap-3 sm:gap-4">
                         <div className="space-y-2">
-                          <CardTitle className="text-xl group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
-                            <Briefcase className="inline-block w-5 h-5 mr-2" />
-                            {experience.title}
+                          <CardTitle className="text-lg sm:text-xl break-words group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
+                            <Briefcase className="inline-block w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                            <span>{experience.title}</span>
                           </CardTitle>
-                          <CardDescription className="text-lg font-medium text-purple-600 dark:text-purple-400">
+                          <CardDescription className="text-base sm:text-lg font-medium text-purple-600 dark:text-purple-400">
                             {experience.company}
                           </CardDescription>
                         </div>
-                        <div className="flex flex-col md:items-end gap-2 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {experience.period}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span>{experience.period}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {experience.location}
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span>{experience.location}</span>
                           </div>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <p className="text-muted-foreground leading-relaxed">
+                    <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                         {experience.description}
                       </p>
 
                       <div>
-                        <h4 className="font-semibold mb-3 text-purple-600 dark:text-purple-400">
+                        <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base text-purple-600 dark:text-purple-400">
                           Key Achievements
                         </h4>
                         <ul className="space-y-2">
@@ -175,10 +176,10 @@ export function ExperienceTimeline() {
                             (achievement, achievementIndex) => (
                               <li
                                 key={achievementIndex}
-                                className="flex items-start gap-2 text-sm"
+                                className="flex items-start gap-2 text-xs sm:text-sm"
                               >
-                                <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-purple-600 to-amber-500 mt-2 flex-shrink-0" />
-                                {achievement}
+                                <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-purple-600 to-amber-500 mt-1.5 sm:mt-2 flex-shrink-0" />
+                                <span className="break-words">{achievement}</span>
                               </li>
                             )
                           )}
@@ -186,15 +187,15 @@ export function ExperienceTimeline() {
                       </div>
 
                       <div>
-                        <h4 className="font-semibold mb-3 text-purple-600 dark:text-purple-400">
+                        <h4 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base text-purple-600 dark:text-purple-400">
                           Technologies Used
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                           {experience.technologies.map((tech) => (
                             <Badge
                               key={tech}
                               variant="secondary"
-                              className="hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/50 dark:hover:text-purple-300 transition-colors duration-300"
+                              className="text-xs sm:text-sm px-2 py-0.5 sm:px-2.5 sm:py-1 hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/50 dark:hover:text-purple-300 transition-colors duration-300"
                             >
                               {tech}
                             </Badge>
