@@ -13,7 +13,7 @@ import {
   FAQCategory,
   TECH_STACK,
   TechStack,
-} from "@/constants/faq";
+} from "@/constants/faq.constants";
 
 interface TechStackSectionProps {
   techStack: TechStack[];

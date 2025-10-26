@@ -1,85 +1,12 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useEffect } from "react";
-import {
-  Search,
-  X,
-  FileText,
-  Package,
-  User,
-  MessageSquare,
-} from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-
-interface SearchResult {
-  id: string;
-  title: string;
-  description: string;
-  type: "template" | "project" | "blog" | "page";
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const mockSearchResults: SearchResult[] = [
-  {
-    id: "1",
-    title: "Modern E-commerce Dashboard",
-    description:
-      "Complete dashboard template with analytics and inventory management",
-    type: "template",
-    href: "/templates/ecommerce-dashboard",
-    icon: Package,
-  },
-  {
-    id: "2",
-    title: "SaaS Landing Page",
-    description: "Conversion-optimized landing page for SaaS products",
-    type: "template",
-    href: "/templates/saas-landing",
-    icon: Package,
-  },
-  {
-    id: "3",
-    title: "Task Management App",
-    description: "Full-stack project management application",
-    type: "project",
-    href: "/portfolio/task-management",
-    icon: User,
-  },
-  {
-    id: "4",
-    title: "Building Modern Dashboards with Next.js",
-    description: "Complete guide to creating responsive dashboards",
-    type: "blog",
-    href: "/blog/modern-dashboards-nextjs",
-    icon: FileText,
-  },
-  {
-    id: "5",
-    title: "About Me",
-    description: "Learn more about my background and expertise",
-    type: "page",
-    href: "/about",
-    icon: User,
-  },
-  {
-    id: "6",
-    title: "Contact",
-    description: "Get in touch for your next project",
-    type: "page",
-    href: "/contact",
-    icon: MessageSquare,
-  },
-];
-
-interface SearchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import { SearchModalProps, SearchResult } from "@/types/index.types";
+import { mockSearchResults } from "@/constants/index.constants";
 
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");

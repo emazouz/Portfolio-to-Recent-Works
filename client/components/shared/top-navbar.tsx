@@ -1,53 +1,8 @@
-import {
-  MapPin,
-  Mail,
-  Phone,
-  Facebook,
-  Instagram,
-  Linkedin,
-  Youtube,
-} from "lucide-react";
+import { ICON_SIZES } from "@/constants/index.constants";
+import { CONTACT_INFO, SOCIAL_LINKS } from "@/constants/contact.constants";
+import Link from "next/link";
 
-/**
- * TopNavBar Component
- * A slim navigation bar for displaying contact and social media links.
- * It uses custom theme variables (primary, secondary, foreground, etc.)
- * for a consistent look that supports light/dark mode.
- */
 function TopNavBar() {
-  // Define contact information data
-  const contact = [
-    // Uses the primary color for interactive elements (tel)
-    { icon: Phone, text: "+212-6214-43301", href: "tel:+212621443301" },
-    {
-      icon: Mail,
-      text: "contact@emazouz.com",
-      href: "mailto:emazouz.dev@gmail.com",
-    },
-    // MapPin uses the default text style as it is not a clickable link
-    { icon: MapPin, text: "Rabat-Morocco", href: null },
-  ];
-
-  // Define social media links data
-  const socialMedia = [
-    {
-      icon: Facebook,
-      href: "https://facebook.com/yourpage",
-      label: "Facebook",
-    },
-    {
-      icon: Instagram,
-      href: "https://instagram.com/emazouz.dev",
-      label: "Instagram",
-    },
-    {
-      icon: Linkedin,
-      href: "https://linkedin.com/en/emazouz",
-      label: "LinkedIn",
-    },
-    { icon: Youtube, href: "https://youtub.com/emazouz", label: "Youtube" },
-  ];
-
   return (
     <div className="relative h-10 w-full overflow-hidden lg:px-4">
       {/* The background is created using two absolute elements.
@@ -66,23 +21,27 @@ function TopNavBar() {
         {/* Contact Information */}
         {/* Text color is set to the background's foreground color (text-secondary-foreground) */}
         <ul className="flex items-center gap-6 text-secondary-foreground">
-          {contact.map((c, i) => (
+          {CONTACT_INFO.map((c, i) => (
             <li key={i} className="flex items-center gap-2">
               {/* If it has a link (Phone/Mail), use an <a> tag */}
               {c.href ? (
-                <a
+                <Link
                   href={c.href}
                   // Text hover color changes to Primary for high contrast/focus
                   className="flex items-center gap-2 hover:text-primary transition-colors"
                 >
-                  <c.icon size={16} />
-                  <span className="hidden md:inline font-medium">{c.text}</span>
-                </a>
+                  <c.icon className={ICON_SIZES[c.iconSize]} />
+                  <span className="hidden md:inline font-medium">
+                    {c.title}
+                  </span>
+                </Link>
               ) : (
                 // If no link (MapPin), render as plain text/icon
                 <>
-                  <c.icon size={16} />
-                  <span className="hidden md:inline font-medium">{c.text}</span>
+                  <c.icon />
+                  <span className="hidden md:inline font-medium">
+                    {c.title}
+                  </span>
                 </>
               )}
             </li>
@@ -93,21 +52,20 @@ function TopNavBar() {
         {/* Text color is set to Primary Foreground (usually white/dark text) 
             to contrast with the Primary (Purple) background shape. */}
         <div className="flex items-center gap-4 text-primary-foreground">
-          {socialMedia.map((social, i) => (
-            <a
+          {SOCIAL_LINKS.map((social, i) => (
+            <Link
               key={i}
               href={social.href}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={social.label}
+              aria-label={social.name}
               // Hover color changes to Secondary (Yellow) for effect
               className="hover:text-secondary transition-colors"
             >
-              <social.icon size={18} />
-            </a>
+              <social.icon className={ICON_SIZES[social.iconSize]} />
+            </Link>
           ))}
         </div>
-
       </div>
     </div>
   );

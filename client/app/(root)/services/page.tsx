@@ -1,9 +1,9 @@
-import FinalCTA from "@/components/services/FinalCTA";
-import PackageCard from "@/components/services/PackageCard";
-import ProcessTimeline from "@/components/services/ProcessTimeline";
-import ServiceCard from "@/components/services/ServiceCard";
-import ServicesHeroSection from "@/components/services/ServicesHeroSection";
-import WhyWorkWithMe from "@/components/services/WhyWorkWithMe";
+import FinalCTA from "@/components/services/final-CTA";
+import PackageCard from "@/components/services/package-card";
+import ProcessTimeline from "@/components/services/process-timeline";
+import ServiceCard from "@/components/services/service-card";
+import ServicesHeroSection from "@/components/services/services-sero-section";
+import WhyWorkWithMe from "@/components/services/why-work-with-me";
 
 export default function ServicesPage() {
   return (

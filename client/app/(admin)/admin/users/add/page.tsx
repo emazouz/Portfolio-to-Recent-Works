@@ -1,4 +1,4 @@
-import { UserForm } from "@/components/admin/users/UserForm"
+import { UserForm } from "@/components/admin/users/user-form";
 
 export default function AddUserPage() {
   return (
@@ -9,5 +9,5 @@ export default function AddUserPage() {
       </div>
       <UserForm />
     </div>
-  )
+  );
 }

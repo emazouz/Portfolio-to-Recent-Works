@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -13,184 +13,79 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Mail,
-  Phone,
-  MapPin,
-  Clock,
   Send,
-  Github,
-  Linkedin,
   MessageSquare,
   CheckCircle2,
   Sparkles,
-  HeadphonesIcon,
+  Headphones,
+  AlertCircle,
 } from "lucide-react";
-
-// --- Theme Mapping Helpers ---
-
-// Map of original hardcoded gradient classes to theme chart keys
-const GRADIENT_MAP_KEYS: Record<string, string> = {
-  // Contact Info Gradients
-  "from-indigo-500 to-purple-500": "chart-1", // Primary / Mail
-  "from-pink-500 to-rose-500": "chart-2", // Phone
-  "from-blue-500 to-cyan-500": "chart-3", // Location
-  "from-green-500 to-emerald-500": "chart-5", // Response Time / Success/WhatsApp Button
-
-  // Social Gradients
-  "from-gray-600 to-gray-800": "chart-9", // Github
-  "from-blue-500 to-blue-700": "chart-3", // Linkedin
-  "from-green-500 to-green-700": "chart-5", // WhatsApp
-
-  // Custom Accent Boxes
-  "from-green-900/20 to-emerald-900/20": "chart-5/20", // Urgent Inquiries Box BG
-  "from-indigo-500/10 via-purple-500/10 to-pink-500/10": "primary/10", // Header Badge BG
-  "from-indigo-300 to-purple-300": "primary", // Header Badge Text (using primary color)
-  "from-indigo-600 to-purple-600": "chart-1", // Form Submit Button
-};
-
-/**
- * Returns the CSS variable string for a given gradient key (or uses primary/secondary for simplification).
- */
-const getThemeGradient = (gradientKey: string): string => {
-  const chartKey = GRADIENT_MAP_KEYS[gradientKey] || "chart-1";
-  // If it's a transparency key (like 'primary/10'), just return the class
-  if (chartKey.includes("/")) return chartKey;
-
-  return `var(--${chartKey})`;
-};
-
-// --- Interfaces and Data (UNCHANGED LOGIC) ---
-
-interface ContactInfo {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  value: string;
-  description: string;
-  href?: string;
-  gradient: string; // Now holds original hardcoded string, used as key for mapping
-}
-
-interface SocialLink {
-  icon: React.ComponentType<{ className?: string }>;
-  name: string;
-  href: string;
-  gradient: string; // Now holds original hardcoded string, used as key for mapping
-}
-
-interface FormData {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  budget?: string;
-}
-
-const CONTACT_INFO: ContactInfo[] = [
-  {
-    icon: Mail,
-    title: "Email",
-    value: "hello@devportfolio.com",
-    description: "Quick response, detailed answers",
-    href: "mailto:hello@devportfolio.com",
-    gradient: "from-indigo-500 to-purple-500",
-  },
-  {
-    icon: Phone,
-    title: "Phone",
-    value: "+1 (555) 123-4567",
-    description: "Mon-Fri, 9am-6pm PST",
-    href: "tel:+15551234567",
-    gradient: "from-pink-500 to-rose-500",
-  },
-  {
-    icon: MapPin,
-    title: "Location",
-    value: "San Francisco, CA",
-    description: "Remote work worldwide",
-    gradient: "from-blue-500 to-cyan-500",
-  },
-  {
-    icon: Clock,
-    title: "Response Time",
-    value: "< 24 hours",
-    description: "Usually within 6 hours",
-    gradient: "from-green-500 to-emerald-500",
-  },
-];
-
-const SOCIAL_LINKS: SocialLink[] = [
-  {
-    icon: Github,
-    name: "GitHub",
-    href: "https://github.com/yourusername",
-    gradient: "from-gray-600 to-gray-800",
-  },
-  {
-    icon: Linkedin,
-    name: "LinkedIn",
-    href: "https://linkedin.com/in/yourusername",
-    gradient: "from-blue-500 to-blue-700",
-  },
-  {
-    icon: MessageSquare,
-    name: "WhatsApp",
-    href: "https://wa.me/15551234567",
-    gradient: "from-green-500 to-green-700",
-  },
-];
-
-const WHAT_TO_EXPECT = [
-  "Free 30-minute consultation call",
-  "Detailed proposal within 48 hours",
-  "Transparent pricing, no hidden fees",
-  "Regular progress updates",
-];
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreateContactInput, MessageType } from "@/validators/contact.validate";
+import { contactStore } from "@/store/contactStore";
+import { toast } from "@/hooks/use-toast";
+import { ContactInfoCardProps } from "@/types/contact.types";
+import {
+  CONTACT_INFO,
+  MESSAGE_TYPES,
+  SOCIAL_LINKS,
+  WHAT_TO_EXPECT,
+} from "@/constants/contact.constants";
+import Link from "next/link";
 
 export function ContactForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const { createContact, isLoading, error } = contactStore();
   const [isSuccess, setIsSuccess] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<CreateContactInput>({
     name: "",
     email: "",
     subject: "",
     message: "",
-    budget: "",
+    type: MessageType.GENERAL,
   });
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      setIsLoading(true);
       setIsSuccess(false);
+      try {
+        const result = await createContact(formData);
 
-      // Simulate API call (UNCHANGED)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (!result.success) {
+          setIsSuccess(false);
+          return toast({
+            title: "Sending Failed!",
+            description: result.message,
+            variant: "error",
+          });
+        }
 
-      console.log("Contact form submitted:", formData);
-      setIsLoading(false);
-      setIsSuccess(true);
+        toast({
+          title: "Sending Successfully!",
+          description: result.message,
+        });
+        setIsSuccess(true);
 
-      // Reset form after success (UNCHANGED)
-      setTimeout(() => {
         setFormData({
           name: "",
           email: "",
           subject: "",
           message: "",
-          budget: "",
+          type: MessageType.GENERAL,
         });
-        setIsSuccess(false);
-      }, 3000);
+      } catch (err) {
+        console.error(
+          err instanceof Error
+            ? err.message
+            : "Failed to send message. Please try again."
+        );
+      }
     },
     [formData]
   );
 
   const handleInputChange = useCallback(
-    (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >
-    ) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setFormData((prev) => ({
         ...prev,
         [e.target.name]: e.target.value,
@@ -199,38 +94,29 @@ export function ContactForm() {
     []
   );
 
+  const handleTypeChange = useCallback((value: MessageType) => {
+    setFormData((prev) => ({
+      ...prev,
+      type: value,
+    }));
+  }, []);
+
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-12" id="cta">
+    <section
+      className="py-20 px-4 sm:px-6 lg:px-12 bg-gradient-to-br from-background via-primary/5 to-accent/5"
+      id="contact"
+    >
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="text-center mb-16">
-          {/* Badge Accent */}
-          <div
-            // Theme: Uses primary/10 background, primary/30 border
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/10 border border-primary/30 backdrop-blur-xl mb-6"
-          >
-            {/* Theme: Icon uses primary color */}
-            <Sparkles
-              className="w-4 h-4 text-primary animate-pulse"
-              aria-hidden="true"
-            />
-            <span
-              // Theme: Text uses primary color
-              className="text-primary font-bold text-sm"
-            >
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 border border-primary/20 backdrop-blur-xl mb-6 glow-sky">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent font-bold text-sm">
               LET'S BUILD SOMETHING AMAZING
             </span>
           </div>
-          <h2
-            // Theme: Title uses foreground color
-            className="text-4xl md:text-5xl font-black text-foreground mb-4"
-          >
-            Ready to Start Your Project?
-          </h2>
-          <p
-            // Theme: Description uses muted-foreground
-            className="text-xl text-muted-foreground max-w-2xl mx-auto"
-          >
+          <h2 className="h1-bold mb-4">Ready to Start Your Project?</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Get in touch for projects, collaborations, or any questions. I
             typically respond within 24 hours.
           </p>
@@ -240,20 +126,19 @@ export function ContactForm() {
           {/* Left Column - Contact Info */}
           <div className="space-y-8">
             {/* Introduction Card */}
-            <div
-              // Theme: Uses card background and border
-              className="p-8 rounded-2xl bg-card border border-border"
-            >
-              <h3 className="text-2xl font-black text-foreground mb-4">
-                Get In Touch
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Whether you need a custom web application, want to discuss a
-                project, or have questions about my services, I'm here to help.
-                I work with businesses of all sizes to create exceptional
-                digital experiences that drive real results.
-              </p>
-            </div>
+            <Card className="border-2 border-primary/20 shadow-xl bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-all duration-300 glow-sky">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-black text-foreground mb-4">
+                  Get In Touch
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  Whether you need a custom web application, want to discuss a
+                  project, or have questions about my services, I'm here to
+                  help. I work with businesses of all sizes to create
+                  exceptional digital experiences that drive real results.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Contact Methods Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -263,92 +148,79 @@ export function ContactForm() {
             </div>
 
             {/* Social Links */}
-            <div
-              // Theme: Uses card background and border
-              className="p-6 rounded-2xl bg-card border border-border"
-            >
-              <h3 className="text-lg font-black text-foreground mb-4 flex items-center gap-2">
-                {/* Theme: Icon uses primary color */}
-                <HeadphonesIcon className="w-5 h-5 text-primary" />
-                Connect With Me
-              </h3>
-              <div className="flex gap-3">
-                {SOCIAL_LINKS.map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={social.name}
-                    aria-label={`Connect on ${social.name}`}
-                    // Theme: Uses muted/border/foreground colors
-                    className={`group p-4 rounded-xl bg-muted/50 border border-border hover:border-primary transition-all duration-300 hover:scale-110`}
-                  >
-                    {/* Theme: Icon uses muted-foreground and primary hover */}
-                    <social.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </a>
-                ))}
-              </div>
-            </div>
+            <Card className="border-2 border-primary/20 shadow-xl bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-all duration-300">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-black text-foreground mb-4 flex items-center gap-2">
+                  <Headphones className="w-5 h-5 text-primary" />
+                  Connect With Me
+                </h3>
+                <div className="flex gap-3">
+                  {SOCIAL_LINKS.map((social, index) => (
+                    <Link
+                      key={index}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={social.name}
+                      className={`group p-4 rounded-xl bg-muted/50 border-2 border-border ${social.color} transition-all duration-300 hover:scale-110 hover:shadow-lg`}
+                    >
+                      <social.icon className="h-6 w-6 text-muted-foreground group-hover:scale-110 transition-transform" />
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* What to Expect */}
-            <div
-              // Theme: Uses card background and border
-              className="p-6 rounded-2xl bg-card border border-border"
-            >
-              <h3 className="text-lg font-black text-foreground mb-4">
-                What to Expect
-              </h3>
-              <ul className="space-y-3" role="list">
-                {WHAT_TO_EXPECT.map((item, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    {/* Theme: Check icon uses secondary color */}
-                    <CheckCircle2 className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                    <span className="text-muted-foreground text-sm">
-                      {item}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Card className="border-2 border-secondary/30 shadow-xl bg-card/80 backdrop-blur-sm hover:border-secondary/50 transition-all duration-300 glow-gold">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-black text-foreground mb-4">
+                  What to Expect
+                </h3>
+                <ul className="space-y-3">
+                  {WHAT_TO_EXPECT.map((item, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground text-sm">
+                        {item}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
 
             {/* Urgent Inquiries */}
-            <div
-              // Theme: Uses primary/10 background, secondary/50 border for urgency highlight
-              className="p-6 rounded-2xl bg-primary/10 backdrop-blur-xl border border-secondary/50"
-            >
-              <h3 className="text-lg font-black text-foreground mb-2 flex items-center gap-2">
-                {/* Theme: Icon uses secondary color */}
-                <MessageSquare className="h-5 w-5 text-secondary" />
-                Need Urgent Help?
-              </h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                For time-sensitive projects or urgent questions, reach me
-                directly via WhatsApp for immediate response.
-              </p>
-              <Button
-                // Theme: Button uses secondary color
-                className="w-full bg-secondary hover:bg-secondary/90 text-primary-foreground font-bold"
-                asChild
-              >
-                <a
-                  href="https://wa.me/15551234567"
-                  target="_blank"
-                  rel="noopener noreferrer"
+            <Card className="border-2 border-emerald-500/30 shadow-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 hover:border-emerald-500/50 transition-all duration-300">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-black text-foreground mb-2 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-emerald-500" />
+                  Need Urgent Help?
+                </h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  For time-sensitive projects or urgent questions, reach me
+                  directly via WhatsApp for immediate response.
+                </p>
+                <Button
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold shadow-lg hover:scale-105 transition-all"
+                  asChild
                 >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  WhatsApp Me Now
-                </a>
-              </Button>
-            </div>
+                  <Link
+                    href="https://wa.me/15551234567"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    WhatsApp Me Now
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right Column - Contact Form */}
-          <Card
-            // Theme: Uses card background and border
-            className="shadow-2xl border-border bg-card"
-          >
-            <CardHeader>
+          <Card className="border-2 border-accent/30 shadow-2xl bg-card/80 backdrop-blur-sm hover:border-accent/50 transition-all duration-300 glow-purple">
+            <CardHeader className="space-y-3">
               <CardTitle className="text-2xl text-foreground">
                 Send a Message
               </CardTitle>
@@ -358,26 +230,94 @@ export function ContactForm() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {error && (
+                <Alert className="mb-6 border-2 border-destructive/50 bg-destructive/10">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <AlertDescription className="text-destructive">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {isSuccess ? (
                 <div className="py-12 text-center">
-                  {/* Success Icon */}
-                  <div
-                    // Theme: Success background uses secondary color
-                    className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-secondary mb-4"
-                  >
-                    <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 mb-4 shadow-xl animate-pulse">
+                    <CheckCircle2 className="w-10 h-10 text-white" />
                   </div>
                   <h3 className="text-2xl font-black text-foreground mb-2">
-                    Message Sent!
+                    Message Sent Successfully!
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-4">
                     Thank you for reaching out. I'll respond within 24 hours.
                   </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsSuccess(false)}
+                    className="mt-4 border-primary/50 hover:bg-primary/10 hover:border-primary"
+                  >
+                    Send Another Message
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Message Type Selection */}
+                  <div className="space-y-3">
+                    <Label className="text-foreground font-semibold">
+                      Message Type *
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {MESSAGE_TYPES.map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => handleTypeChange(type.value)}
+                          className={`p-4 rounded-xl border-2 transition-all duration-200 text-left hover:scale-105 ${
+                            formData.type === type.value
+                              ? "border-primary bg-primary/10 shadow-lg glow-sky"
+                              : "border-border bg-card hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`p-2 rounded-lg transition-colors ${
+                                formData.type === type.value
+                                  ? "bg-primary"
+                                  : "bg-muted"
+                              }`}
+                            >
+                              <type.icon
+                                className={`h-4 w-4 ${
+                                  formData.type === type.value
+                                    ? "text-primary-foreground"
+                                    : "text-muted-foreground"
+                                }`}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4
+                                className={`font-bold text-sm mb-1 ${
+                                  formData.type === type.value
+                                    ? "text-foreground"
+                                    : "text-foreground"
+                                }`}
+                              >
+                                {type.label}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                {type.description}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-foreground">
+                    <Label
+                      htmlFor="name"
+                      className="text-foreground font-semibold"
+                    >
                       Full Name *
                     </Label>
                     <Input
@@ -387,14 +327,16 @@ export function ContactForm() {
                       placeholder="John Doe"
                       value={formData.name}
                       onChange={handleInputChange}
-                      // Theme: Input uses muted background, border, and foreground text
-                      className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+                      className="h-12 border-2 border-border focus:border-primary bg-background"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-foreground">
+                    <Label
+                      htmlFor="email"
+                      className="text-foreground font-semibold"
+                    >
                       Email Address *
                     </Label>
                     <Input
@@ -404,51 +346,35 @@ export function ContactForm() {
                       placeholder="john@example.com"
                       value={formData.email}
                       onChange={handleInputChange}
-                      // Theme: Input uses muted background, border, and foreground text
-                      className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+                      className="h-12 border-2 border-border focus:border-primary bg-background"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="subject" className="text-foreground">
+                    <Label
+                      htmlFor="subject"
+                      className="text-foreground font-semibold"
+                    >
                       Subject *
                     </Label>
                     <Input
                       id="subject"
                       name="subject"
                       type="text"
-                      placeholder="Project inquiry, collaboration, etc."
+                      placeholder="Brief description of your inquiry"
                       value={formData.subject}
                       onChange={handleInputChange}
-                      // Theme: Input uses muted background, border, and foreground text
-                      className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+                      className="h-12 border-2 border-border focus:border-primary bg-background"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="budget" className="text-foreground">
-                      Project Budget (Optional)
-                    </Label>
-                    <select
-                      id="budget"
-                      name="budget"
-                      value={formData.budget}
-                      onChange={handleInputChange}
-                      // Theme: Select uses muted background, border, and primary ring
-                      className="w-full px-3 py-2 bg-muted/50 border border-border text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    <Label
+                      htmlFor="message"
+                      className="text-foreground font-semibold"
                     >
-                      <option value="">Select a range</option>
-                      <option value="under-5k">Under $5,000</option>
-                      <option value="5k-10k">$5,000 - $10,000</option>
-                      <option value="10k-25k">$10,000 - $25,000</option>
-                      <option value="25k-plus">$25,000+</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message" className="text-foreground">
                       Message *
                     </Label>
                     <Textarea
@@ -458,20 +384,24 @@ export function ContactForm() {
                       rows={6}
                       value={formData.message}
                       onChange={handleInputChange}
-                      // Theme: Textarea uses muted background, border, and foreground text
-                      className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground resize-none"
+                      className="border-2 border-border focus:border-primary resize-none bg-background"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.message.length} / 2000 characters
+                    </p>
                   </div>
 
                   <Button
                     type="submit"
-                    // Theme: Submit button uses primary gradient/color
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-lg transition-all duration-300 hover:scale-105 shadow-2xl hover:shadow-primary/30"
+                    className="btn-gradient w-full h-14 text-lg"
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      "Sending..."
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                        Sending...
+                      </>
                     ) : (
                       <>
                         <Send className="mr-2 h-5 w-5" />
@@ -489,57 +419,41 @@ export function ContactForm() {
   );
 }
 
-interface ContactInfoCardProps {
-  info: ContactInfo;
-}
-
 const ContactInfoCard = ({ info }: ContactInfoCardProps) => {
   const Icon = info.icon;
-  // Get the chart gradient variable string
-  const gradientVar = getThemeGradient(info.gradient);
 
   return (
-    <div
-      // Theme: Uses muted background, border, and primary hover
-      className="group p-4 rounded-xl bg-muted/50 border border-border hover:border-primary/50 transition-all duration-300 hover:scale-105"
-    >
-      <div className="flex items-start gap-3">
-        <div
-          // Theme: Icon container uses gradient background
-          className={`p-2.5 rounded-lg flex-shrink-0 group-hover:scale-110 transition-transform`}
-          style={{ backgroundImage: gradientVar }}
-        >
-          <Icon
-            className="h-5 w-5 text-primary-foreground"
-            aria-hidden="true"
-          />
+    <Card className="group border-2 border-border hover:border-primary/50 transition-all duration-300 hover:scale-105 hover:shadow-xl bg-card/80 backdrop-blur-sm">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div
+            className={`p-2.5 rounded-lg bg-gradient-to-br ${info.color} flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg`}
+          >
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-foreground mb-1">
+              {info.title}
+            </h3>
+            {info.href ? (
+              <Link
+                href={info.href}
+                className={`text-sm font-semibold bg-gradient-to-r ${info.color} bg-clip-text text-transparent hover:underline block mb-1 truncate`}
+              >
+                {info.value}
+              </Link>
+            ) : (
+              <p
+                className={`text-sm font-semibold bg-gradient-to-r ${info.color} bg-clip-text text-transparent mb-1`}
+              >
+                {info.value}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">{info.description}</p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-foreground mb-1">
-            {info.title}
-          </h3>
-          {info.href ? (
-            <a
-              href={info.href}
-              // Theme: Value text uses gradient clip
-              className={`text-sm font-semibold text-transparent bg-clip-text hover:underline block mb-1 truncate`}
-              style={{ backgroundImage: gradientVar }}
-            >
-              {info.value}
-            </a>
-          ) : (
-            <p
-              // Theme: Value text uses gradient clip
-              className={`text-sm font-semibold text-transparent bg-clip-text mb-1`}
-              style={{ backgroundImage: gradientVar }}
-            >
-              {info.value}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">{info.description}</p>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

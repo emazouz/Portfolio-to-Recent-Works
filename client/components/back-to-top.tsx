@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import { ChevronUp } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -33,7 +33,7 @@ export const BackToTop = () => {
   return (
     <button
       onClick={scrollToTop}
-      className={`fixed bottom-4 right-6 z-50 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-indigo-500/50 ${
+      className={`fixed bottom-4 right-6 z-50 p-3 bg-gradient-to-r from-primary/90 to-secondary rounded-full shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-indigo-500/50 ${
         isVisible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-16 pointer-events-none"
@@ -41,7 +41,7 @@ export const BackToTop = () => {
       aria-label="Back to top"
       aria-hidden={!isVisible}
     >
-      <ChevronUp className="w-5 h-5" />
+      <ChevronUp className="w-6 h-6" />
     </button>
   );
 };

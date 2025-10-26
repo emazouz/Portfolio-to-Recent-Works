@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ProjectList from "@/components/portfolio/ProjectList";
+import ProjectList from "@/components/portfolio/project-list";
 
 export const metadata: Metadata = {
   title: "Portfolio - DevPortfolio",

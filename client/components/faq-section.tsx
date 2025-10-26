@@ -12,40 +12,8 @@ import {
   Sparkles,
   MessageCircleQuestion,
 } from "lucide-react";
-import HeaderSection from "./HeaderSection";
-
-const faqs = [
-  {
-    question: "What's included with each template?",
-    answer:
-      "Each template includes the complete source code, documentation, design files (Figma), and lifetime updates. You also get email support for any questions.",
-  },
-  {
-    question: "Can I customize the templates?",
-    answer:
-      "All templates are built with clean, well-documented code that's easy to customize. You can modify colors, layouts, components, and add your own features.",
-  },
-  {
-    question: "Do you offer custom development services?",
-    answer:
-      "Yes, I offer custom web development services for clients who need something unique. This includes full-stack applications, API development, and UI/UX design.",
-  },
-  {
-    question: "What technologies do you use?",
-    answer:
-      "I primarily work with React, Next.js, TypeScript, Tailwind CSS, Node.js, and various databases. I stay up-to-date with the latest web technologies and best practices.",
-  },
-  {
-    question: "How long does custom development take?",
-    answer:
-      "Project timelines vary based on complexity. Simple websites take 1-2 weeks, while complex applications can take 2-3 months. I provide detailed timelines during the consultation.",
-  },
-  {
-    question: "Do you provide ongoing support?",
-    answer:
-      "Yes, I offer maintenance packages for ongoing support, updates, and feature additions. Template purchases include 6 months of email support.",
-  },
-];
+import HeaderSection from "./header-section";
+import { FAQs_SECTION } from "@/constants/faq.constants";
 
 export function FAQSection() {
   return (
@@ -143,7 +111,7 @@ export function FAQSection() {
           {/* FAQ Accordion */}
           <div className="flex-1 w-full">
             <Accordion type="single" collapsible className="space-y-4">
-              {faqs.map((faq, index) => (
+              {FAQs_SECTION.map((faq, index) => (
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}

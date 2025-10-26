@@ -22,10 +22,9 @@ import {
   FormData,
   TokenValidationState,
   ValidationError,
-} from "@/types/authType";
-import {
-} from "@/constants/auth";
-import { validatePasswordForm } from "@/validators/authValidated";
+} from "@/types/auth.types";
+import {} from "@/constants/auth.constants";
+import { validatePasswordForm } from "@/validators/auth.validate";
 import PasswordRequirements from "./password-requirements";
 
 export function ResetPasswordForm() {
@@ -116,6 +115,7 @@ export function ResetPasswordForm() {
         toast({
           title: "Password Reset Successfully",
           description: `Your password has been reset successfully.`,
+          variant: "success",
         });
         setIsSuccess(true);
       } else {
@@ -189,10 +189,11 @@ export function ResetPasswordForm() {
   if (tokenState === TokenValidationState.LOADING) {
     return (
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border border-border">
           <CardContent className="py-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4" />
+              {/* Themed loading spinner: uses ring-primary (Blue/Navy) */}
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
               <p className="text-muted-foreground">Validating reset link...</p>
             </div>
           </CardContent>
@@ -207,13 +208,16 @@ export function ResetPasswordForm() {
   if (tokenState === TokenValidationState.INVALID) {
     return (
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border border-border">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
-              <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            {/* Themed error icon background */}
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <XCircle className="h-6 w-6 text-destructive" />
             </div>
-            <CardTitle className="text-2xl">Invalid Reset Link</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl text-foreground">
+              Invalid Reset Link
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
               This reset link has expired or is invalid.
             </CardDescription>
           </CardHeader>
@@ -227,7 +231,8 @@ export function ResetPasswordForm() {
 
             <div className="space-y-3">
               <Link href="/auth/forgot-password">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                {/* Button uses primary theme color (Blue/Navy) */}
+                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                   Request New Reset Link
                 </Button>
               </Link>
@@ -250,22 +255,24 @@ export function ResetPasswordForm() {
   if (isSuccess) {
     return (
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border border-border">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            {/* Themed success icon background */}
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle className="h-6 w-6 text-success" />
             </div>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl text-foreground">
               Password Reset Successful
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               Your password has been successfully reset. You can now log in with
               your new password.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/auth/login">
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              {/* Button uses primary theme color (Blue/Navy) */}
+              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                 Go to Login
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -281,10 +288,12 @@ export function ResetPasswordForm() {
    */
   return (
     <div className="container mx-auto px-4 max-w-md md:max-w-2xl">
-      <Card className="shadow-lg">
+      <Card className="shadow-lg border border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl text-foreground">
+            Reset Your Password
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
             Enter a new password for your account.
           </CardDescription>
         </CardHeader>
@@ -317,13 +326,15 @@ export function ResetPasswordForm() {
                   disabled={isLoading}
                   aria-describedby="password-requirements"
                   aria-invalid={hasPasswordError}
-                  className={hasPasswordError ? "border-red-500" : ""}
+                  // Uses destructive color
+                  className={hasPasswordError ? "border-destructive" : ""}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  // Icon color is muted, but hovers to primary (Blue)
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-primary hover:bg-transparent"
                   onClick={() => togglePasswordVisibility("password")}
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
@@ -351,13 +362,17 @@ export function ResetPasswordForm() {
                   required
                   disabled={isLoading}
                   aria-invalid={hasConfirmPasswordError}
-                  className={hasConfirmPasswordError ? "border-red-500" : ""}
+                  // Uses destructive color
+                  className={
+                    hasConfirmPasswordError ? "border-destructive" : ""
+                  }
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  // Icon color is muted, but hovers to primary (Blue)
+                  className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-primary hover:bg-transparent"
                   onClick={() => togglePasswordVisibility("confirmPassword")}
                   tabIndex={-1}
                   aria-label={
@@ -381,7 +396,8 @@ export function ResetPasswordForm() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              // Uses primary theme color (Blue/Navy)
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -399,7 +415,8 @@ export function ResetPasswordForm() {
           <div className="text-center">
             <Link
               href="/auth/login"
-              className="text-sm text-purple-600 hover:underline dark:text-purple-400"
+              // Link color is primary (Blue/Navy)
+              className="text-sm text-primary hover:underline transition-colors"
             >
               Back to Login
             </Link>

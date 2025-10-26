@@ -11,19 +11,12 @@ import { MessageCircle, Reply, Send, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CommentType } from "@/types/CommentType";
+import {
+  CommentFormData,
+  CommentSectionProps,
+  CommentType,
+} from "@/types/comment.types";
 import { commentStore } from "@/store/commentStore";
-
-interface CommentSectionProps {
-  blogId: number;
-  comments: CommentType[];
-}
-
-interface CommentFormData {
-  name: string;
-  email: string;
-  content: string;
-}
 
 export function CommentSection({ blogId, comments = [] }: CommentSectionProps) {
   const { currentLanguage, t } = useTranslation();

@@ -228,6 +228,49 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: var(--radius-lg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: var(--radius-lg);
+  border: 3px solid var(--muted);
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  border: 2px solid var(--muted);
+}
+
+/* Luxury Selection */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  text-shadow: none;
+}
+
+::-moz-selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  text-shadow: none;
+}
+
+/* Focus States */
+*:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
 /*
 |--------------------------------------------------------------------------
 | 7. TAILWIND CUSTOM UTILITIES (@layer utilities)
@@ -239,6 +282,10 @@ body {
   .card {
     /* Uses bg-card, border-border, and border-primary/50 for hover */
     @apply relative overflow-hidden bg-card backdrop-blur-xl border border-border transition-all duration-500;
+  }
+
+  .tab {
+    @apply pt-6 shadow-xl border-t-4 border-primary;
   }
 
   /* Card Hover Effect: Uses the custom color variables */

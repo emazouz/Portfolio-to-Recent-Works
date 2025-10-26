@@ -1,4 +1,4 @@
-import ReviewsSection from "@/components/admin/reviewSection";
+import ReviewsSection from "@/components/admin/review-section";
 
 export default function ReviewsPage() {
   return (

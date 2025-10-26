@@ -1,5 +1,5 @@
-import { ProjectDetails } from "@/components/admin/projects/ProjectDetails";
-import { ParamsProps } from "@/types/ParamsType";
+import { ProjectDetails } from "@/components/admin/projects/project-details";
+import { ParamsProps } from "@/types/params.types";
 
 export default async function ViewProjectPage({ params }: ParamsProps) {
   const resolvedParams = await params;

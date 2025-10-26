@@ -1,5 +1,5 @@
-import { BlogDetails } from "@/components/admin/blogs/BlogDetails";
-import { ParamsProps } from "@/types/ParamsType";
+import { BlogDetails } from "@/components/admin/blogs/blog-details";
+import { ParamsProps } from "@/types/params.types";
 
 export default async function ViewBlogPage({ params }: ParamsProps) {
   // Await params in Next.js 15+

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Mail, Award, Phone, Code2 } from "lucide-react";
-import { APP_NAME } from "@/constants";
+import { APP_NAME } from "@/constants/index.constants";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();

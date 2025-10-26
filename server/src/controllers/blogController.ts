@@ -249,101 +249,104 @@ export const createBlog = asyncHandler(
 );
 
 // Get All Blogs
-export const getAllBlogs = asyncHandler(async (req: Request, res: Response) => {
-  try {
-    const queryValidation = validateQueryParams(req.query);
+export const getAllBlogs = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const queryValidation = validateQueryParams(req.query);
+      const userId = req.user?.userId;
 
-    if (!queryValidation.isValid) {
+      if (!queryValidation.isValid) {
+        return sendResponse(
+          res,
+          StatusCodes.BAD_REQUEST,
+          false,
+          "Invalid query parameters",
+          undefined,
+          undefined,
+          queryValidation.errors
+        );
+      }
+
+      const {
+        page = 1,
+        limit = 10,
+        published,
+        featured,
+        category,
+        search,
+        sortBy = "createdAt",
+        sortOrder = "desc",
+      } = queryValidation.data!;
+
+      // Build where clause
+      const where: Prisma.BlogWhereInput = {};
+
+      if (published !== undefined) where.published = published;
+      if (featured !== undefined) where.featured = featured;
+      if (category) where.category = category;
+      // if (authorId) where.authorId = authorId;
+
+      if (search) {
+        where.OR = [
+          { title_en: { contains: search, mode: "insensitive" } },
+          { title_ar: { contains: search, mode: "insensitive" } },
+          { content_en: { contains: search, mode: "insensitive" } },
+          { content_ar: { contains: search, mode: "insensitive" } },
+          { tags: { hasSome: [search] } },
+          { keywords: { hasSome: [search] } },
+        ];
+      }
+
+      // Execute queries in parallel
+      const [blogs, totalCount] = await Promise.all([
+        prisma.blog.findMany({
+          where,
+          orderBy: { [sortBy]: sortOrder },
+          skip: (page - 1) * limit,
+          take: limit,
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            comments: true,
+          },
+        }),
+        prisma.blog.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
+
       return sendResponse(
         res,
-        StatusCodes.BAD_REQUEST,
+        StatusCodes.OK,
+        true,
+        "Blogs retrieved successfully",
+        {
+          blogs,
+          pagination: {
+            currentPage: page,
+            totalPages,
+            totalCount,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+          },
+        }
+      );
+    } catch (error: any) {
+      console.error("Error fetching blogs:", error);
+      return sendResponse(
+        res,
+        StatusCodes.INTERNAL_SERVER_ERROR,
         false,
-        "Invalid query parameters",
-        undefined,
-        undefined,
-        queryValidation.errors
+        "Server error while fetching blogs"
       );
     }
-
-    const {
-      page = 1,
-      limit = 10,
-      published,
-      featured,
-      category,
-      search,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-    } = queryValidation.data!;
-
-    // Build where clause
-    const where: Prisma.BlogWhereInput = {};
-
-    if (published !== undefined) where.published = published;
-    if (featured !== undefined) where.featured = featured;
-    if (category) where.category = category;
-    // if (authorId) where.authorId = authorId;
-
-    if (search) {
-      where.OR = [
-        { title_en: { contains: search, mode: "insensitive" } },
-        { title_ar: { contains: search, mode: "insensitive" } },
-        { content_en: { contains: search, mode: "insensitive" } },
-        { content_ar: { contains: search, mode: "insensitive" } },
-        { tags: { hasSome: [search] } },
-        { keywords: { hasSome: [search] } },
-      ];
-    }
-
-    // Execute queries in parallel
-    const [blogs, totalCount] = await Promise.all([
-      prisma.blog.findMany({
-        where,
-        orderBy: { [sortBy]: sortOrder },
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          comments: true,
-        },
-      }),
-      prisma.blog.count({ where }),
-    ]);
-
-    const totalPages = Math.ceil(totalCount / limit);
-
-    return sendResponse(
-      res,
-      StatusCodes.OK,
-      true,
-      "Blogs retrieved successfully",
-      {
-        blogs,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalCount,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-      }
-    );
-  } catch (error: any) {
-    console.error("Error fetching blogs:", error);
-    return sendResponse(
-      res,
-      StatusCodes.INTERNAL_SERVER_ERROR,
-      false,
-      "Server error while fetching blogs"
-    );
   }
-});
+);
 
 // Get Single Blog
 export const getBlogById = asyncHandler(

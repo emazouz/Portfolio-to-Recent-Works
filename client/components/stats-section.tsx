@@ -1,25 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Award, Users, Calendar, ShoppingBag } from "lucide-react";
-import { Separator } from "./ui/separator";
+import { TrendingUp } from "lucide-react";
+import HeaderSection from "./header-section";
+import { CLIENT } from "@/constants/testimonials.constants";
+import { CounterProps } from "@/types/index.types";
+import { STATS } from "@/constants/index.constants";
 
-const stats = [
-  { label: "Projects Completed", value: 150, suffix: "+", icon: Award },
-  { label: "Happy Clients", value: 500, suffix: "+", icon: Users },
-  { label: "Years Experience", value: 5, suffix: "+", icon: Calendar },
-  { label: "Templates Sold", value: 2500, suffix: "+", icon: ShoppingBag },
-];
-
-function Counter({
-  end,
-  duration = 2000,
-  startCounting,
-}: {
-  end: number;
-  duration?: number;
-  startCounting: boolean;
-}) {
+function Counter({ end, duration = 2000, startCounting }: CounterProps) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -32,9 +20,9 @@ function Counter({
       if (!startTime) startTime = currentTime;
       const progress = Math.min((currentTime - startTime) / duration, 1);
 
-      // Easing function for smooth animation
-      const easeOutQuad = (t: number) => t * (2 - t);
-      setCount(Math.floor(easeOutQuad(progress) * end));
+      // Enhanced easing function for smoother animation
+      const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+      setCount(Math.floor(easeOutCubic(progress) * end));
 
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
@@ -59,7 +47,7 @@ export function StatsSection() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.1, rootMargin: "50px" }
     );
 
     if (sectionRef.current) {
@@ -71,80 +59,136 @@ export function StatsSection() {
 
   return (
     <>
-
-      <Separator className="my-20 wrapper" />
       <section
         ref={sectionRef}
-        className="py-20 my-20 relative overflow-hidden text-primary-foreground" // text-white -> text-primary-foreground
-        // FIX: Use inline style for the main gradient background (var(--chart-7))
-        style={{ backgroundImage: "var(--chart-7)" }}
+        // Main background is black/dark in dark mode (via bg-background which is set to black gradient)
+        className="py-24 relative overflow-hidden"
       >
-        {/* Decorative background elements: Use theme-aware colors (card/primary/secondary) */}
-        <div className="absolute inset-0 opacity-10">
-          <div
-            // FIX: Use primary-foreground/secondary colors for decorative elements
-            className="absolute top-10 left-10 w-72 h-72 bg-primary-foreground rounded-full blur-3xl"
-          />
-          <div
-            // FIX: Use secondary color for decorative elements
-            className="absolute bottom-10 right-10 w-96 h-96 bg-secondary/50 rounded-full blur-3xl"
-          />
+        {/* Animated Background Elements (Using theme primary color for glows) */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/30 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse delay-2000" />
         </div>
 
-        <div className="wrapper relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 animate-fade-in">
-              Trusted by Developers Worldwide
-            </h2>
-            <p
-              // FIX: Use primary-foreground/80 for descriptive text over primary background
-              className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto"
-            >
-              Numbers that speak for our commitment to excellence
-            </p>
-          </div>
+        {/* Grid Pattern Overlay (Kept white for effect on dark background) */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {stats.map((stat, index) => (
+        <div className="wrapper relative z-10">
+          <HeaderSection
+            icon={<TrendingUp className="animate-pulse" />}
+            badgeTitle="Our Impact"
+            title="Trusted by Developers"
+            description="Numbers that speak for our commitment to excellence and innovation."
+            hideCta={true}
+          />
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+            {STATS.map((stat, index) => (
               <div
                 key={index}
-                className="text-center p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                className="group relative"
                 style={{
                   animation: isVisible
-                    ? `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                    ? `fadeInUp 0.6s ease-out ${index * 0.15}s both`
                     : "none",
                 }}
               >
-                {/* Icon Container: Use white/primary-foreground for icons */}
-                <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary-foreground/20">
-                  <stat.icon size={32} className="text-primary-foreground" />
-                </div>
-
-                {/* Counter Value */}
-                <div className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2">
-                  <Counter end={stat.value} startCounting={isVisible} />
-                  {/* FIX: Use secondary color for the suffix (e.g., lime -> secondary) */}
-                  <span className="text-secondary">{stat.suffix}</span>
-                </div>
-
-                {/* Label */}
+                {/* Card Container */}
                 <div
-                  // FIX: Use primary-foreground/80 for the label text
-                  className="text-primary-foreground/80 text-sm md:text-base font-medium"
+                  className="relative h-full p-8 rounded-3xl bg-card/10 backdrop-blur-md border border-border/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl"
+                  // Added dynamic shadow for luxury effect
+                  style={{
+                    // This dynamic style uses the color defined in the stat object for the shadow effect
+                    boxShadow: isVisible
+                      ? `0 0 40px 0 ${stat.bgGlow
+                          .replace("bg-", "")
+                          .replace("/20", "")}`
+                      : "none",
+                    transition: "box-shadow 0.5s ease-in-out",
+                  }}
                 >
-                  {stat.label}
+                  {/* Gradient Glow Effect */}
+                  <div
+                    className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
+                  />
+
+                  {/* Icon Container */}
+                  <div className="relative mb-6">
+                    <div
+                      className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${stat.color} shadow-lg shadow-black/30`}
+                    >
+                      <stat.icon
+                        size={28}
+                        className="text-primary-foreground"
+                      />
+                    </div>
+                    {/* Animated Ring */}
+                    <div
+                      className={`absolute inset-0 w-16 h-16 rounded-2xl bg-gradient-to-br ${stat.color} animate-ping opacity-20`}
+                    />
+                  </div>
+
+                  {/* Counter Value */}
+                  <div className="relative mb-3">
+                    <div className="text-5xl md:text-6xl font-bold text-foreground">
+                      <Counter end={stat.value} startCounting={isVisible} />
+                      {/* Suffix uses the gradient for the gold color */}
+                      <span
+                        className={`bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
+                      >
+                        {stat.suffix}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Label */}
+                  <div className="text-muted-foreground text-sm md:text-base font-medium tracking-wide">
+                    {stat.label}
+                  </div>
+
+                  {/* Bottom Accent Line */}
+                  <div
+                    className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color} rounded-b-3xl transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`}
+                  />
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Bottom CTA Section */}
+          <div className="mt-16 text-center">
+            <div className="inline-flex items-center gap-6 p-6 rounded-2xl bg-card/10 backdrop-blur-md border border-border/50">
+              <div className="flex -space-x-3">
+                {/* Avatar stack using Gold Primary colors for contrast */}
+                {CLIENT.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt={`client-${i}`}
+                    className="relative w-10 h-10 rounded-full border-2 border-background bg-gradient-to-br from-primary to-secondar"
+                  />
+                ))}
+              </div>
+              <div className="text-left">
+                <p className="text-foreground font-semibold">
+                  Join 500+ Happy Clients
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Start your journey today
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Inline styles for custom animations (unchanged) */}
+        {/* Custom Animations & Styles */}
         <style jsx>{`
           @keyframes fadeInUp {
             from {
               opacity: 0;
-              transform: translateY(30px);
+              transform: translateY(40px);
             }
             to {
               opacity: 1;
@@ -155,7 +199,7 @@ export function StatsSection() {
           @keyframes fade-in {
             from {
               opacity: 0;
-              transform: translateY(-10px);
+              transform: translateY(-20px);
             }
             to {
               opacity: 1;
@@ -164,7 +208,44 @@ export function StatsSection() {
           }
 
           .animate-fade-in {
-            animation: fade-in 0.8s ease-out;
+            animation: fade-in 1s ease-out;
+          }
+
+          .delay-1000 {
+            animation-delay: 1s;
+          }
+
+          .delay-2000 {
+            animation-delay: 2s;
+          }
+
+          .bg-grid-pattern {
+            background-image: linear-gradient(
+                rgba(255, 255, 255, 0.05) 1px,
+                transparent 1px
+              ),
+              linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.05) 1px,
+                transparent 1px
+              );
+            background-size: 50px 50px;
+          }
+
+          @keyframes pulse {
+            0%,
+            100% {
+              opacity: 0.3;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.5;
+              transform: scale(1.05);
+            }
+          }
+
+          .animate-pulse {
+            animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
           }
         `}</style>
       </section>

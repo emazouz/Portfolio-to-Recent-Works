@@ -1,5 +1,5 @@
-import { API_ROUTES } from "@/lib/server";
-import { CommentType } from "@/types/CommentType";
+import { API_ROUTES } from "@/lib/api";
+import { CommentType } from "@/types/comment.types";
 import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";

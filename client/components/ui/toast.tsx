@@ -3,92 +3,69 @@
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Bug, ThumbsUp, X, AlertCircle, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const SuccessIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth="1.5"
-    stroke="currentColor"
-    className="w-6 h-6"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="m4.5 12.75 6 6 9-13.5"
-    />
-  </svg>
-);
+// ==================== TYPES ====================
+type ToastVariant = "success" | "error" | "warning" | "info";
 
-const ErrorIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth="1.5"
-    stroke="currentColor"
-    className="w-6 h-6"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-    />
-  </svg>
-);
+interface AlertConfigItem {
+  Icon: React.ComponentType<{ className?: string }>;
+  iconContainerClassName: string;
+  barClassName: string;
+}
 
-const ToastProvider = ToastPrimitives.Provider;
+type AlertConfig = Record<ToastVariant, AlertConfigItem>;
 
-const CloseIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth="1.5"
-    stroke="currentColor"
-    className="w-6 h-6"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M6 18 18 6M6 6l12 12"
-    />
-  </svg>
-);
-
-const alertConfig = {
+// ==================== CONFIGURATION ====================
+// Note: Alert colors (success, error, etc.) are kept standard (Green, Red, Amber, Blue)
+// for immediate recognition, using fixed Tailwind classes as they are not part of the primary theme palette.
+const alertConfig: AlertConfig = {
   success: {
-    Icon: SuccessIcon,
-    iconContainerClassName: "text-[#2b9875] bg-white/5",
-    barClassName: "bg-green",
+    Icon: ThumbsUp,
+    iconContainerClassName: "text-emerald-500 bg-emerald-500/10",
+    barClassName: "bg-emerald-500",
   },
   error: {
-    Icon: ErrorIcon,
-    iconContainerClassName: "text-red-[500] bg-white/5",
-    barClassName: "bg-red-[500]",
+    Icon: Bug,
+    iconContainerClassName: "text-red-500 bg-red-500/10",
+    barClassName: "bg-red-500",
+  },
+  warning: {
+    Icon: AlertCircle,
+    iconContainerClassName: "text-amber-500 bg-amber-500/10",
+    barClassName: "bg-amber-500",
+  },
+  info: {
+    Icon: Info,
+    iconContainerClassName: "text-sky-500 bg-sky-500/10",
+    barClassName: "bg-sky-500",
   },
 } as const;
 
-const ToastViewport = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Viewport>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Viewport
-    ref={ref}
-    className={`fixed bottom-5 right-5 z-[99999999999] flex flex-col gap-2 md:min-w-[300px]  max-h-screen p-2 ${className}`}
-    {...props}
-  />
-));
-ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
-
+// ==================== STYLES ====================
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-lg py-3 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full bg-[#232531] cursor-default",
+  cn(
+    "group pointer-events-auto relative flex w-full items-center justify-between",
+    "overflow-hidden rounded-lg py-3 shadow-lg backdrop-blur-sm",
+    "transition-all duration-300 ease-in-out",
+    "data-[swipe=cancel]:translate-x-0",
+    "data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)]",
+    "data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]",
+    "data-[swipe=move]:transition-none",
+    "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-full data-[state=open]:fade-in-0",
+    "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-full data-[state=closed]:fade-out-80",
+    // Themed Background and Border: Uses bg-card/95, which is almost black in dark mode
+    "bg-card/95 border border-border",
+    "cursor-default select-none"
+  ),
   {
     variants: {
       variant: {
-        success: "",
-        error: "",
+        success: "border-l-4 border-l-emerald-500",
+        error: "border-l-4 border-l-red-500",
+        warning: "border-l-4 border-l-amber-500",
+        info: "border-l-4 border-l-sky-500",
       },
     },
     defaultVariants: {
@@ -97,33 +74,72 @@ const toastVariants = cva(
   }
 );
 
+// ==================== COMPONENTS ====================
+
+const ToastProvider = ToastPrimitives.Provider;
+
+const ToastViewport = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Viewport>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Viewport
+    ref={ref}
+    className={cn(
+      "fixed bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse",
+      "p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col",
+      "md:max-w-[420px]",
+      "gap-2",
+      className
+    )}
+    {...props}
+  />
+));
+ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
->(({ className, variant, children, ...props }, ref) => {
-  // Ensure we always have a valid config by providing fallback
-  const validVariant = variant && variant in alertConfig ? variant : "success";
-  const config = alertConfig[validVariant as keyof typeof alertConfig];
+>(({ className, variant = "success", children, ...props }, ref) => {
+  // Type-safe variant handling
+  const safeVariant: ToastVariant =
+    variant && variant in alertConfig ? (variant as ToastVariant) : "success";
+
+  const config = alertConfig[safeVariant];
   const { Icon, iconContainerClassName, barClassName } = config;
 
   return (
     <ToastPrimitives.Root
       ref={ref}
-      className={toastVariants({ variant, className })}
+      className={cn(toastVariants({ variant: safeVariant }), className)}
       {...props}
     >
-      <div className="flex items-center gap-3 w-full mx-3">
+      <div className="flex items-start gap-3 w-full px-4">
+        {/* Icon Container */}
         <div
-          className={`${iconContainerClassName} flex-shrink-0 backdrop-blur-xl p-1.5 rounded-lg`}
+          className={cn(
+            "flex-shrink-0 rounded-lg p-2 backdrop-blur-xl",
+            "transition-colors duration-200",
+            iconContainerClassName
+          )}
+          aria-hidden="true"
         >
-          <Icon />
+          <Icon className="h-5 w-5" />
         </div>
-        <div className="flex w-full justify-between gap-2">{children}</div>
-        <div
-          className={`absolute bottom-0 left-0 h-1 ${barClassName} animate-countdown`}
-        ></div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col gap-1 min-w-0">{children}</div>
       </div>
+
+      {/* Progress Bar */}
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 h-1 w-full origin-left",
+          "animate-countdown",
+          barClassName
+        )}
+        aria-hidden="true"
+      />
     </ToastPrimitives.Root>
   );
 });
@@ -135,7 +151,18 @@ const ToastAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Action
     ref={ref}
-    className={`inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive ${className}`}
+    className={cn(
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-md",
+      // Themed Styles
+      "border border-border bg-transparent px-3",
+      "text-sm font-medium text-foreground",
+      "transition-colors duration-200",
+      "hover:bg-muted/50 hover:text-primary-foreground/90",
+      // Focus Styles
+      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+      "disabled:pointer-events-none disabled:opacity-50",
+      className
+    )}
     {...props}
   />
 ));
@@ -147,11 +174,21 @@ const ToastClose = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Close
     ref={ref}
-    className={`text-white hover:text-green bg-white/5 p-1 rounded-md ml-2 transition-colors ease-linear ${className}`}
+    className={cn(
+      "absolute right-2 top-2 rounded-md p-1",
+      // Themed Styles
+      "text-muted-foreground opacity-0 transition-all duration-200",
+      "hover:text-foreground hover:bg-muted",
+      // Focus Styles
+      "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring",
+      "group-hover:opacity-100",
+      className
+    )}
     toast-close=""
+    aria-label="Close"
     {...props}
   >
-    <CloseIcon />
+    <X className="h-4 w-4" />
   </ToastPrimitives.Close>
 ));
 ToastClose.displayName = ToastPrimitives.Close.displayName;
@@ -162,7 +199,11 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={`text-white text-sm font-semibold ${className}`}
+    className={cn(
+      "text-sm font-semibold text-foreground leading-tight", // Themed Text
+      "pr-6", // Space for close button
+      className
+    )}
     {...props}
   />
 ));
@@ -174,19 +215,24 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={`text-white/80 text-xs ${className}`}
+    className={cn(
+      "text-sm text-muted-foreground leading-relaxed", // Themed Text
+      "pr-6", // Space for close button
+      className
+    )}
     {...props}
   />
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
+// ==================== TYPES EXPORT ====================
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
-
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
 export {
   type ToastProps,
   type ToastActionElement,
+  type ToastVariant,
   ToastProvider,
   ToastViewport,
   Toast,

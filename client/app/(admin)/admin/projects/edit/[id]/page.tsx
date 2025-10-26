@@ -1,5 +1,5 @@
-import { ProjectForm } from "@/components/admin/projects/ProjectForm";
-import { ParamsProps } from "@/types/ParamsType";
+import { ProjectForm } from "@/components/admin/projects/project-form";
+import { ParamsProps } from "@/types/params.types";
 
 export default async function EditProjectPage({ params }: ParamsProps) {
   const resolvedParams = await params;

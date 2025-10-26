@@ -1,4 +1,4 @@
-import { AboutHero } from "@/components/about/about-hero";
+import AboutHero from "@/components/about/about-hero";
 import { ExperienceTimeline } from "@/components/about/experience-timeline";
 import FunFactsSection from "@/components/about/fun-facts-section";
 import { AboutCTA } from "@/components/about/about-cta";

@@ -1,11 +1,11 @@
-import TestimonialsMain from "@/components/TestimonialsMain";
+import TestimonialsPage from "@/components/testimonials/testimonials";
 
-function TestimonialsPage() {
+function Testimonials() {
   return (
     <div className="py-20">
-      <TestimonialsMain />
+      <TestimonialsPage />
     </div>
   );
 }
 
-export default TestimonialsPage;
+export default Testimonials;

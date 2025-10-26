@@ -10,52 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Briefcase, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import HeaderSection from "../HeaderSection";
-
-const experiences = [
-  {
-    title: "Senior Frontend Engineer",
-    company: "TechCorp Inc.",
-    location: "San Francisco, CA",
-    period: "2022 - Present",
-    description:
-      "Lead frontend development for a SaaS platform serving 100K+ users. Architected and implemented a component library that reduced development time by 40%. Mentored junior developers and established best practices for code quality.",
-    technologies: ["React", "TypeScript", "Next.js", "Tailwind CSS", "GraphQL"],
-    achievements: [
-      "Improved application performance by 60%",
-      "Led migration to TypeScript",
-      "Built design system used across 5 products",
-    ],
-  },
-  {
-    title: "Full Stack Developer",
-    company: "StartupXYZ",
-    location: "Remote",
-    period: "2020 - 2022",
-    description:
-      "Developed and maintained multiple client projects from concept to deployment. Built responsive web applications, RESTful APIs, and integrated third-party services. Collaborated directly with clients to understand requirements and deliver solutions.",
-    technologies: ["Vue.js", "Node.js", "Express", "MongoDB", "AWS"],
-    achievements: [
-      "Delivered 15+ client projects on time",
-      "Reduced server costs by 30% through optimization",
-      "Implemented CI/CD pipelines",
-    ],
-  },
-  {
-    title: "Frontend Developer",
-    company: "Digital Agency Pro",
-    location: "New York, NY",
-    period: "2019 - 2020",
-    description:
-      "Created pixel-perfect, responsive websites for various clients including e-commerce platforms, corporate websites, and landing pages. Worked closely with designers to implement complex UI/UX designs.",
-    technologies: ["HTML5", "CSS3", "JavaScript", "jQuery", "WordPress"],
-    achievements: [
-      "Built 25+ responsive websites",
-      "Achieved 95+ PageSpeed scores",
-      "Increased client conversion rates by 25%",
-    ],
-  },
-];
+import HeaderSection from "../header-section";
+import { experiences } from "@/constants/about.constants";
 
 export function ExperienceTimeline() {
   const [visibleItems, setVisibleItems] = useState<number[]>([]);
@@ -87,7 +43,11 @@ export function ExperienceTimeline() {
   }, [visibleItems]);
 
   return (
-    <section id="experience" ref={sectionRef} className="py-12 sm:py-16 lg:py-20">
+    <section
+      id="experience"
+      ref={sectionRef}
+      className="py-12 sm:py-16 lg:py-20"
+    >
       <HeaderSection
         icon={<Sparkles className="animate-pulse" />}
         badgeTitle="PROFESSIONAL JOURNEY"
@@ -125,7 +85,9 @@ export function ExperienceTimeline() {
                   isVisible
                     ? "translate-x-0 opacity-100"
                     : `${
-                        isEven ? "-translate-x-10 sm:-translate-x-20" : "translate-x-10 sm:translate-x-20"
+                        isEven
+                          ? "-translate-x-10 sm:-translate-x-20"
+                          : "translate-x-10 sm:translate-x-20"
                       } opacity-0`
                 }`}
                 style={{ transitionDelay: `${index * 200}ms` }}
@@ -179,7 +141,9 @@ export function ExperienceTimeline() {
                                 className="flex items-start gap-2 text-xs sm:text-sm"
                               >
                                 <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-purple-600 to-amber-500 mt-1.5 sm:mt-2 flex-shrink-0" />
-                                <span className="break-words">{achievement}</span>
+                                <span className="break-words">
+                                  {achievement}
+                                </span>
                               </li>
                             )
                           )}

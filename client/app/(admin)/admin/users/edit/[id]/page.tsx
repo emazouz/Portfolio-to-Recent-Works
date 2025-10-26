@@ -1,4 +1,4 @@
-import { UserForm } from "@/components/admin/users/UserForm";
+import { UserForm } from "@/components/admin/users/user-form";
 
 interface EditUserPageProps {
   params: {

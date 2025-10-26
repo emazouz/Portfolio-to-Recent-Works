@@ -1,5 +1,5 @@
-import { API_ROUTES } from "@/lib/server";
-import { ResponseType } from "@/types/ResponseType";
+import { API_ROUTES } from "@/lib/api";
+import { ResponseType } from "@/types/response.types";
 import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";

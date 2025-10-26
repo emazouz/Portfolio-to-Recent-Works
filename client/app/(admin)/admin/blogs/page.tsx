@@ -1,4 +1,4 @@
-import { BlogsTable } from "@/components/admin/blogs/BlogsTable"
+import { BlogsTable } from "@/components/admin/blogs/blogs-table"
 
 export default function AdminBlogsPage() {
   return <BlogsTable />

@@ -18,7 +18,7 @@ import { Eye, EyeOff, Github, Mail } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { LoginInput, loginSchema } from "@/validators/authValidated";
+import { LoginInput, loginSchema } from "@/validators/auth.validate";
 import z from "zod";
 import { authStore } from "@/store/authStore";
 
@@ -114,28 +114,35 @@ export function LoginForm() {
 
   return (
     <div className="container mx-auto px-4 max-w-md">
-      <Card className="shadow-lg">
+      {/* Card: Uses theme colors (Deep Black/Navy in dark mode) */}
+      <Card className="shadow-lg border border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your account to continue</CardDescription>
+          <CardTitle className="text-2xl text-foreground">
+            Welcome Back
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Sign in to your account to continue
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Social Login */}
           <div className="space-y-3">
+            {/* Themed Outline Buttons */}
             <Button
               variant="outline"
-              className="w-full bg-transparent"
+              // Social login button styles adjusted for the dark/gold/blue theme
+              className="w-full bg-transparent hover:bg-muted/30 border-border text-foreground hover:border-primary transition-all duration-300"
               type="button"
             >
-              <Github className="mr-2 h-4 w-4" />
+              <Github className="mr-2 h-4 w-4 text-primary" />
               Continue with GitHub
             </Button>
             <Button
               variant="outline"
-              className="w-full bg-transparent"
+              className="w-full bg-transparent hover:bg-muted/30 border-border text-foreground hover:border-primary transition-all duration-300"
               type="button"
             >
-              <Mail className="mr-2 h-4 w-4" />
+              <Mail className="mr-2 h-4 w-4 text-primary" />
               Continue with Google
             </Button>
           </div>
@@ -145,7 +152,7 @@ export function LoginForm() {
               <Separator />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-card px-2 text-muted-foreground">
                 Or continue with email
               </span>
             </div>
@@ -178,11 +185,13 @@ export function LoginForm() {
                   onChange={handleInputChange}
                   required
                 />
+                {/* Visibility Toggle Button */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  // Icon color is muted, but hovers to primary (Blue)
+                  className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-primary hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -196,6 +205,7 @@ export function LoginForm() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
+                {/* Custom Checkbox Styling using Theme Colors */}
                 <input
                   type="checkbox"
                   name="rememberMe"
@@ -207,34 +217,42 @@ export function LoginForm() {
                     })
                   }
                   value={formData.rememberMe.toString()}
-                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  // Styling the checkbox: border-border, text-primary, focus:ring-primary
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                 />
-                <Label htmlFor="remember" className="text-sm">
+                <Label
+                  htmlFor="remember"
+                  className="text-sm text-muted-foreground"
+                >
                   Remember me
                 </Label>
               </div>
               <Link
                 href="/auth/forgot-password"
-                className="text-sm text-purple-600 hover:underline"
+                // Link color is primary (Blue)
+                className="text-sm text-primary hover:underline transition-colors"
               >
                 Forgot password?
               </Link>
             </div>
 
+            {/* Submit Button: Primary Color */}
             <Button
               type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              // Uses primary theme color (Blue)
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
-          <div className="text-center text-sm">
+          <div className="text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
             <Link
               href="/auth/signup"
-              className="text-purple-600 hover:underline"
+              // Link color is primary (Blue)
+              className="text-primary hover:underline transition-colors"
             >
               Sign up
             </Link>

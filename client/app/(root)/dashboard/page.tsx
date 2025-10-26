@@ -1,5 +1,5 @@
-import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
-import UserDashboard from "@/components/dashboard/UserDashboard";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import UserDashboard from "@/components/dashboard/user-dashboard";
 
 export const metadata = {
   title: "Dashboard - Developer Portfolio",

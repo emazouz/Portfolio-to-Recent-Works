@@ -1,5 +1,5 @@
-import ProjectDetails from "@/components/portfolio/ProjectDetails";
-import { ParamsProps } from "@/types/ParamsType";
+import ProjectDetails from "@/components/portfolio/details/project-details";
+import { ParamsProps } from "@/types/params.types";
 
 export const metadata = {
   title: "Login - Developer Portfolio",

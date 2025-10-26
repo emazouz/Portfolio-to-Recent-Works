@@ -1,68 +1,10 @@
 "use client";
 
-import { Coffee, Code, Globe, Heart, Zap, Users, Sparkles } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import HeaderSection from "../HeaderSection";
-
-// Helper function to map chart key to CSS variable string
-const getChartGradientVar = (gradientKey: string) => {
-  return `var(--${gradientKey})`;
-};
-
-// --- MAPPING HARDCODED COLORS TO CHART KEYS ---
-const GRADIENT_MAP = {
-  "from-amber-500 to-orange-500": "chart-4", // Yellow/Amber
-  "from-green-500 to-emerald-500": "chart-5", // Green
-  "from-blue-500 to-cyan-500": "chart-3", // Blue
-  "from-pink-500 to-rose-500": "chart-2", // Pink
-  "from-yellow-500 to-amber-500": "chart-4", // Yellow/Amber
-  "from-purple-500 to-violet-500": "chart-6", // Purple/Violet
-};
-
-const funFacts = [
-  {
-    icon: Coffee,
-    title: "Coffee Lover",
-    description: "500+ cups consumed while coding",
-    gradientKey: GRADIENT_MAP["from-amber-500 to-orange-500"],
-    stat: "500+",
-  },
-  {
-    icon: Code,
-    title: "Open Source",
-    description: "20+ contributions to community projects",
-    gradientKey: GRADIENT_MAP["from-green-500 to-emerald-500"],
-    stat: "20+",
-  },
-  {
-    icon: Globe,
-    title: "Global Traveler",
-    description: "Coded from 15+ countries",
-    gradientKey: GRADIENT_MAP["from-blue-500 to-cyan-500"],
-    stat: "15+",
-  },
-  {
-    icon: Heart,
-    title: "Mentor",
-    description: "Helped 50+ developers start their journey",
-    gradientKey: GRADIENT_MAP["from-pink-500 to-rose-500"],
-    stat: "50+",
-  },
-  {
-    icon: Zap,
-    title: "Fast Learner",
-    description: "Mastered 3 new frameworks this year",
-    gradientKey: GRADIENT_MAP["from-yellow-500 to-amber-500"],
-    stat: "3+",
-  },
-  {
-    icon: Users,
-    title: "Team Player",
-    description: "Led 10+ cross-functional teams",
-    gradientKey: GRADIENT_MAP["from-purple-500 to-violet-500"],
-    stat: "10+",
-  },
-];
+import HeaderSection from "../header-section";
+import { getChartGradientVar } from "@/handlers/index.handlers";
+import { funFacts } from "@/constants/about.constants";
 
 export default function FunFactsSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -206,7 +148,6 @@ export default function FunFactsSection() {
           // FIX: Use theme-aware card/border
           className="relative p-8 rounded-2xl bg-card backdrop-blur-xl border border-border shadow-2xl max-w-4xl mx-auto group"
         >
-
           <div className="relative flex flex-col md:flex-row items-center justify-around gap-6 text-center">
             <div className="space-y-2">
               {/* Value Text: FIX - Use theme-aware accent clip */}

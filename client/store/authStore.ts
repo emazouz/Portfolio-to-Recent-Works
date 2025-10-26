@@ -1,6 +1,6 @@
 import { toast } from "@/hooks/use-toast";
-import { API_ROUTES } from "@/lib/server";
-import { LoginInput, RegisterInput } from "@/validators/authValidated";
+import { API_ROUTES } from "@/lib/api";
+import { LoginInput, RegisterInput } from "@/validators/auth.validate";
 import axios from "axios";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
@@ -590,7 +590,8 @@ export const authStore = create<AuthStore>()(
           // Append fields only if they are provided
           if (name !== undefined) formData.append("name", name);
           if (gender !== undefined) formData.append("gender", gender);
-          if (subscribeNewsletter !== undefined) formData.append("subscribeNewsletter", String(subscribeNewsletter));
+          if (subscribeNewsletter !== undefined)
+            formData.append("subscribeNewsletter", String(subscribeNewsletter));
           if (birthDate !== undefined) {
             // Handle both string and Date objects
             const dateValue =

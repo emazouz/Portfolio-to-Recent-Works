@@ -7,10 +7,14 @@ import { Suspense } from "react";
 import "../assets/styles/globals.css";
 import { Toaster } from "@/components/ui/Toaster";
 import { ThemeProvider } from "@/components/shared/theme-provider";
-import { TranslationProvider } from "@/components/TranslationProvider";
-import { APP_NAME, APP_DESCRIPTION, SERVER_URL } from "@/constants";
+import { TranslationProvider } from "@/components/provider/TranslationProvider";
+import {
+  APP_NAME,
+  APP_DESCRIPTION,
+  SERVER_URL,
+} from "@/constants/index.constants";
 import { BackToTop } from "@/components/back-to-top";
-import { Geist  } from "next/font/google";
+import { Geist } from "next/font/google";
 
 export const metadata: Metadata = {
   title: {
@@ -41,7 +45,7 @@ export const metadata: Metadata = {
 };
 
 const font = Geist({
-  subsets: ['latin'],
+  subsets: ["latin"],
 });
 
 export default function RootLayout({
@@ -51,9 +55,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${font.className}`}
-      >
+      <body className={`${font.className}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

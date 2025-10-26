@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,315 +12,105 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Calendar,
-  Clock,
-  User,
-  Search,
-  ArrowRight,
-  Eye,
-  Heart,
-  MessageSquare,
-  Grid3x3,
-  List,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
+import { Search, Grid3x3, List, Sparkles } from "lucide-react";
 import { Blog, blogStore } from "@/store/blogStore";
-
-// Types
-type ViewMode = "grid" | "list";
-type SortOption = "newest" | "oldest" | "mostViewed" | "mostLiked" | "trending";
-
-const CATEGORIES = [
-  { value: "All", label: "All Categories", icon: "📚" },
-  { value: "WEB_DEVELOPMENT", label: "Web Development", icon: "🌐" },
-  { value: "MOBILE_DEVELOPMENT", label: "Mobile Development", icon: "📱" },
-  { value: "BACKEND", label: "Backend", icon: "⚙️" },
-  { value: "AI_ML", label: "AI/ML", icon: "🤖" },
-];
-
-const SORT_OPTIONS = [
-  { value: "newest", label: "Newest First" },
-  { value: "oldest", label: "Oldest First" },
-  { value: "mostViewed", label: "Most Viewed" },
-  { value: "mostLiked", label: "Most Liked" },
-  { value: "trending", label: "Trending" },
-];
-
-const CATEGORY_ICONS: Record<string, string> = {
-  MOBILE_DEVELOPMENT: "📱",
-  WEB_DEVELOPMENT: "🌐",
-  BACKEND: "⚙️",
-  AI_ML: "🤖",
-};
-
-// Skeleton Component
-function BlogCardSkeleton() {
-  return (
-    <Card className="overflow-hidden">
-      <Skeleton className="w-full h-48" />
-      <CardHeader>
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-6 w-full" />
-        <Skeleton className="h-4 w-full" />
-      </CardHeader>
-    </Card>
-  );
-}
-
-// Blog Stats Component
-function BlogStats({ post }: { post: Blog }) {
-  return (
-    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-      <div className="flex items-center gap-1">
-        <Eye className="h-4 w-4" />
-        <span>{post.views}</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <Heart className="h-4 w-4" />
-        <span>{post.likes}</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <MessageSquare className="h-4 w-4" />
-        <span>{post.comments?.length || 0}</span>
-      </div>
-    </div>
-  );
-}
-
-// Blog Metadata Component
-function BlogMetadata({ post }: { post: Blog }) {
-  return (
-    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2 flex-wrap">
-      <div className="flex items-center gap-1">
-        <Calendar className="h-4 w-4" />
-        {new Date(String(post.publishDate)).toLocaleDateString()}
-      </div>
-      <div className="flex items-center gap-1">
-        <Clock className="h-4 w-4" />
-        {post.readTime} min
-      </div>
-      {post.author?.name && (
-        <div className="flex items-center gap-1">
-          <User className="h-4 w-4" />
-          {post.author.name}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Featured Blog Card
-function FeaturedBlogCard({ post }: { post: Blog }) {
-  return (
-    <Card className="group overflow-hidden border-2 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
-      <div className="relative overflow-hidden">
-        <img
-          src={post.imageUrl}
-          alt={post.title_en}
-          className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-700"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
-
-        {/* Featured Badge */}
-        <Badge className="absolute top-4 left-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 animate-pulse shadow-lg">
-          <Sparkles className="w-3 h-3 mr-1" />
-          Featured
-        </Badge>
-
-        {/* Category Badge */}
-        {post.category && (
-          <Badge className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm">
-            {CATEGORY_ICONS[post.category]} {post.category.replace(/_/g, " ")}
-          </Badge>
-        )}
-      </div>
-
-      <CardHeader>
-        <BlogMetadata post={post} />
-        <CardTitle className="text-xl group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-primary/60 transition-all line-clamp-2">
-          {post.title_en}
-        </CardTitle>
-        <CardDescription className="line-clamp-3">
-          {post.excerpt_en}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {post.tags?.slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              #{tag}
-            </Badge>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            className="p-0 h-auto text-primary hover:text-primary/80 group/btn"
-            asChild
-          >
-            <a href={`/blog/view/${post.id}`}>
-              Read More
-              <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-            </a>
-          </Button>
-          <BlogStats post={post} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Regular Blog Card
-function RegularBlogCard({
-  post,
-  viewMode,
-}: {
-  post: Blog;
-  viewMode: ViewMode;
-}) {
-  const content = (
-    <>
-      <div className="relative overflow-hidden">
-        <img
-          src={post.imageUrl}
-          alt={post.title_en}
-          className={`w-full ${
-            viewMode === "list" ? "h-full md:h-auto" : "h-48"
-          } object-cover group-hover:scale-110 transition-transform duration-700`}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-        {post.category && (
-          <Badge className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm">
-            {CATEGORY_ICONS[post.category]} {post.category.replace(/_/g, " ")}
-          </Badge>
-        )}
-      </div>
-
-      <div className="flex-1">
-        <CardHeader>
-          <BlogMetadata post={post} />
-          <CardTitle className="text-lg group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-primary/60 transition-all line-clamp-2">
-            {post.title_en}
-          </CardTitle>
-          <CardDescription className="line-clamp-2">
-            {post.excerpt_en}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {post.tags?.slice(0, viewMode === "list" ? 4 : 2).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              className="p-0 h-auto text-primary hover:text-primary/80 group/btn"
-              asChild
-            >
-              <a href={`/blog/view/${post.id}`}>
-                Read More
-                <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-              </a>
-            </Button>
-            <BlogStats post={post} />
-          </div>
-        </CardContent>
-      </div>
-    </>
-  );
-
-  if (viewMode === "list") {
-    return (
-      <Card className="group overflow-hidden border-2 hover:border-primary/50 transition-all duration-500 hover:shadow-xl">
-        <div className="flex flex-col md:flex-row">
-          <div className="md:w-72 h-48 md:h-auto overflow-hidden">
-            {content}
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="group overflow-hidden border-2 hover:border-primary/50 transition-all duration-500 hover:shadow-xl hover:-translate-y-1">
-      {content}
-    </Card>
-  );
-}
+import { toast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/use-translation";
+import BlogCard from "./blog-card";
+import { SortOption, ViewMode } from "@/types/blog.types";
+import {
+  CATEGORIES,
+  ITEMS_PER_PAGE,
+  MAX_PAGINATION_BUTTONS,
+  SORT_OPTIONS,
+} from "@/constants/blog.constants";
 
 // Main Component
 export default function BlogList() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const { t } = useTranslation();
+
+  // State
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const { getBlogs, isLoading } = blogStore();
+  const [blogs, setBlogs] = useState<Blog[]>([]);
 
+  const { getBlogs, isLoading, error } = blogStore();
+
+  // Fetch blogs
   const fetchBlogs = useCallback(async () => {
-    const result = await getBlogs();
-    if (result.success && result.data) {
-      setBlogs(result.data?.blogs || []);
+    try {
+      const result = await getBlogs();
+      if (result.success && result.data) {
+        setBlogs(result.data.blogs || []);
+      } else {
+        toast({
+          title: t("Error", "common.error"),
+          description:
+            result.message || t("Failed to fetch blogs", "blog.fetchError"),
+          variant: "error",
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching blogs:", err);
+      toast({
+        title: t("Error", "common.error"),
+        description: t(
+          "An unexpected error occurred",
+          "common.unexpectedError"
+        ),
+        variant: "error",
+      });
     }
-  }, [getBlogs]);
+  }, [getBlogs, t]);
 
   useEffect(() => {
     fetchBlogs();
   }, [fetchBlogs]);
 
-  const ITEMS_PER_PAGE = 9;
-
+  // Filter and sort blogs
   const filteredAndSortedPosts = useMemo(() => {
     let filtered = blogs.filter((post) => {
+      // Search filter
+      const searchLower = search.toLowerCase();
       const matchesSearch =
-        post.title_en.toLowerCase().includes(search.toLowerCase()) ||
-        (post.excerpt_en ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        post.tags?.some((tag) =>
-          tag.toLowerCase().includes(search.toLowerCase())
-        );
+        post.title_en.toLowerCase().includes(searchLower) ||
+        (post.excerpt_en ?? "").toLowerCase().includes(searchLower) ||
+        post.tags?.some((tag) => tag.toLowerCase().includes(searchLower));
 
+      // Category filter
       const matchesCategory = category === "All" || post.category === category;
 
+      // Only show published posts
       return matchesSearch && matchesCategory && post.published;
     });
 
-    switch (sortBy) {
-      case "oldest":
-        filtered.sort(
-          (a, b) =>
-            new Date(String(a.publishDate)).getTime() -
-            new Date(String(b.publishDate)).getTime()
-        );
-        break;
-      case "mostViewed":
-        filtered.sort((a, b) => b.views - a.views);
-        break;
-      case "mostLiked":
-        filtered.sort((a, b) => b.likes - a.likes);
-        break;
-      default:
-        filtered.sort(
-          (a, b) =>
-            new Date(String(b.publishDate)).getTime() -
-            new Date(String(a.publishDate)).getTime()
-        );
-    }
+    // Sort
+    const sortFunctions: Record<SortOption, (a: Blog, b: Blog) => number> = {
+      newest: (a, b) =>
+        new Date(String(b.publishDate)).getTime() -
+        new Date(String(a.publishDate)).getTime(),
+      oldest: (a, b) =>
+        new Date(String(a.publishDate)).getTime() -
+        new Date(String(b.publishDate)).getTime(),
+      mostViewed: (a, b) => b.views - a.views,
+      mostLiked: (a, b) => b.likes - a.likes,
+      trending: (a, b) => {
+        // Trending algorithm: combination of recent engagement
+        const aScore = b.views * 0.3 + b.likes * 0.7;
+        const bScore = a.views * 0.3 + a.likes * 0.7;
+        return bScore - aScore;
+      },
+    };
+
+    filtered.sort(sortFunctions[sortBy]);
 
     return filtered;
   }, [blogs, search, category, sortBy]);
 
+  // Split featured and regular posts
   const featuredPosts = useMemo(
     () => filteredAndSortedPosts.filter((post) => post.featured),
     [filteredAndSortedPosts]
@@ -337,6 +121,7 @@ export default function BlogList() {
     [filteredAndSortedPosts]
   );
 
+  // Pagination
   const paginatedPosts = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return regularPosts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -344,28 +129,64 @@ export default function BlogList() {
 
   const totalPages = Math.ceil(regularPosts.length / ITEMS_PER_PAGE);
 
-  if (isLoading) {
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, sortBy]);
+
+  // Pagination helpers
+  const handlePreviousPage = () => {
+    setCurrentPage((p) => Math.max(1, p - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((p) => Math.min(totalPages, p + 1));
+  };
+
+  const getPaginationRange = () => {
+    const range: number[] = [];
+    const maxButtons = Math.min(totalPages, MAX_PAGINATION_BUTTONS);
+
+    let start = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    const end = Math.min(totalPages, start + maxButtons - 1);
+
+    // Adjust start if we're near the end
+    if (end - start + 1 < maxButtons) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      range.push(i);
+    }
+
+    return range;
+  };
+
+  // Error state
+  if (error) {
     return (
       <div className="min-h-screen py-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <BlogCardSkeleton key={i} />
-            ))}
-          </div>
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-muted-foreground mb-4">
+            {t(
+              "Unable to load blogs. Please try again later.",
+              "blog.loadError"
+            )}
+          </p>
+          <Button onClick={fetchBlogs}>{t("Retry", "common.retry")}</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen  py-20">
+    <div className="min-h-screen py-20 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
           <Badge variant="outline" className="mb-6 px-5 py-2.5">
             <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-            {blogs.length} ARTICLES
+            {blogs.length} {blogs.length === 1 ? "ARTICLE" : "ARTICLES"}
           </Badge>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6">
@@ -383,35 +204,43 @@ export default function BlogList() {
         {/* Filters */}
         <Card className="mb-12 p-6">
           <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search articles..."
+                placeholder={t("Search articles...", "blog.searchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
+                aria-label="Search articles"
               />
             </div>
 
+            {/* Filter Controls */}
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Category Select */}
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-48" aria-label="Select category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      {cat.icon} {cat.label}
+                      <span className="flex items-center gap-2">
+                        <span>{cat.icon}</span>
+                        <span>{cat.label}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
+              {/* Sort Select */}
               <Select
                 value={sortBy}
-                onValueChange={(v: SortOption) => setSortBy(v)}
+                onValueChange={(v) => setSortBy(v as SortOption)}
               >
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-48" aria-label="Sort by">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -423,11 +252,18 @@ export default function BlogList() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-1 border rounded-md p-1">
+              {/* View Mode Toggle */}
+              <div
+                className="flex items-center gap-1 border rounded-md p-1"
+                role="group"
+                aria-label="View mode"
+              >
                 <Button
                   variant={viewMode === "grid" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === "grid"}
                 >
                   <Grid3x3 className="h-4 w-4" />
                 </Button>
@@ -435,6 +271,8 @@ export default function BlogList() {
                   variant={viewMode === "list" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("list")}
+                  aria-label="List view"
+                  aria-pressed={viewMode === "list"}
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -445,22 +283,22 @@ export default function BlogList() {
 
         {/* Featured Posts */}
         {featuredPosts.length > 0 && (
-          <div className="mb-16">
+          <section className="mb-16">
             <h2 className="text-3xl font-black mb-8 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-amber-500" />
               Featured Articles
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {featuredPosts.map((post) => (
-                <FeaturedBlogCard key={post.id} post={post} />
+              {featuredPosts.map((post, i) => (
+                <BlogCard key={post.id} article={post} index={i} />
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Regular Posts */}
-        {regularPosts.length > 0 && (
-          <div>
+        {regularPosts.length > 0 ? (
+          <section>
             <h2 className="text-3xl font-black mb-8">
               All Articles
               <span className="text-muted-foreground text-lg ml-2">
@@ -475,38 +313,37 @@ export default function BlogList() {
                   : "space-y-6"
               }
             >
-              {paginatedPosts.map((post) => (
-                <RegularBlogCard
-                  key={post.id}
-                  post={post}
-                  viewMode={viewMode}
-                />
+              {paginatedPosts.map((post, i) => (
+                <BlogCard key={post.id} article={post} index={i} />
               ))}
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-12">
+              <nav
+                className="flex items-center justify-center gap-2 mt-12"
+                aria-label="Pagination"
+              >
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  onClick={handlePreviousPage}
                   disabled={currentPage === 1}
+                  aria-label="Previous page"
                 >
                   Previous
                 </Button>
 
                 <div className="flex items-center gap-1">
-                  {Array.from(
-                    { length: Math.min(totalPages, 5) },
-                    (_, i) => i + 1
-                  ).map((page) => (
+                  {getPaginationRange().map((page) => (
                     <Button
                       key={page}
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}
                       className="w-10"
+                      aria-label={`Page ${page}`}
+                      aria-current={currentPage === page ? "page" : undefined}
                     >
                       {page}
                     </Button>
@@ -516,15 +353,25 @@ export default function BlogList() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
+                  onClick={handleNextPage}
                   disabled={currentPage === totalPages}
+                  aria-label="Next page"
                 >
                   Next
                 </Button>
-              </div>
+              </nav>
             )}
+          </section>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              {search || category !== "All"
+                ? t(
+                    "No articles found matching your criteria.",
+                    "blog.noResults"
+                  )
+                : t("No articles available yet.", "blog.noArticles")}
+            </p>
           </div>
         )}
       </div>

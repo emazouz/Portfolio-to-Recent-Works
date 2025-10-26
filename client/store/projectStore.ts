@@ -1,91 +1,17 @@
-import { API_ROUTES } from "@/lib/server";
-import { CreateProjectInput } from "@/validators/projectValidate";
+import { API_ROUTES } from "@/lib/api";
+import {
+  LocalizedContent,
+  PaginatedResponse,
+  PaginationParams,
+  Project,
+  ProjectFilters,
+  ProjectStore,
+} from "@/types/project.types";
+import { ApiResponse } from "@/types/response.types";
+import { CreateProjectInput } from "@/validators/project.validate";
 import axios, { AxiosError } from "axios";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-
-// Enhanced interfaces
-export interface Project extends CreateProjectInput {
-  id: number;
-  imageUrl?: string;
-  ratingsCount: number;
-  rating: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ApiResponse<T = any> {
-  data?: T;
-  success: boolean;
-  message: string;
-  error?: string;
-}
-
-export interface ProjectFilters {
-  category?: string;
-  status?: string;
-  featured?: boolean;
-  search?: string;
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  success: boolean;
-  message: string;
-}
-
-type ProjectStore = {
-  // State
-  projects: Project[];
-  currentProject: Project | null;
-  isLoading: boolean;
-  error: string | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-
-  // Actions
-  createProject: (
-    project: CreateProjectInput,
-    imageFile: File
-  ) => Promise<ApiResponse<Project>>;
-
-  updateProject: (
-    projectId: number,
-    project: CreateProjectInput,
-    imageFile?: File
-  ) => Promise<ApiResponse<Project>>;
-
-  getProjects: (
-    filters?: ProjectFilters,
-    pagination?: PaginationParams
-  ) => Promise<ApiResponse<PaginatedResponse<Project>>>;
-
-  getProjectById: (projectId: number) => Promise<ApiResponse<Project>>;
-
-  deleteProject: (projectId: number) => Promise<ApiResponse<void>>;
-
-  // Utility actions
-  setCurrentProject: (project: Project | null) => void;
-  clearError: () => void;
-  resetStore: () => void;
-};
 
 // Enhanced axios instance with interceptors
 const axiosInstance = axios.create({
@@ -511,3 +437,15 @@ export const useProjectsLoading = () =>
 export const useProjectsError = () => projectStore((state) => state.error);
 export const useProjectsPagination = () =>
   projectStore((state) => state.pagination);
+
+export const getLocalizedContent = (
+  project: Project,
+  language: string
+): LocalizedContent => ({
+  title: language === "ar" ? project.title_ar : project.title_en,
+  description:
+    language === "ar" ? project.description_ar : project.description_en,
+  metaTitle: language === "ar" ? project.metaTitle_ar : project.metaTitle_en,
+  metaDesc: language === "ar" ? project.metaDesc_ar : project.metaDesc_en,
+  slug: language === "ar" ? project.slug_ar : project.slug_en,
+});

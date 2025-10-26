@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+
 import { useState } from "react";
 import {
   Card,
@@ -17,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Github, Mail, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { RegisterInput, validateForm } from "@/validators/authValidated";
+import { RegisterInput, validateForm } from "@/validators/auth.validate";
 import { authStore } from "@/store/authStore";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -67,7 +68,6 @@ export function SignupForm() {
         });
         return;
       }
-
 
       const result = await register(formData);
 
@@ -143,10 +143,13 @@ export function SignupForm() {
 
   return (
     <div className="container mx-auto px-4 max-w-md md:max-w-2xl">
-      <Card className="shadow-lg">
+      {/* Card: Uses theme colors (Deep Black/Navy in dark mode) */}
+      <Card className="shadow-lg border border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl text-foreground">
+            Create Account
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
             Join thousands of developers using our premium templates
           </CardDescription>
         </CardHeader>
@@ -166,22 +169,24 @@ export function SignupForm() {
 
           {/* Social Signup */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Themed Outline Buttons */}
             <Button
               variant="outline"
-              className="w-full bg-transparent"
+              // Styles adjusted for the dark/gold/blue theme
+              className="w-full bg-transparent hover:bg-muted/30 border-border text-foreground hover:border-primary transition-all duration-300"
               type="button"
               disabled={isLoading}
             >
-              <Github className="mr-2 h-4 w-4" />
+              <Github className="mr-2 h-4 w-4 text-primary" />
               Continue with GitHub
             </Button>
             <Button
               variant="outline"
-              className="w-full bg-transparent"
+              className="w-full bg-transparent hover:bg-muted/30 border-border text-foreground hover:border-primary transition-all duration-300"
               type="button"
               disabled={isLoading}
             >
-              <Mail className="mr-2 h-4 w-4" />
+              <Mail className="mr-2 h-4 w-4 text-primary" />
               Continue with Google
             </Button>
           </div>
@@ -191,7 +196,7 @@ export function SignupForm() {
               <Separator />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-card px-2 text-muted-foreground">
                 Or create account with email
               </span>
             </div>
@@ -212,7 +217,8 @@ export function SignupForm() {
                 required
                 disabled={isLoading}
                 aria-invalid={hasError("name")}
-                className={hasError("name") ? "border-red-500" : ""}
+                // Uses destructive color
+                className={hasError("name") ? "border-destructive" : ""}
               />
             </div>
 
@@ -229,7 +235,8 @@ export function SignupForm() {
                 required
                 disabled={isLoading}
                 aria-invalid={hasError("email")}
-                className={hasError("email") ? "border-red-500" : ""}
+                // Uses destructive color
+                className={hasError("email") ? "border-destructive" : ""}
               />
             </div>
 
@@ -249,13 +256,15 @@ export function SignupForm() {
                     disabled={isLoading}
                     aria-describedby="password-requirements"
                     aria-invalid={hasError("password")}
-                    className={hasError("password") ? "border-red-500" : ""}
+                    // Uses destructive color
+                    className={hasError("password") ? "border-destructive" : ""}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    // Icon color is muted, but hovers to primary (Blue)
+                    className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-primary hover:bg-transparent"
                     onClick={() => togglePasswordVisibility("password")}
                     tabIndex={-1}
                     aria-label={
@@ -285,15 +294,17 @@ export function SignupForm() {
                     required
                     disabled={isLoading}
                     aria-invalid={hasError("confirmPassword")}
+                    // Uses destructive color
                     className={
-                      hasError("confirmPassword") ? "border-red-500" : ""
+                      hasError("confirmPassword") ? "border-destructive" : ""
                     }
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    // Icon color is muted, but hovers to primary (Blue)
+                    className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-primary hover:bg-transparent"
                     onClick={() => togglePasswordVisibility("confirmPassword")}
                     tabIndex={-1}
                     aria-label={
@@ -324,25 +335,34 @@ export function SignupForm() {
                     handleCheckboxChange("termsAgreed", checked as boolean)
                   }
                   disabled={isLoading}
-                  className={hasError("termsAgreed") ? "border-red-500" : ""}
+                  // Uses destructive color
+                  className={
+                    hasError("termsAgreed")
+                      ? "border-destructive text-destructive-foreground"
+                      : "text-primary focus:ring-primary" // Default primary color
+                  }
                 />
                 <Label
                   htmlFor="termsAgreed"
-                  className={`text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${
-                    hasError("termsAgreed") ? "text-red-500" : ""
-                  }`}
+                  className={
+                    hasError("termsAgreed")
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                  }
                 >
                   I agree to the{" "}
                   <Link
                     href="/terms"
-                    className="text-purple-600 hover:underline dark:text-purple-400"
+                    // Link color is primary (Blue)
+                    className="text-primary hover:underline transition-colors"
                   >
                     Terms of Service
                   </Link>{" "}
                   and{" "}
                   <Link
                     href="/privacy"
-                    className="text-purple-600 hover:underline dark:text-purple-400"
+                    // Link color is primary (Blue)
+                    className="text-primary hover:underline transition-colors"
                   >
                     Privacy Policy
                   </Link>
@@ -360,10 +380,11 @@ export function SignupForm() {
                     )
                   }
                   disabled={isLoading}
+                  className="text-primary focus:ring-primary" // Default primary color
                 />
                 <Label
                   htmlFor="subscribeNewsletter"
-                  className="text-sm leading-none"
+                  className="text-sm leading-none text-muted-foreground"
                 >
                   Subscribe to newsletter for updates and exclusive offers
                 </Label>
@@ -373,7 +394,8 @@ export function SignupForm() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              // Uses primary theme color (Blue)
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               disabled={isLoading || !formData.termsAgreed}
             >
               {isLoading ? (
@@ -388,11 +410,12 @@ export function SignupForm() {
           </form>
 
           {/* Sign In Link */}
-          <div className="text-center text-sm">
+          <div className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="text-purple-600 hover:underline dark:text-purple-400"
+              // Link color is primary (Blue)
+              className="text-primary hover:underline transition-colors"
             >
               Sign in
             </Link>

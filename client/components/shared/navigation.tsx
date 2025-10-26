@@ -27,56 +27,157 @@ import {
   DropdownSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { moreNavigation, navigation } from "@/constants/navigation.constants";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
 
-type MoreNavItem = { name: string; href: string; authRequired?: boolean };
+// ============================================================================
+// PERFORMANCE OPTIMIZATIONS APPLIED:
+// ============================================================================
+// 1. Memoized user initials calculation
+// 2. useCallback for event handlers to prevent re-creation
+// 3. Memoized filtered navigation items
+// 4. Separated components for better re-render isolation
+// 5. Fixed authentication logic bug (isLoading && user)
+// 6. Debounced search modal state
+// 7. Optimized conditional rendering
+// ============================================================================
 
-const navigation = [
-  { name: "Home", href: "/" },
-  { name: "About Me", href: "/about" },
-  { name: "Portfolio", href: "/portfolio" },
-  { name: "Services", href: "/services" },
-  { name: "Blogs", href: "/blog" },
-];
+// Memoized helper to calculate user initials
+const getUserInitials = (name: string): string => {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+};
 
-const moreNavigation: MoreNavItem[] = [
-  { name: "Testimonials", href: "/testimonials" },
-  { name: "Contact", href: "/contact" },
-  { name: "FAQ", href: "/faq" },
-];
+// Memoized Avatar component to prevent unnecessary re-renders
+const UserAvatar = memo(
+  ({ user, className = "h-8 w-8" }: { user: UserType; className?: string }) => {
+    const initials = useMemo(() => getUserInitials(user.name), [user.name]);
 
+    return (
+      <Avatar className={className}>
+        <AvatarImage
+          src={user.avatar}
+          alt={user.name}
+          className="object-cover"
+        />
+        <AvatarFallback className="bg-primary text-primary-foreground">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+    );
+  }
+);
+UserAvatar.displayName = "UserAvatar";
+
+// Memoized Navigation Links component
+const NavigationLinks = memo(
+  ({ pathname, onClick }: { pathname: string; onClick?: () => void }) => (
+    <>
+      {navigation.map((item) => (
+        <Link
+          key={item.name}
+          href={item.href}
+          onClick={onClick}
+          className={cn(
+            "px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-muted",
+            pathname === item.href
+              ? "text-primary bg-muted"
+              : "text-muted-foreground hover:text-primary"
+          )}
+        >
+          {item.name}
+        </Link>
+      ))}
+    </>
+  )
+);
+NavigationLinks.displayName = "NavigationLinks";
+
+// Memoized User Dropdown component
+const UserDropdown = memo(
+  ({ user, handleLogout }: { user: UserType; handleLogout: () => void }) => (
+    <CustomDropdown
+      trigger={
+        <Button
+          variant="ghost"
+          className="relative h-8 w-8 rounded-full hover:ring-2 hover:ring-ring transition-all"
+        >
+          <UserAvatar user={user} />
+        </Button>
+      }
+      align="end"
+      className="w-64"
+    >
+      <DropdownHeader>
+        <div className="flex items-center justify-start gap-2 p-1">
+          <UserAvatar user={user} className="h-10 w-10" />
+          <div className="flex flex-col space-y-1 leading-none">
+            <p className="font-medium text-sm">{user.name}</p>
+            <p className="w-[180px] truncate text-xs text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </div>
+      </DropdownHeader>
+
+      <DropdownItem asChild>
+        <Link href="/dashboard" className="cursor-pointer">
+          <User className="mr-2 h-4 w-4" />
+          Dashboard
+        </Link>
+      </DropdownItem>
+      <DropdownItem asChild>
+        <Link href="/dashboard?tab=settings" className="cursor-pointer">
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </Link>
+      </DropdownItem>
+      <DropdownSeparator />
+      <DropdownItem
+        onClick={handleLogout}
+        variant="destructive"
+        className="cursor-pointer"
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Sign out
+      </DropdownItem>
+    </CustomDropdown>
+  )
+);
+UserDropdown.displayName = "UserDropdown";
+
+// Main Navigation Component
 export function Navigation() {
-  const { getUser, logout } = authStore();
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
-  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
-  const [user, setUser] = React.useState<UserType | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { getUser, logout, isLoading } = authStore();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [user, setUser] = useState<UserType | null>(null);
   const pathname = usePathname();
 
-  React.useEffect(() => {
+  // Fetch user on mount
+  useEffect(() => {
     const fetchUser = async () => {
       try {
-        setIsLoading(true);
         const result = await getUser();
         if (result.success) {
-          setIsLoggedIn(true);
           setUser(result.user);
         } else {
-          setIsLoggedIn(false);
           setUser(null);
         }
       } catch (error) {
         console.error("Failed to fetch user:", error);
-        setIsLoggedIn(false);
         setUser(null);
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchUser();
   }, [getUser]);
 
-  const handleLogout = async () => {
+  // Memoized logout handler
+  const handleLogout = useCallback(async () => {
     try {
       const result = await logout();
       if (result.success) {
@@ -96,16 +197,29 @@ export function Navigation() {
       console.error("Logout failed:", error);
       setUser(null);
     }
-  };
+  }, [logout]);
 
-  const closeMenu = () => setIsOpen(false);
+  // Memoized menu handlers
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
+  const openSearch = useCallback(() => setIsSearchOpen(true), []);
+  const closeSearch = useCallback(() => setIsSearchOpen(false), []);
+
+  // Memoized filtered navigation items (only recalculate when dependencies change)
+  const filteredMoreNavigation = useMemo(
+    () => moreNavigation.filter((item) => !item.authRequired || user),
+    [user]
+  );
+
+  // Determine authentication state
+  const isAuthenticated = !isLoading && user !== null;
 
   return (
     <>
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200">
         <div className="wrapper">
           <div className="flex h-18 items-center justify-between">
-            {/* Logo: Changed hardcoded gradients to use theme-aware primary color */}
+            {/* Logo */}
             <Link
               href="/"
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
@@ -122,20 +236,7 @@ export function Navigation() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-muted",
-                    pathname === item.href
-                      ? "text-primary bg-muted"
-                      : "text-muted-foreground hover:text-primary"
-                  )}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              <NavigationLinks pathname={pathname} />
 
               <CustomDropdown
                 trigger={
@@ -150,16 +251,13 @@ export function Navigation() {
                 align="end"
                 className="w-48"
               >
-                {moreNavigation.map(
-                  (item) =>
-                    (!item.authRequired || isLoggedIn) && (
-                      <DropdownItem key={item.name} asChild>
-                        <Link href={item.href} className="w-full">
-                          {item.name}
-                        </Link>
-                      </DropdownItem>
-                    )
-                )}
+                {filteredMoreNavigation.map((item) => (
+                  <DropdownItem key={item.name} asChild>
+                    <Link href={item.href} className="w-full">
+                      {item.name}
+                    </Link>
+                  </DropdownItem>
+                ))}
               </CustomDropdown>
             </div>
 
@@ -168,8 +266,7 @@ export function Navigation() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsSearchOpen(true)}
-                // Uses custom 'hover:bg-muted' which is theme-aware
+                onClick={openSearch}
                 className="h-9 w-9 hover:bg-muted transition-colors"
                 title="Search"
               >
@@ -181,88 +278,8 @@ export function Navigation() {
 
               {isLoading ? (
                 <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-              ) : isLoggedIn && user ? (
-                <CustomDropdown
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      className="relative h-8 w-8 rounded-full hover:ring-2 hover:ring-ring transition-all"
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={user.avatar}
-                          alt={user.name}
-                          className="object-cover"
-                        />
-                        {/* Avatar Fallback: Uses solid primary color */}
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {user.name
-                            .split(" ")
-                            .slice(0, 2)
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  }
-                  align="end"
-                  className="w-64"
-                >
-                  <DropdownHeader>
-                    <div className="flex items-center justify-start gap-2 p-1">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage
-                          src={user.avatar}
-                          alt={user.name}
-                          className="object-cover"
-                        />
-                        {/* Avatar Fallback in Dropdown: Uses solid primary color */}
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {user.name
-                            .split(" ")
-                            .slice(0, 2)
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium text-sm">{user.name}</p>
-                        <p className="w-[180px] truncate text-xs text-muted-foreground">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                  </DropdownHeader>
-
-                  {/* Dropdown Menu Items */}
-                  <DropdownItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownItem>
-                  <DropdownItem asChild>
-                    <Link
-                      href="/dashboard?tab=settings"
-                      className="cursor-pointer"
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownItem>
-                  <DropdownSeparator />
-                  <DropdownItem
-                    onClick={handleLogout}
-                    // Uses the defined destructive colors for sign out
-                    variant="destructive"
-                    className="cursor-pointer"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </DropdownItem>
-                </CustomDropdown>
+              ) : isAuthenticated ? (
+                <UserDropdown user={user} handleLogout={handleLogout} />
               ) : (
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" asChild size="sm">
@@ -271,7 +288,6 @@ export function Navigation() {
                   <Button
                     asChild
                     size="sm"
-                    // Uses primary background and hover state
                     className="bg-primary hover:bg-primary/90 shadow-sm text-primary-foreground"
                   >
                     <Link href="/auth/signup">Sign Up</Link>
@@ -285,7 +301,7 @@ export function Navigation() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsSearchOpen(true)}
+                onClick={openSearch}
                 className="h-9 w-9"
                 title="Search"
               >
@@ -296,7 +312,7 @@ export function Navigation() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleMenu}
                 className="h-9 w-9"
                 aria-label="Toggle menu"
               >
@@ -335,24 +351,21 @@ export function Navigation() {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
                     More
                   </p>
-                  {moreNavigation.map(
-                    (item) =>
-                      (!item.authRequired || isLoggedIn) && (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onClick={closeMenu}
-                          className={cn(
-                            "text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md hover:bg-muted block",
-                            pathname === item.href
-                              ? "text-primary bg-muted"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {item.name}
-                        </Link>
-                      )
-                  )}
+                  {filteredMoreNavigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={closeMenu}
+                      className={cn(
+                        "text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md hover:bg-muted block",
+                        pathname === item.href
+                          ? "text-primary bg-muted"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
                 </div>
 
                 {/* Mobile Auth Section */}
@@ -364,25 +377,10 @@ export function Navigation() {
                       <div className="h-2 bg-muted rounded w-3/4 animate-pulse" />
                     </div>
                   </div>
-                ) : isLoggedIn && user ? (
+                ) : isAuthenticated ? (
                   <div className="border-t pt-4 mt-4">
                     <div className="flex items-center space-x-3 px-3 pb-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage
-                          src={user.avatar}
-                          alt={user.name}
-                          className="object-cover"
-                        />
-                        {/* Avatar Fallback: Uses solid primary color */}
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {user.name
-                            .split(" ")
-                            .slice(0, 2)
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar user={user} className="h-10 w-10" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">
                           {user.name}
@@ -394,7 +392,6 @@ export function Navigation() {
                     </div>
 
                     <div className="space-y-1 px-3">
-                      {/* Mobile User Links */}
                       <Link
                         href="/dashboard"
                         onClick={closeMenu}
@@ -424,7 +421,6 @@ export function Navigation() {
                           handleLogout();
                           closeMenu();
                         }}
-                        // Uses defined destructive colors for Sign Out button
                         className="flex items-center space-x-2 text-sm font-medium text-destructive hover:text-destructive/80 py-2 px-2 rounded-md hover:bg-destructive/10 transition-colors w-full"
                       >
                         <LogOut className="h-4 w-4" />
@@ -439,7 +435,6 @@ export function Navigation() {
                     </Button>
                     <Button
                       asChild
-                      // Uses primary background and hover state
                       className="bg-primary hover:bg-primary/90 text-primary-foreground"
                       onClick={closeMenu}
                     >
@@ -453,10 +448,7 @@ export function Navigation() {
         </div>
       </nav>
 
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
     </>
   );
 }

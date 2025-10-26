@@ -10,81 +10,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import HeaderSection from "../HeaderSection";
-
-interface Certification {
-  title: string;
-  issuer: string;
-  date: string;
-  credentialId: string;
-  status: string;
-  description: string;
-  color: string;
-}
-
-interface Achievement {
-  title: string;
-  platform: string;
-  description: string;
-  icon: string;
-}
-
-const certifications: Certification[] = [
-  {
-    title: "AWS Certified Solutions Architect",
-    issuer: "Amazon Web Services",
-    date: "2023",
-    credentialId: "AWS-CSA-2023-001",
-    status: "Active",
-    description:
-      "Demonstrates expertise in designing distributed systems on AWS platform.",
-    color: "chart-1",
-  },
-  {
-    title: "Google Cloud Professional Developer",
-    issuer: "Google Cloud",
-    date: "2022",
-    credentialId: "GCP-PD-2022-045",
-    status: "Active",
-    description:
-      "Validates skills in developing scalable applications on Google Cloud Platform.",
-    color: "chart-2",
-  },
-  {
-    title: "Meta Frontend Developer Certificate",
-    issuer: "Meta (Facebook)",
-    date: "2021",
-    credentialId: "META-FE-2021-789",
-    status: "Active",
-    description:
-      "Comprehensive program covering React, JavaScript, and modern frontend development.",
-    color: "chart-3",
-  },
-];
-
-const achievements: Achievement[] = [
-  {
-    title: "Top 1% Developer",
-    platform: "Stack Overflow",
-    description:
-      "Recognized for contributions to the developer community with 50K+ reputation points.",
-    icon: "trending",
-  },
-  {
-    title: "Open Source Contributor",
-    platform: "GitHub",
-    description:
-      "Active contributor to popular open-source projects with 100+ merged pull requests.",
-    icon: "users",
-  },
-  {
-    title: "Technical Writer",
-    platform: "Dev.to",
-    description:
-      "Published 25+ technical articles with 100K+ total views and 5K+ followers.",
-    icon: "book",
-  },
-];
+import HeaderSection from "../header-section";
+import { Achievement, Certification } from "@/types/about.types";
+import { achievements, certifications } from "@/constants/about.constants";
 
 function CertificationCard({
   cert,
@@ -102,7 +30,7 @@ function CertificationCard({
       }`}
       style={{ transitionDelay: `${index * 100}ms` }}
     >
-      <Card className="relative h-full border-2 hover:border-transparent transition-all duration-500 overflow-hidden">
+      <Card className="relative pt-6 h-full border-2 hover:border-transparent transition-all duration-500 overflow-hidden">
         {/* Animated Gradient Border */}
         <div
           className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"
@@ -220,7 +148,7 @@ function AchievementCard({
       }`}
       style={{ transitionDelay: `${(index + 3) * 100}ms` }}
     >
-      <Card className="relative h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden">
+      <Card className="relative h-full border-2 hover:border-primary/50 transition-all duration-300 overflow-hidden pt-6">
         <CardContent className="p-8 text-center">
           {/* Icon Container */}
           <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6 transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
@@ -286,9 +214,7 @@ export default function CertificationsSection() {
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
-    >
+    <section ref={sectionRef}>
       <div className="space-y-16">
         {/* Certifications Grid */}
         <div>

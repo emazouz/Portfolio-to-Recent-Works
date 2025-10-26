@@ -1,6 +1,6 @@
 import type React from "react";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminHeader } from "@/components/admin/admin-header";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 
 export default function AdminLayout({

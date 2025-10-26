@@ -1,4 +1,4 @@
-import BlogDetails from "@/components/blog/blogDetails";
+import BlogDetails from "@/components/blog/details/blog-details";
 
 interface ViewBlogPageProps {
   params: Promise<{

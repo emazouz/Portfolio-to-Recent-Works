@@ -2,12 +2,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import DOMPurify from "dompurify";
 import "react-markdown-editor-lite/lib/index.css";
-
-
-interface MarkdownContentProps {
-  content: string;
-  allowHtml?: boolean; // Optional: if you want to allow HTML in markdown
-}
+import { MarkdownContentProps } from "@/types/index.types";
 
 export const MarkdownContent = ({
   content,

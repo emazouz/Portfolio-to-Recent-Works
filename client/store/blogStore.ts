@@ -1,6 +1,6 @@
-import { API_ROUTES } from "@/lib/server";
-import { CommentType } from "@/types/CommentType";
-import { CreateBlogInput } from "@/validators/blogValidated";
+import { API_ROUTES } from "@/lib/api";
+import { CommentType } from "@/types/comment.types";
+import { CreateBlogInput } from "@/validators/blog.validate";
 import axios, { AxiosError } from "axios";
 import { string } from "zod";
 import { create } from "zustand";
@@ -8,10 +8,10 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 // Enhanced interfaces
 export interface Blog extends CreateBlogInput {
-  id?: number;
+  id: number;
   imageUrl?: string;
   previewImages: string[];
-  author?: {
+  author: {
     id: string;
     name: string;
     email: string;
