@@ -1,599 +1,353 @@
+import {
+  createApiClient,
+  handleApiError,
+} from "@/handlers/apiFactory.handlers";
 import { API_ROUTES } from "@/lib/api";
-import { CommentType } from "@/types/comment.types";
+import {
+  Blog,
+  BlogFilters,
+  BlogState,
+  BlogStore,
+  LocalizedContentType,
+  PaginationParams,
+} from "@/types/blog.types";
+import { ApiResponse, PaginatedResponse } from "@/types/response.types";
 import { CreateBlogInput } from "@/validators/blog.validate";
-import axios, { AxiosError } from "axios";
-import { string } from "zod";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-// Enhanced interfaces
-export interface Blog extends CreateBlogInput {
-  id: number;
-  imageUrl?: string;
-  previewImages: string[];
-  author: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-  views: number;
-  likes: number;
-  comments?: CommentType[];
-  userLiked?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
-export interface ApiResponse<T = any> {
-  data?: T;
-  success: boolean;
-  message: string;
-  error?: string;
-}
-
-export interface BlogFilters {
-  category?: string;
-  status?: string;
-  featured?: boolean;
-  search?: string;
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
+const INITIAL_STATE: BlogState = {
+  blogs: [],
+  currentBlog: null,
+  isLoading: false,
+  error: null,
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  success: boolean;
-  message: string;
-}
-export interface LocalizedContentType {
-  title: string;
-  excerpt: string;
-  metaDesc: string;
-  metaTitle: string;
-  content: string;
-}
-type BlogStore = {
-  // State
-  blogs: Blog[];
-  currentBlog: Blog | null;
-  isLoading: boolean;
-  error: string | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-
-  // Actions
-  createBlog: (
-    blog: CreateBlogInput,
-    imageFile: File,
-    previewImages: File[]
-  ) => Promise<ApiResponse<Blog>>;
-
-  updateBlog: (
-    blogId: number,
-    blog: CreateBlogInput,
-    imageFile?: File,
-    previewImages?: File[]
-  ) => Promise<ApiResponse<Blog>>;
-
-  getBlogs: (
-    filters?: BlogFilters,
-    pagination?: PaginationParams
-  ) => Promise<{
-    data?: {
-      blogs: Blog[];
-      pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalCount: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-      };
-    };
-    success: boolean;
-    message: string;
-    error?: string;
-  }>;
-
-  getBlogById: (blogId: number) => Promise<ApiResponse<Blog>>;
-
-  deleteBlog: (blogId: number) => Promise<ApiResponse<void>>;
-
-  addLikeBlog: (blogId: number) => Promise<ApiResponse<void>>;
-
-  getLocalizedContent: (
-    blog: Blog,
-    currentLanguage: string
-  ) => LocalizedContentType;
-
-  // Utility actions
-  setCurrentBlog: (blog: Blog | null) => void;
-  clearError: () => void;
-  resetStore: () => void;
+    currentPage: 1,
+    totalPages: 0,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
 };
 
-// Enhanced axios instance with interceptors
-const axiosInstance = axios.create({
-  baseURL: API_ROUTES.BLOG,
-  withCredentials: true,
-  timeout: 30000, // 30 seconds timeout
-});
+const DEFAULT_LOCALIZED_CONTENT: LocalizedContentType = {
+  title: "",
+  excerpt: "",
+  metaDesc: "",
+  metaTitle: "",
+  content: "",
+};
 
-// Request interceptor
-axiosInstance.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem("auth-token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// ============================================================================
+// UTILITIES
+// ============================================================================
 
-// Enhanced FormData creation with proper type handling
-const createFormDataFromRequest = (
+// Create API client - note that interceptors unwrap response.data
+// So axiosInstance.get/post/etc return the ApiResponse directly, not AxiosResponse
+const axiosInstance = createApiClient(API_ROUTES.BLOG);
+
+/**
+ * Creates FormData for blog create/update requests
+ */
+const createFormDataFromBlog = (
   data: CreateBlogInput,
   imageFile?: File,
   previewImages?: File[]
 ): FormData => {
   const formData = new FormData();
 
-  // Basic fields
+  // Required fields
   formData.append("title_en", data.title_en.trim());
   formData.append("title_ar", data.title_ar.trim());
   formData.append("slug", data.slug.trim());
   formData.append("content_en", data.content_en.trim());
   formData.append("content_ar", data.content_ar.trim());
   formData.append("published", String(Boolean(data.published)));
-  // Array and complex fields
-  if (data.tags && Array.isArray(data.tags)) {
+  formData.append("featured", String(Boolean(data.featured)));
+  formData.append("readTime", String(Number(data.readTime) || 0));
+
+  // Array fields
+  if (data.tags?.length) {
     formData.append("tags", JSON.stringify(data.tags));
   }
+  if (data.keywords?.length) {
+    formData.append("keywords", JSON.stringify(data.keywords));
+  }
 
-  if (previewImages) {
+  // Optional string fields
+  const optionalFields = [
+    "excerpt_en",
+    "excerpt_ar",
+    "category",
+    "metaTitle_en",
+    "metaTitle_ar",
+    "metaDesc_en",
+    "metaDesc_ar",
+  ] as const;
+
+  optionalFields.forEach((field) => {
+    const value = data[field];
+    if (value?.trim()) {
+      formData.append(field, value.trim());
+    }
+  });
+
+  // Date field
+  if (data.publishDate) {
+    formData.append("publishDate", new Date(data.publishDate).toISOString());
+  }
+
+  // File uploads
+  if (imageFile) {
+    formData.append("gallery", imageFile, imageFile.name);
+  }
+  if (previewImages?.length) {
     previewImages.forEach((img) => {
       formData.append("previewImages", img, img.name);
     });
   }
 
-  // Array and complex fields
-  if (data.keywords && Array.isArray(data.keywords)) {
-    formData.append("keywords", JSON.stringify(data.keywords));
-  }
-
-  // Optional fields with validation
-  if (data.excerpt_en) {
-    formData.append("excerpt_en", data.excerpt_en);
-  }
-
-  if (data.excerpt_ar?.trim()) {
-    formData.append("excerpt_ar", data.excerpt_ar.trim());
-  }
-
-  if (data.category?.trim()) {
-    formData.append("category", data.category.trim());
-  }
-
-  if (data.metaTitle_en?.trim()) {
-    formData.append("metaTitle_en", data.metaTitle_en.trim());
-  }
-
-  if (data.metaTitle_ar?.trim()) {
-    formData.append("metaTitle_ar", data.metaTitle_ar.trim());
-  }
-
-  if (data.metaDesc_en?.trim()) {
-    formData.append("metaDesc_en", data.metaDesc_en.trim());
-  }
-
-  if (data.metaDesc_ar?.trim()) {
-    formData.append("metaDesc_ar", data.metaDesc_ar.trim());
-  }
-  if (data.publishDate) {
-    formData.append("publishDate", data.publishDate?.toLocaleString());
-  }
-
-  formData.append("readTime", String(Number(data.readTime) || 0));
-  // Boolean and number fields
-  formData.append("featured", String(Boolean(data.featured)));
-
-  // Image file
-  if (imageFile) {
-    formData.append("gallery", imageFile, imageFile.name);
-  }
-
   return formData;
 };
 
-// Helper function to handle API errors
-const handleApiError = (error: unknown): ApiResponse => {
-  console.error("API Error:", error);
-
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<ApiResponse>;
-
-    if (axiosError.response?.data) {
-      return {
-        success: false,
-        message: axiosError.response.data.message || "An error occurred",
-        error: axiosError.response.data.error,
-      };
-    }
-
-    if (axiosError.code === "ECONNABORTED") {
-      return {
-        success: false,
-        message: "Request timeout. Please try again.",
-        error: "TIMEOUT",
-      };
-    }
-
-    if (!axiosError.response) {
-      return {
-        success: false,
-        message: "Network error. Please check your connection.",
-        error: "NETWORK_ERROR",
-      };
-    }
-
-    return {
-      success: false,
-      message: axiosError.message || "Request failed",
-      error: "REQUEST_FAILED",
-    };
-  }
-
-  return {
-    success: false,
-    message: "An unexpected error occurred",
-    error: "UNKNOWN_ERROR",
-  };
-};
-
-// Build query string for filters and pagination
+/**
+ * Builds query string from filters and pagination
+ */
 const buildQueryString = (
   filters?: BlogFilters,
   pagination?: PaginationParams
 ): string => {
   const params = new URLSearchParams();
 
-  // Add filters
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
+  const addParams = (obj: Record<string, any>) => {
+    Object.entries(obj).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
         params.append(key, String(value));
       }
     });
-  }
+  };
 
-  // Add pagination
-  if (pagination) {
-    Object.entries(pagination).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, String(value));
-      }
-    });
-  }
+  if (filters) addParams(filters);
+  if (pagination) addParams(pagination);
 
   return params.toString();
 };
 
+/**
+ * Generic API call wrapper with consistent error handling
+ */
+const executeApiCall = async <T>(
+  apiCall: () => Promise<ApiResponse<T>>,
+  setState: (state: Partial<BlogState>) => void
+): Promise<ApiResponse<T>> => {
+  setState({ isLoading: true, error: null });
+
+  try {
+    const response = await apiCall();
+
+    // Handle successful response
+    if (response.success) {
+      return response;
+    }
+
+    // Handle API-level failure (validation errors, etc.)
+    const errorMessage = response.message || "Operation failed";
+    setState({ error: errorMessage });
+
+    return {
+      ...response,
+      success: false,
+      data: null as T,
+    };
+  } catch (error) {
+    // Handle network errors or unexpected failures
+    const apiError = handleApiError<T>(error);
+    setState({ error: apiError.message });
+    return apiError;
+  } finally {
+    setState({ isLoading: false });
+  }
+};
+
+// ============================================================================
+// STORE DEFINITION
+// ============================================================================
+
 export const blogStore = create<BlogStore>()(
   persist(
     (set, get) => ({
-      // Initial state
-      blogs: [],
-      currentBlog: null,
-      isLoading: false,
-      error: null,
-      pagination: {
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
-      },
+      // ========================================================================
+      // STATE
+      // ========================================================================
+      ...INITIAL_STATE,
 
-      // Create blog
-      createBlog: async (
-        blog: CreateBlogInput,
-        imageFile: File,
-        previewImages: File[]
-      ) => {
-        set({ isLoading: true, error: null });
+      // ========================================================================
+      // ACTIONS
+      // ========================================================================
 
-        try {
-          const formData = createFormDataFromRequest(
+      createBlog: async (blog, imageFile, previewImages) => {
+        return executeApiCall(async () => {
+          const formData = createFormDataFromBlog(
             blog,
             imageFile,
             previewImages
           );
-          const response = await axiosInstance.post<ApiResponse<Blog>>(
-            "/",
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
+          // TypeScript thinks this returns AxiosResponse, but interceptor returns data directly
+          const response = (await axiosInstance.post("/", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })) as ApiResponse<Blog>;
 
-          if (response.data.success && response.data.data) {
-            // Add to blogs list
-            // set((state) => ({
-            //   blogs: [response.data.data!, ...state.blogs],
-            //   currentBlog: response.data.data!,
-            // }));
-
-            return {
-              data: response.data.data,
-              success: true,
-              message: response.data.message || "Blog created successfully",
-            };
+          // Update local state on success
+          if (response.success && response.data) {
+            set((state) => ({
+              blogs: [response.data!, ...state.blogs],
+            }));
           }
 
-          return {
-            success: false,
-            message: response.data.message || "Failed to create blog",
-            error: response.data.error,
-          };
-        } catch (error) {
-          const apiError = handleApiError(error);
-          set({ error: apiError.message });
-          return apiError;
-        } finally {
-          set({ isLoading: false });
-        }
+          return response;
+        }, set);
       },
 
-      // Update blog
-      updateBlog: async (
-        blogId: number,
-        blog: CreateBlogInput,
-        imageFile?: File,
-        previewImages?: File[]
-      ) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const formData = createFormDataFromRequest(
+      updateBlog: async (blogId, blog, imageFile, previewImages) => {
+        return executeApiCall(async () => {
+          const formData = createFormDataFromBlog(
             blog,
             imageFile,
             previewImages
           );
-          const response = await axiosInstance.put<ApiResponse<Blog>>(
-            `/${blogId}`,
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
+          const response = (await axiosInstance.put(`/${blogId}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })) as ApiResponse<Blog>;
 
-          if (response.data.success && response.data.data) {
-            // Update in blogs list and current blog
-
-            return {
-              data: response.data.data,
-              success: true,
-              message: response.data.message || "Blog updated successfully",
-            };
+          // Update local state on success
+          if (response.success && response.data) {
+            const updatedBlog = response.data;
+            set((state) => ({
+              blogs: state.blogs.map((b) =>
+                b.id === blogId ? updatedBlog : b
+              ),
+              currentBlog:
+                state.currentBlog?.id === blogId
+                  ? updatedBlog
+                  : state.currentBlog,
+            }));
           }
 
-          return {
-            success: false,
-            message: response.data.message || "Failed to update blog",
-            error: response.data.error,
-          };
-        } catch (error) {
-          const apiError = handleApiError(error);
-          set({ error: apiError.message });
-          return apiError;
-        } finally {
-          set({ isLoading: false });
-        }
+          return response;
+        }, set);
       },
 
-      // Get blogs with filters and pagination
-      getBlogs: async (
-        filters?: BlogFilters,
-        pagination?: PaginationParams
-      ) => {
-        set({ isLoading: true, error: null });
-
-        try {
+      getBlogs: async (filters, pagination) => {
+        return executeApiCall(async () => {
           const queryString = buildQueryString(filters, pagination);
           const url = queryString ? `/?${queryString}` : "/";
 
-          const response = await axiosInstance.get<
-            ApiResponse<PaginatedResponse<Blog>>
-          >(url);
+          const response = (await axiosInstance.get(url)) as ApiResponse<
+            PaginatedResponse<Blog>
+          >;
 
-          if (response.data.success && response.data.data) {
-            const { data: blogs, pagination: paginationData } =
-              response.data.data;
-
+          // Update local state on success
+          if (response.success && response.data) {
+            const { data: blogs, pagination: paginationData } = response.data;
             set({
               blogs,
               pagination: paginationData,
             });
-
-            return {
-              success: true,
-              data: response.data.data,
-              message: response.data.message,
-            };
           }
 
-          return {
-            success: false,
-            message: response.data.message || "Failed to fetch blogs",
-            error: response.data.error,
-          };
-        } catch (error) {
-          const apiError = handleApiError(error);
-          set({ error: apiError.message });
-          return apiError;
-        } finally {
-          set({ isLoading: false });
-        }
+          return response;
+        }, set);
       },
 
-      // Get single blog
-      getBlogById: async (blogId: number) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await axiosInstance.get<ApiResponse<Blog>>(
+      getBlogById: async (blogId) => {
+        return executeApiCall(async () => {
+          const response = (await axiosInstance.get(
             `/${blogId}`
-          );
+          )) as ApiResponse<Blog>;
 
-          if (response.data.success && response.data.data) {
-            set({ currentBlog: response.data.data });
-            return response.data;
+          // Update local state on success
+          if (response.success && response.data) {
+            set({ currentBlog: response.data });
           }
 
-          return {
-            success: false,
-            message: response.data.message || "Blog not found",
-            error: response.data.error,
-          };
-        } catch (error) {
-          const apiError = handleApiError(error);
-          set({ error: apiError.message });
-          return apiError;
-        } finally {
-          set({ isLoading: false });
-        }
+          return response;
+        }, set);
       },
 
-      // Delete blog
-      deleteBlog: async (blogId: number) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await axiosInstance.delete<ApiResponse<void>>(
+      deleteBlog: async (blogId) => {
+        return executeApiCall(async () => {
+          const response = (await axiosInstance.delete(
             `/${blogId}`
-          );
+          )) as ApiResponse<void>;
 
-          if (response.data.success) {
-            return {
-              success: true,
-              message: response.data.message || "Blog deleted successfully",
-            };
+          // Update local state on success
+          if (response.success) {
+            set((state) => ({
+              blogs: state.blogs.filter((b) => b.id !== blogId),
+              currentBlog:
+                state.currentBlog?.id === blogId ? null : state.currentBlog,
+            }));
           }
 
-          return {
-            success: false,
-            message: response.data.message || "Failed to delete blog",
-            error: response.data.error,
-          };
-        } catch (error) {
-          const apiError = handleApiError(error);
-          set({ error: apiError.message });
-          return apiError;
-        } finally {
-          set({ isLoading: false });
-        }
+          return response;
+        }, set);
       },
 
-      addLikeBlog: async (blogId: number) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await axiosInstance.post<ApiResponse<Blog>>(
+      addLikeBlog: async (blogId) => {
+        return executeApiCall(async () => {
+          const response = (await axiosInstance.post(
             `/${blogId}/like`
-          );
+          )) as ApiResponse<Blog>;
 
-          if (response.data.success && response.data.data) {
-            return response.data;
+          // Update local state on success
+          if (response.success && response.data) {
+            const updatedBlog = response.data;
+            set((state) => ({
+              blogs: state.blogs.map((b) =>
+                b.id === blogId ? updatedBlog : b
+              ),
+              currentBlog:
+                state.currentBlog?.id === blogId
+                  ? updatedBlog
+                  : state.currentBlog,
+            }));
           }
 
-          return {
-            success: false,
-            message: response.data.message,
-            error: response.data.error,
-          };
-        } catch (error) {
-          const apiError = handleApiError(error);
-          set({ error: apiError.message });
-          return apiError;
-        } finally {
-          set({ isLoading: false });
-        }
+          return response;
+        }, set);
       },
 
-      getLocalizedContent: (blog: Blog, currentLanguage: string) => {
-        // Ensure blog is defined and currentLanguage is valid
+      getLocalizedContent: (blog, currentLanguage) => {
         if (!blog || !currentLanguage) {
-          return {
-            title: "",
-            excerpt: "",
-            metaDesc: "",
-            metaTitle: "",
-            content: "",
-          };
+          return DEFAULT_LOCALIZED_CONTENT;
         }
+
+        const isEnglish = currentLanguage === "en";
+
         return {
-          title: currentLanguage === "en" ? blog.title_en : blog.title_ar,
-          excerpt:
-            currentLanguage === "en"
-              ? blog.excerpt_en ?? ""
-              : blog.excerpt_ar ?? "",
-          metaDesc:
-            currentLanguage === "en"
-              ? blog.metaDesc_en ?? ""
-              : blog.metaDesc_ar ?? "",
-          metaTitle:
-            currentLanguage === "en"
-              ? blog.metaTitle_en ?? ""
-              : blog.metaTitle_ar ?? "",
-          content: currentLanguage === "en" ? blog.content_en : blog.content_ar,
+          title: isEnglish ? blog.title_en : blog.title_ar,
+          excerpt: isEnglish ? blog.excerpt_en ?? "" : blog.excerpt_ar ?? "",
+          metaDesc: isEnglish ? blog.metaDesc_en ?? "" : blog.metaDesc_ar ?? "",
+          metaTitle: isEnglish
+            ? blog.metaTitle_en ?? ""
+            : blog.metaTitle_ar ?? "",
+          content: isEnglish ? blog.content_en : blog.content_ar,
         };
       },
 
-      // Utility actions
-      setCurrentBlog: (blog: Blog | null) => {
-        set({ currentBlog: blog });
-      },
+      // ========================================================================
+      // UTILITY ACTIONS
+      // ========================================================================
 
-      clearError: () => {
-        set({ error: null });
-      },
+      setCurrentBlog: (blog) => set({ currentBlog: blog }),
 
-      resetStore: () => {
-        set({
-          blogs: [],
-          currentBlog: null,
-          isLoading: false,
-          error: null,
-          pagination: {
-            page: 1,
-            limit: 10,
-            total: 0,
-            totalPages: 0,
-          },
-        });
-      },
+      clearError: () => set({ error: null }),
+
+      resetStore: () => set(INITIAL_STATE),
     }),
     {
       name: "blog-storage",
@@ -603,10 +357,9 @@ export const blogStore = create<BlogStore>()(
         currentBlog: state.currentBlog,
         pagination: state.pagination,
       }),
-      // Only rehydrate non-sensitive data
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Reset loading and error states on rehydration
+          // Reset transient state on rehydration
           state.isLoading = false;
           state.error = null;
         }
@@ -615,7 +368,10 @@ export const blogStore = create<BlogStore>()(
   )
 );
 
-// Selector hooks for better performance
+// ============================================================================
+// SELECTOR HOOKS
+// ============================================================================
+
 export const useBlogs = () => blogStore((state) => state.blogs);
 export const useCurrentBlog = () => blogStore((state) => state.currentBlog);
 export const useBlogsLoading = () => blogStore((state) => state.isLoading);

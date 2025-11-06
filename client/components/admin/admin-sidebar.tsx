@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   Star,
+  Contact,
 } from "lucide-react";
 
 const navigation = [
@@ -52,6 +53,12 @@ const navigation = [
     nameKey: "admin.nav.users",
     href: "/admin/users",
     icon: Users,
+  },
+    {
+    name: "Contacts",
+    nameKey: "admin.nav.users",
+    href: "/admin/contacts",
+    icon: Contact,
   },
   {
     name: "Settings",

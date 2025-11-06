@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Mail, Award, Phone, Code2 } from "lucide-react";
-import { APP_NAME } from "@/constants/index.constants";
+import { Mail, Award, Phone } from "lucide-react";
+import { APP_NAME, ICON_SIZES } from "@/constants/index.constants";
+import Logo from "./shared/logo";
+import { CONTACT_INFO, SOCIAL_LINKS } from "@/constants/contact.constants";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -11,31 +13,28 @@ export function Footer() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-6 lg:gap-8 mb-8 sm:mb-10 lg:mb-12">
             {/* Company Info */}
             <div className="space-y-4 text-center sm:text-left">
-              <div className="flex items-center gap-2 justify-center sm:justify-start">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                  <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
-                </div>
-                <span className="text-lg sm:text-xl font-black text-foreground">
-                  {APP_NAME}
-                </span>
-              </div>
+              <Logo />
               <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
                 Professional web development services that transform your
                 business vision into reality.
               </p>
               <div className="flex gap-3 justify-center sm:justify-start">
-                <button
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors"
-                  aria-label="Email us"
-                >
-                  <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors"
-                  aria-label="Call us"
-                >
-                  <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
+                {SOCIAL_LINKS.map((c, i) => (
+                  <li
+                    key={i}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent/50 hover:bg-accent flex items-center justify-center text-accent-foreground/80 hover:text-accent-foreground transition-colors"
+                  >
+                    {/* If it has a link (Phone/Mail), use an <a> tag */}
+
+                    <Link
+                      href={c.href}
+                      // Text hover color changes to Primary for high contrast/focus
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
+                      <c.icon />
+                    </Link>
+                  </li>
+                ))}
               </div>
             </div>
 
@@ -70,7 +69,7 @@ export function Footer() {
                 Company
               </h4>
               <ul className="space-y-2 text-sm sm:text-base">
-                {["About Us", "Portfolio", "Blog", "Contact", "Careers"].map(
+                {["About Us", "Portfolio", "Blog", "Contact", "FAQ"].map(
                   (item) => (
                     <li key={item}>
                       <Link
@@ -91,22 +90,17 @@ export function Footer() {
                 Get in Touch
               </h4>
               <div className="space-y-3 text-sm sm:text-base text-muted-foreground">
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
-                  <Phone className="w-4 h-4 flex-shrink-0" />
-                  <span className="break-all sm:break-normal">
-                    +212-9214-43301
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
-                  <Mail className="w-4 h-4 flex-shrink-0" />
-                  <span className="break-all sm:break-normal">
-                    contact@emazouz.com
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
-                  <Award className="w-4 h-4 flex-shrink-0" />
-                  <span>Rabat, Morocco</span>
-                </div>
+                {CONTACT_INFO.map((c, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-2 justify-center sm:justify-start"
+                  >
+                    {/* If it has a link (Phone/Mail), use an <a> tag */}
+
+                    <c.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="break-all sm:break-normal">{c.value}</span>
+                  </li>
+                ))}
               </div>
             </div>
           </div>

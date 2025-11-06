@@ -1,5 +1,92 @@
-import { Blog } from "@/store/blogStore";
+import { CreateBlogInput } from "@/validators/blog.validate";
+import { CommentType } from "./comment.types";
+import { ApiResponse, PaginatedResponse, PaginationMeta } from "./response.types";
 
+export interface Blog extends CreateBlogInput {
+  id: number;
+  imageUrl?: string;
+  previewImages: string[];
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  views: number;
+  likes: number;
+  comments?: CommentType[];
+  userLiked?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface BlogState {
+  blogs: Blog[];
+  currentBlog: Blog | null;
+  isLoading: boolean;
+  error: string | null;
+  pagination: PaginationMeta
+}
+
+export interface BlogActions {
+  createBlog: (
+    blog: CreateBlogInput,
+    imageFile: File,
+    previewImages: File[]
+  ) => Promise<ApiResponse<Blog>>;
+  updateBlog: (
+    blogId: number,
+    blog: CreateBlogInput,
+    imageFile?: File,
+    previewImages?: File[]
+  ) => Promise<ApiResponse<Blog>>;
+  getBlogs: (
+    filters?: BlogFilters,
+    pagination?: PaginationParams
+  ) => Promise<ApiResponse<PaginatedResponse<Blog>>>;
+  getBlogById: (blogId: number) => Promise<ApiResponse<Blog>>;
+  deleteBlog: (blogId: number) => Promise<ApiResponse<void>>;
+  addLikeBlog: (blogId: number) => Promise<ApiResponse<Blog>>;
+  getLocalizedContent: (
+    blog: Blog,
+    currentLanguage: string
+  ) => LocalizedContentType;
+  setCurrentBlog: (blog: Blog | null) => void;
+  clearError: () => void;
+  resetStore: () => void;
+}
+
+export type BlogStore = BlogState & BlogActions;
+
+
+
+export interface BlogFilters {
+  category?: string;
+  status?: string;
+  featured?: boolean;
+  search?: string;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface LocalizedContentType {
+  title: string;
+  excerpt: string;
+  metaDesc: string;
+  metaTitle: string;
+  content: string;
+}
 export const MAX_TAGS = 10;
 export const MAX_KEYWORDS = 10;
 
@@ -155,7 +242,12 @@ export interface BlogCardProps {
 }
 
 export type ViewMode = "grid" | "list";
-export type SortOption = "newest" | "oldest" | "mostViewed" | "mostLiked" | "trending";
+export type SortOption =
+  | "newest"
+  | "oldest"
+  | "mostViewed"
+  | "mostLiked"
+  | "trending";
 
 export interface Category {
   value: string;
@@ -168,14 +260,10 @@ export interface SortConfig {
   label: string;
 }
 
-
-
 export interface BlogStatisticsCardProps {
   blog: Blog;
   currentLanguage: string;
 }
-
-
 
 export interface BlogHeaderProps {
   blog: Blog;
@@ -187,9 +275,6 @@ export interface BlogHeaderProps {
   handleBookmark: () => void;
   isBookmarked: boolean;
 }
-
-
-
 
 export interface RelatedPostsProps {
   currentBlogId: number;

@@ -12,7 +12,7 @@ export const StarRating = ({
   onRatingChange,
   className,
   variant = "default",
-  ratingsCount = 0,
+  ratingsCount,
 }: StarRatingProps) => {
   // Size configurations
   const sizeClasses = {

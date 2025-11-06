@@ -12,6 +12,7 @@ import {
   User,
   Settings,
   ShoppingBag,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -29,6 +30,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { moreNavigation, navigation } from "@/constants/navigation.constants";
 import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import Logo from "./logo";
 
 // ============================================================================
 // PERFORMANCE OPTIMIZATIONS APPLIED:
@@ -220,19 +222,7 @@ export function Navigation() {
         <div className="wrapper">
           <div className="flex h-18 items-center justify-between">
             {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
-            >
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
-                <span className="text-primary-foreground font-bold text-lg">
-                  D
-                </span>
-              </div>
-              <span className="font-bold text-xl text-primary">
-                DevPortfolio
-              </span>
-            </Link>
+            <Logo />
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
@@ -262,15 +252,16 @@ export function Navigation() {
             </div>
 
             {/* Desktop Actions */}
+
             <div className="hidden md:flex items-center space-x-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={openSearch}
                 className="h-9 w-9 hover:bg-muted transition-colors"
-                title="Search"
+                title="Bell"
               >
-                <Search className="h-4 w-4" />
+                <Bell className="h-4 w-4" />
               </Button>
 
               <ThemeToggle />

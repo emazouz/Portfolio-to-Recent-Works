@@ -413,6 +413,8 @@ export const getProjects = asyncHandler(async (req: Request, res: Response) => {
           metaDesc_ar: true,
           technologies: true,
           featured: true,
+          rating: true,
+          ratingsCount: true,
           sortOrder: true,
           createdAt: true,
           updatedAt: true,

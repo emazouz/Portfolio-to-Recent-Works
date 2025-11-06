@@ -23,95 +23,43 @@
 | Defining custom properties (CSS variables) for the default (light) theme.
 */
 :root {
-  /* COLORS */
-  /* Pure white background */
-  --background: linear-gradient(to bottom right, #ffffff, #f7f7f7, #ffffff);
-  --foreground: oklch(0.1 0.01 240); /* Very dark gray/black text */
-  --card: oklch(0.99 0 0); /* Pure white card */
-  --card-foreground: oklch(0.1 0 0);
-  --popover: oklch(0.99 0 0);
-  --popover-foreground: oklch(0.1 0 0);
+  /* COLORS - LIGHT MODE - Elegant Purple & Gold Theme */
+  /* Soft gradient background with purple undertones */
+  --background: linear-gradient(135deg, #fdfcff 0%, #f9f7fc 50%, #fdfcff 100%);
+  --foreground: #1a0f2e; /* Deep purple-black */
 
-  --primary: #1e3a8a; /* Deep Navy Blue 700 - Main color for backgrounds/text focus */
-  --primary-foreground: oklch(1 0 0);
+  /* Cards with subtle elevation */
+  --card: #ffffff;
+  --card-foreground: #1a0f2e;
+  --popover: #ffffff;
+  --popover-foreground: #1a0f2e;
 
-  --secondary: #ffb740; /* Muted Gold 400 - Accent color for highlights */
-  --secondary-foreground: oklch(0.1 0 0);
+  /* Primary - Rich Dark Purple */
+  --primary: #4c1d95; /* Deep Purple 900 */
+  --primary-foreground: #fdfcff;
 
-  --muted: oklch(0.92 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0.1 0 0);
+  /* Secondary - Luxurious Dark Gold */
+  --secondary: #ca8a04; /* Dark Gold 600 */
+  --secondary-foreground: #1a0f2e;
 
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.99 0 0);
+  /* Muted tones with purple undertones */
+  --muted: #f3f0f9; /* Light purple-gray */
+  --muted-foreground: #6b4c9a; /* Muted purple */
 
-  --border: oklch(0.85 0 0);
-  --input: oklch(0.85 0 0);
-  --ring: #1e3a8a; /* Navy Blue ring */
+  /* Accent with rich purple */
+  --accent: #ede9fe; /* Very light purple */
+  --accent-foreground: #4c1d95;
 
-  /* CHART COLORS */
-  --chart-1: linear-gradient(to bottom right, #0ea5e9, #38bdf8); /* Sky Blue */
-  --chart-2: linear-gradient(to bottom right, #ffb740, #ffd700); /* Gold */
-  --chart-3: linear-gradient(to bottom right, #3b82f6, #0ea5e9);
-  --chart-4: linear-gradient(to bottom right, #10b981, #34d399);
-  --chart-5: linear-gradient(to bottom right, #ef4444, #dc2626);
-  --chart-6: linear-gradient(to bottom right, #a855f7, #9333ea);
-  --chart-7: linear-gradient(to bottom right, #fb7185, #f43f5e);
-  --chart-8: linear-gradient(to bottom right, #14b8a6, #22c55e);
-  --chart-9: linear-gradient(to bottom right, #64748b, #475569);
-  --chart-10: linear-gradient(to bottom right, #d946ef, #c026d3);
-  --chart-11: linear-gradient(to bottom right, #78716c, #57534e);
+  /* Destructive with proper contrast */
+  --destructive: #dc2626; /* Red 600 */
+  --destructive-foreground: #ffffff;
 
-  /* SIDEBAR COLORS */
-  --sidebar: oklch(0.98 0 0);
-  --sidebar-foreground: oklch(0.1 0 0);
-  --sidebar-primary: oklch(0.2 0.05 240);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0 0);
-  --sidebar-accent-foreground: oklch(0.1 0 0);
-  --sidebar-border: oklch(0.85 0 0);
-  --sidebar-ring: oklch(0.7 0 0);
+  /* Borders and inputs with purple tint */
+  --border: #e9e3f5; /* Light purple border */
+  --input: #f9f7fc;
+  --ring: #7c3aed; /* Purple 600 - Focus ring */
 
-  /* SIZES */
-  --radius: 0.625rem; /* Base border radius */
-}
-
-/*
-|--------------------------------------------------------------------------
-| 4. CSS VARIABLES (DARK MODE) - DEEP BLACK/SKY BLUE/GOLD THEME
-|--------------------------------------------------------------------------
-| Overriding default variables when the '.dark' class is present.
-*/
-.dark {
-  /* COLORS */
-  /* Deep black background */
-  --background: linear-gradient(to bottom right, #000000, #0a0a0a, #000000);
-  --foreground: #ffffee; /* Off-white text for contrast */
-  --card: #0a0a0a; /* Deep gray card color */
-  --card-foreground: #ffffee;
-  --popover: oklch(0.16 0 0);
-  --popover-foreground: #ffffee;
-
-  --primary: #38bdf8; /* Bright Sky Blue 400 - Main color */
-  --primary-foreground: oklch(0.1 0 0);
-
-  --secondary: #ffd700; /* Bright Gold - Accent color */
-  --secondary-foreground: oklch(0.1 0 0);
-
-  --muted: #1a1a1a;
-  --muted-foreground: oklch(0.7 0 0);
-  --accent: #333333;
-  --accent-foreground: #ffffee;
-
-  --destructive: oklch(0.58 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-
-  --border: #333333;
-  --input: #1a1a1a;
-  --ring: #38bdf8; /* Bright Sky Blue ring */
-
-  /* CHART COLORS (Dark Mode) */
+  /* CHART COLORS - Purple & Gold Palette */
   --chart-1: linear-gradient(to bottom right, #ffd700, #ffbf00); /* Gold */
   --chart-2: linear-gradient(to bottom right, #38bdf8, #7dd3fc); /* Sky Blue */
   --chart-3: linear-gradient(to bottom right, #60a5fa, #22d3ee);
@@ -124,43 +72,120 @@
   --chart-10: linear-gradient(to bottom right, #e879f9, #ec4899);
   --chart-11: linear-gradient(to bottom right, #a8a29e, #78716c);
 
-  /* SIDEBAR COLORS (Dark Mode) */
-  --sidebar: #000000;
-  --sidebar-foreground: #ffffee;
-  --sidebar-primary: oklch(0.6 0.1 240);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #ffffee;
-  --sidebar-border: #333333;
-  --sidebar-ring: oklch(0.5 0 0);
+  /* SIDEBAR COLORS */
+  --sidebar: #faf8fc; /* Very light purple */
+  --sidebar-foreground: #1a0f2e;
+  --sidebar-primary: #5b21b6; /* Purple 700 */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3f0f9;
+  --sidebar-accent-foreground: #4c1d95;
+  --sidebar-border: #e9e3f5;
+  --sidebar-ring: #7c3aed;
+
+  /* SIZES */
+  --radius: 0.75rem;
 }
 
 /*
 |--------------------------------------------------------------------------
-| 5. PREFERS-COLOR-SCHEME MEDIA QUERY
+| DARK MODE - Luxurious Black, Purple & Gold Theme
 |--------------------------------------------------------------------------
-| Applies dark mode by default if the user's system preference is dark,
-| but only if the 'light' class is not explicitly set on the root element.
+*/
+.dark {
+  /* COLORS */
+  /* Deep black with purple undertone */
+  --background: linear-gradient(135deg, #0a0612 0%, #050309 50%, #0a0612 100%);
+  --foreground: #f5f3ff; /* Soft purple-white */
+
+  /* Cards with rich black elevation */
+  --card: #1a0f2e; /* Deep purple-black */
+  --card-foreground: #f5f3ff;
+  --popover: #1f0d37;
+  --popover-foreground: #f5f3ff;
+
+  /* Primary - Vibrant Purple */
+  --primary: #a855f7; /* Purple 500 */
+  --primary-foreground: #0a0612;
+
+  /* Secondary - Rich Gold */
+  --secondary: #fbbf24; /* Gold 400 */
+  --secondary-foreground: #0a0612;
+
+  /* Muted with better contrast */
+  --muted: #2d1b4e; /* Dark purple-gray */
+  --muted-foreground: #c4b5fd; /* Light purple */
+
+  /* Accent with depth */
+  --accent: #3b1f5c; /* Rich dark purple */
+  --accent-foreground: #f5f3ff;
+
+  /* Destructive */
+  --destructive: #ef4444; /* Red 500 */
+  --destructive-foreground: #ffffff;
+
+  /* Borders and inputs */
+  --border: #3b1f5c; /* Purple border */
+  --input: #2d1b4e;
+  --ring: #c084fc; /* Purple 400 - Bright focus ring */
+
+  /* CHART COLORS - Vibrant Purple & Gold for Dark Mode */
+  --chart-1: linear-gradient(to bottom right, #ffd700, #ffbf00); /* Gold */
+  --chart-2: linear-gradient(to bottom right, #38bdf8, #7dd3fc); /* Sky Blue */
+  --chart-3: linear-gradient(to bottom right, #60a5fa, #22d3ee);
+  --chart-4: linear-gradient(to bottom right, #34d399, #6ee7b7);
+  --chart-5: linear-gradient(to bottom right, #818cf8, #a5b4fc);
+  --chart-6: linear-gradient(to bottom right, #c084fc, #a78bfa);
+  --chart-7: linear-gradient(to bottom right, #fb923c, #f87171);
+  --chart-8: linear-gradient(to bottom right, #2dd4bf, #4ade80);
+  --chart-9: linear-gradient(to bottom right, #475569, #64748b);
+  --chart-10: linear-gradient(to bottom right, #e879f9, #ec4899);
+  --chart-11: linear-gradient(to bottom right, #a8a29e, #78716c);
+
+  /* SIDEBAR COLORS */
+  --sidebar: #0f0720; /* Ultra deep purple-black */
+  --sidebar-foreground: #f5f3ff;
+  --sidebar-primary: #a855f7; /* Purple 500 */
+  --sidebar-primary-foreground: #0a0612;
+  --sidebar-accent: #2d1b4e;
+  --sidebar-accent-foreground: #f5f3ff;
+  --sidebar-border: #3b1f5c;
+  --sidebar-ring: #c084fc;
+}
+
+/*
+|--------------------------------------------------------------------------
+| PREFERS-COLOR-SCHEME MEDIA QUERY
+|--------------------------------------------------------------------------
 */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: linear-gradient(to bottom right, #000000, #0a0a0a, #000000);
-    --foreground: #ffffee;
-    --card: #0a0a0a;
-    --card-foreground: #ffffee;
-    --primary: #38bdf8;
-    --primary-foreground: oklch(0.1 0 0);
-    --secondary: #ffd700;
-    --secondary-foreground: oklch(0.1 0 0);
+    --background: linear-gradient(
+      135deg,
+      #0a0612 0%,
+      #050309 50%,
+      #0a0612 100%
+    );
+    --foreground: #f5f3ff;
+    --card: #1a0f2e;
+    --card-foreground: #f5f3ff;
+    --primary: #a855f7;
+    --primary-foreground: #0a0612;
+    --secondary: #fbbf24;
+    --secondary-foreground: #0a0612;
+    --border: #3b1f5c;
+    --input: #2d1b4e;
+    --ring: #c084fc;
+    --muted: #2d1b4e;
+    --muted-foreground: #c4b5fd;
+    --accent: #3b1f5c;
+    --accent-foreground: #f5f3ff;
   }
 }
 
 /*
 |--------------------------------------------------------------------------
-| 6. TAILWIND THEME EXTENSION (inline)
+| TAILWIND THEME EXTENSION
 |--------------------------------------------------------------------------
-| Mapping the custom CSS variables to Tailwind CSS utility classes.
-| This allows using classes like 'bg-primary' or 'text-card-foreground'.
 */
 @theme inline {
   /* Fonts */
@@ -216,6 +241,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
 /* Global body styling using CSS variables for background and text */

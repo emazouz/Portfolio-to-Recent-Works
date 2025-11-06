@@ -24,26 +24,14 @@ function TopNavBar() {
           {CONTACT_INFO.map((c, i) => (
             <li key={i} className="flex items-center gap-2">
               {/* If it has a link (Phone/Mail), use an <a> tag */}
-              {c.href ? (
-                <Link
-                  href={c.href}
-                  // Text hover color changes to Primary for high contrast/focus
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
-                >
-                  <c.icon className={ICON_SIZES[c.iconSize]} />
-                  <span className="hidden md:inline font-medium">
-                    {c.title}
-                  </span>
-                </Link>
-              ) : (
-                // If no link (MapPin), render as plain text/icon
-                <>
-                  <c.icon />
-                  <span className="hidden md:inline font-medium">
-                    {c.title}
-                  </span>
-                </>
-              )}
+              <Link
+                href={c.href}
+                // Text hover color changes to Primary for high contrast/focus
+                className="flex items-center gap-2 hover:text-primary transition-colors"
+              >
+                <c.icon className={ICON_SIZES[c.iconSize]} />
+                <span className="hidden md:inline font-medium">{c.title}</span>
+              </Link>
             </li>
           ))}
         </ul>

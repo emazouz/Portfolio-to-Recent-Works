@@ -32,7 +32,7 @@ function ProjectCard({ project, index, language = "en" }: ProjectCardProps) {
 
   return (
     <Card
-      className="group card overflow-hidden relative"
+      className="group card overflow-hidden relative pt-0"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -121,16 +121,16 @@ function ProjectCard({ project, index, language = "en" }: ProjectCardProps) {
         {/* Rating and Featured Badge */}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
           <div className="flex items-center justify-between text-white text-sm">
-            <div className="flex items-center gap-1">
-              <Star
-                className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                aria-hidden="true"
-              />
-              <span className="font-semibold">{project.rating || 5}</span>
-              <span className="text-white/60">
-                ({project.ratingsCount || 1})
-              </span>
-            </div>
+            {project.rating && (
+              <div className="flex items-center gap-1">
+                <Star
+                  className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                  aria-hidden="true"
+                />
+                <span className="font-semibold">{project.rating}</span>
+                <span className="text-white/60">({project.ratingsCount})</span>
+              </div>
+            )}
             <div className=" flex gap-2 flex-wrap">
               <Badge
                 className="text-white border-0 shadow-lg"

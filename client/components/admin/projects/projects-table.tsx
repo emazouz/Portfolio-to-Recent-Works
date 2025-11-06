@@ -32,10 +32,11 @@ import {
   Calendar,
 } from "lucide-react";
 import { CustomDropdown, DropdownItem } from "@/components/ui/dropdown-menu";
-import { Project, projectStore } from "@/store/projectStore";
+import { projectStore } from "@/store/projectStore";
 import { toast } from "@/hooks/use-toast";
 import Loader from "@/components/ui/Loader";
 import { PageNotFound } from "@/components/ui/NotFound";
+import { Project } from "@/types/project.types";
 
 export function ProjectsTable() {
   const { t } = useTranslation();
@@ -211,11 +212,11 @@ export function ProjectsTable() {
             </Select>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             {filteredProjects.map((project) => (
               <Card
                 key={project.id}
-                className="group hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20 overflow-hidden"
+                className="group hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20 overflow-hidden pt-0"
               >
                 <div className="aspect-video relative overflow-hidden bg-muted">
                   <img
@@ -248,7 +249,7 @@ export function ProjectsTable() {
                     <CustomDropdown
                       align="end"
                       trigger={
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0 bg-secondary">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       }
@@ -278,7 +279,7 @@ export function ProjectsTable() {
                     </CustomDropdown>
                   </div>
                 </div>
-                <CardHeader className="pb-3">
+                <CardHeader>
                   <div className="space-y-2">
                     <Badge variant="secondary" className="text-xs w-fit">
                       {project.category}

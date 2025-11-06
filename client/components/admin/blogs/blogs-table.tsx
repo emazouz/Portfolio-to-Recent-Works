@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { CustomDropdown, DropdownItem } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Blog, blogStore } from "@/store/blogStore";
+import { blogStore } from "@/store/blogStore";
 import { BLOG_CATEGORIES } from "@/constants/blog.constants";
 import { toast } from "@/hooks/use-toast";
 

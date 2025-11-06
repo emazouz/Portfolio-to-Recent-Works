@@ -37,7 +37,7 @@ function BlogCard({
 
   return (
     <Card
-      className="group card overflow-hidden cursor-pointer"
+      className="group card overflow-hidden cursor-pointer pt-0"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{

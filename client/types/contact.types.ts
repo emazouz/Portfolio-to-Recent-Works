@@ -4,7 +4,7 @@ export interface ContactInfo {
   title: string;
   value: string;
   description: string;
-  href?: string;
+  href: string;
   color: string;
 }
 

@@ -1,7 +1,5 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import "../assets/styles/globals.css";
@@ -24,7 +22,6 @@ export const metadata: Metadata = {
 
   description: APP_DESCRIPTION,
   metadataBase: new URL(SERVER_URL),
-  generator: "v0.app",
   keywords: [
     "developer",
     "portfolio",
@@ -33,7 +30,7 @@ export const metadata: Metadata = {
     "frontend",
     "backend",
   ],
-  authors: [{ name: "Developer Portfolio" }],
+  authors: [{ name: "Emazouz Portfolio" }],
   openGraph: {
     title: {
       template: `%s | ${APP_NAME}`,

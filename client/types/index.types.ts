@@ -118,6 +118,7 @@ export interface MarkdownRendererProps {
 export interface MarkdownContentProps {
   content: string;
 // Duplicate StarRatingProps removed; consolidated definition lives above.
+  allowHtml?: boolean;
   showValue?: boolean;
   animated?: boolean;
   interactive?: boolean;

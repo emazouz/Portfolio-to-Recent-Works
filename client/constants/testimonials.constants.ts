@@ -6,7 +6,8 @@ export const testimonials: Testimonial[] = [
     name: "Sarah Johnson",
     role: "CEO",
     company: "TechStart Inc.",
-    avatar: "/client-avatar-1.jpg",
+    avatar:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
     rating: 5,
     quote:
       "Working with this developer was an absolute pleasure. They delivered our e-commerce platform ahead of schedule and exceeded all our expectations. The attention to detail and code quality is outstanding.",
@@ -27,7 +28,8 @@ export const testimonials: Testimonial[] = [
     name: "Michael Chen",
     role: "Product Manager",
     company: "InnovateLab",
-    avatar: "/client-avatar-2.jpg",
+    avatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
     rating: 5,
     quote:
       "The SaaS dashboard they built for us has significantly improved our team's productivity. The user interface is intuitive and the performance is exceptional. Highly recommended!",
@@ -48,7 +50,8 @@ export const testimonials: Testimonial[] = [
     name: "Emily Rodriguez",
     role: "Marketing Director",
     company: "GrowthCorp",
-    avatar: "/client-avatar-3.jpg",
+    avatar:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
     rating: 5,
     quote:
       "Our new landing page has increased conversions by 40%! The design is modern, responsive, and perfectly captures our brand identity. Excellent work from start to finish.",
@@ -69,7 +72,8 @@ export const testimonials: Testimonial[] = [
     name: "David Thompson",
     role: "Founder",
     company: "RestaurantPro",
-    avatar: "/client-avatar-4.jpg",
+    avatar:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80",
     rating: 5,
     quote:
       "The restaurant website and reservation system they developed has streamlined our operations completely. Our customers love the new online ordering feature.",
@@ -90,7 +94,8 @@ export const testimonials: Testimonial[] = [
     name: "Lisa Wang",
     role: "CTO",
     company: "FinanceFlow",
-    avatar: "/client-avatar-5.jpg",
+    avatar:
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80",
     rating: 5,
     quote:
       "The crypto trading dashboard is exactly what we needed. Real-time data, beautiful charts, and rock-solid performance. They truly understand both design and functionality.",
@@ -111,7 +116,8 @@ export const testimonials: Testimonial[] = [
     name: "James Miller",
     role: "Content Manager",
     company: "BlogCentral",
-    avatar: "/client-avatar-6.png",
+    avatar:
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80",
     rating: 5,
     quote:
       "Our new blog platform has made content management so much easier. The markdown editor and SEO features are fantastic. Great communication throughout the project.",
@@ -130,8 +136,8 @@ export const testimonials: Testimonial[] = [
 ];
 
 export const CLIENT = [
-  "/client-avatar-1.jpg",
-  "/client-avatar-3.jpg",
-  "/client-avatar-4.jpg",
-  "/client-avatar-5.jpg",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80", // Professional male
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80", // Professional female
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80", // Business professional male
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80", // Business professional female
 ];
